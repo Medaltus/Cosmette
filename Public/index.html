@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmette Skincare — Dashboard · Medaltus</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#001F60; --slate:#6B7BA2; --green:#24E9A3; --sand:#F4DFD0; --silver:#CCD3D5;
+  --white:#ffffff; --bg:#F5F6F9; --bg2:#ECEEF4;
+  --navy-dim:rgba(0,31,96,0.06); --green-dim:rgba(36,233,163,0.13);
+  --border:rgba(0,31,96,0.10); --border2:rgba(0,31,96,0.06);
+  --text:#001F60; --muted:#6B7BA2; --success:#24e9a3; --warn:#C87D2F; --danger:#db372d;
+  --sidebar-w:224px;
+  --font:'DM Sans',system-ui,sans-serif; --mono:'DM Mono','Fira Mono',monospace;
+  --radius:10px; --radius-sm:6px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.55;}
+
+/* ── Layout ── */
+.shell{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--navy);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.sidebar::-webkit-scrollbar{width:3px;}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px;}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+
+/* ── Sidebar branding ── */
+.sb-brand{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sb-brand-logo{font-size:16px;font-weight:600;color:#fff;letter-spacing:-.3px;}
+.sb-brand-logo span{color:var(--green);}
+.sb-brand-sub{font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.08em;margin-top:3px;}
+
+/* ── Nav ── */
+nav{flex:1;padding:8px 8px 0;}
+.nav-section{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.28);padding:0 8px;margin:14px 0 4px;}
+.nav-section:first-child{margin-top:4px;}
+.nav-btn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border:none;background:none;color:rgba(255,255,255,0.50);font-family:var(--font);font-size:12.5px;border-radius:var(--radius-sm);cursor:pointer;text-align:left;transition:all .13s;}
+.nav-btn:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.85);}
+.nav-btn.active{background:rgba(36,233,163,0.14);color:var(--green);}
+.nav-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;flex-shrink:0;}
+
+/* ── Soon nav button state ── */
+.nav-btn.soon{opacity:0.42;cursor:not-allowed;pointer-events:none;}
+.nav-soon-badge{margin-left:auto;background:rgba(36,233,163,0.18);color:var(--green);font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.03em;}
+
+/* ── Topbar ── */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-title{font-size:14px;font-weight:600;color:var(--navy);letter-spacing:-.2px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+
+/* ── Page ── */
+.page{display:none;flex:1;padding:28px;}
+.page.active{display:block;}
+.page-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
+.page-title{font-size:20px;font-weight:600;letter-spacing:-.5px;color:var(--navy);}
+.page-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+
+/* ── KPI row ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px;}
+.kpi-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.kpi-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.kpi-value{font-size:26px;font-weight:600;letter-spacing:-1px;line-height:1;color:var(--navy);}
+.kpi-value.sm{font-size:20px;}
+.kpi-mom{font-size:11px;margin-top:5px;}
+.kpi-mom.up{color:#1db88a;}
+.kpi-mom.dn{color:var(--danger);}
+.kpi-mom.flat{color:var(--muted);}
+
+/* ── Cards / sections ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card+.card{margin-top:14px;}
+.card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+/* ── Table ── */
+table.data-table{width:100%;border-collapse:collapse;}
+table.data-table thead tr{background:var(--navy);}
+table.data-table thead th{padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--white);text-align:left;}
+table.data-table tbody tr{border-bottom:1px solid var(--border2);}
+table.data-table tbody tr:nth-child(odd){background:var(--bg);}
+table.data-table tbody tr:last-child{border-bottom:none;}
+table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font-weight:600;}
+
+/* ── Placeholder content ── */
+.placeholder-block{background:var(--white);border:1.5px dashed var(--border);border-radius:var(--radius);padding:40px;text-align:center;color:var(--muted);}
+.placeholder-block .ph-icon{font-size:28px;margin-bottom:12px;opacity:.4;}
+.placeholder-block .ph-title{font-size:14px;font-weight:500;color:var(--navy);margin-bottom:6px;}
+.placeholder-block .ph-sub{font-size:12px;line-height:1.6;}
+
+/* ── Chart placeholder ── */
+.chart-placeholder{background:var(--bg);border-radius:var(--radius-sm);height:200px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;border:1px solid var(--border2);}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:2000;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* ── Overview hero ── */
+.brand-hero{background:linear-gradient(135deg,var(--navy) 0%,#0a2a78 100%);border-radius:var(--radius);padding:24px 28px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.brand-hero-left .brand-name{font-size:22px;font-weight:600;color:#fff;letter-spacing:-.4px;}
+.brand-hero-left .brand-tagline{font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;}
+.brand-hero-right{display:flex;gap:20px;}
+.hero-stat{text-align:center;}
+.hero-stat-val{font-size:20px;font-weight:600;color:var(--green);line-height:1;}
+.hero-stat-lbl{font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+
+/* ── Onboarding page specific ── */
+.onboarding-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:32px 36px;margin-bottom:28px;color:#fff;}
+.onboarding-hero-label{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px;}
+.onboarding-hero-title{font-size:26px;font-weight:600;line-height:1.2;margin-bottom:10px;}
+.onboarding-hero-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.65;max-width:540px;}
+.onboarding-steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;}
+.onboarding-step{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.ob-step-num{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
+.ob-step-num.done{background:var(--green);color:var(--navy);}
+.ob-step-num.active-step{background:var(--navy);color:var(--green);border:2px solid var(--green);}
+.ob-step-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px;}
+.ob-step-sub{font-size:12px;color:var(--muted);line-height:1.6;}
+.ob-step-status{display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+.ob-step-status.complete{color:#1db88a;}
+.ob-step-status.pending{color:var(--warn);}
+.ob-step-status.upcoming{color:var(--muted);}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .sidebar{width:200px;min-width:200px;}
+  .two-col,.three-col,.onboarding-steps{grid-template-columns:1fr;}
+  .page{padding:16px;}
+}
+</style>
+<link rel="icon" type="image/png" href="/cosmette_favicon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-brand-logo">cosmette <span>·</span> Medaltus</div>
+    <div class="sb-brand-sub">Brand Dashboard</div>
+  </div>
+
+  <nav>
+    <!-- Onboarding tab — new brand only -->
+    <div class="nav-section">Getting Started</div>
+    <button class="nav-btn active" onclick="showPage('onboarding',this)">
+      <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Onboarding
+    </button>
+
+    <div class="nav-section">Overview</div>
+    <button class="nav-btn soon" disabled>
+      <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2"/></svg>Overview
+      <span class="nav-soon-badge">SOON</span>
+    </button>
+
+    <div class="nav-section">Operations</div>
+    <button class="nav-btn" onclick="showPage('inventory',this)">
+      <svg viewBox="0 0 16 16"><path d="M1 5l7-4 7 4v7l-7 4-7-4V5z"/><path d="M8 1v14M1 5l7 4 7-4"/></svg>Inventory
+    </button>
+    <button class="nav-btn soon" disabled>
+      <svg viewBox="0 0 16 16"><rect x="1" y="5" width="14" height="9" rx="1.2"/><path d="M1 8h14M5 5V3a1 1 0 011-1h4a1 1 0 011 1v2"/><circle cx="4.5" cy="14" r="1.2"/><circle cx="11.5" cy="14" r="1.2"/></svg>Fulfillment
+      <span class="nav-soon-badge">SOON</span>
+    </button>
+
+    <div class="nav-section">Performance</div>
+    <button class="nav-btn soon" disabled>
+      <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 8,9 12,4 15,6"/><line x1="1" y1="15" x2="15" y2="15"/></svg>Sales
+      <span class="nav-soon-badge">SOON</span>
+    </button>
+    <button class="nav-btn soon" disabled>
+      <svg viewBox="0 0 16 16"><path d="M2 10V6l5-4h2v12H7l-5-4z"/><path d="M9 5.5c1.5.5 3 1.5 3 2.5s-1.5 2-3 2.5"/><path d="M9 3c2.5.8 5 2.5 5 5s-2.5 4.2-5 5"/></svg>Marketing
+      <span class="nav-soon-badge">SOON</span>
+    </button>
+    <button class="nav-btn soon" disabled>
+      <svg viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="12" rx="1.2"/><path d="M1 7h14M5 1v4M11 1v4"/></svg>Events
+      <span class="nav-soon-badge">SOON</span>
+    </button>
+  </nav>
+</aside>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-title" id="topbar-title">Onboarding — Cosmette Skincare</span>
+    <div class="topbar-right">
+      <!-- No staging pill, no confidential badge on external dashboard -->
+    </div>
+  </div>
+
+  <!-- ══ ONBOARDING ══ -->
+  <div class="page active" id="page-onboarding">
+    <div class="onboarding-hero">
+      <div class="onboarding-hero-label">Getting Started</div>
+      <div class="onboarding-hero-title">Welcome to Your Medaltus Dashboard</div>
+      <div class="onboarding-hero-sub">Formulas for your Tricky Skin · cosmetteskincare.com · Amazon<br>Clean Beauty · Hypoallergenic · Derm Tested · Cruelty Free · Vegan</div>
+    </div>
+
+    <div class="onboarding-steps">
+      <div class="onboarding-step">
+        <div class="ob-step-num active-step">1</div>
+        <div class="ob-step-title">Brand Setup</div>
+        <div class="ob-step-sub">Configure brand constants, SKU roster, Sheet IDs, and Vercel environment variables.</div>
+        <div class="ob-step-status pending">● In Progress</div>
+      </div>
+      <div class="onboarding-step">
+        <div class="ob-step-num">2</div>
+        <div class="ob-step-title">Inventory Sync</div>
+        <div class="ob-step-sub">Connect ShipStation and wire up the inventory sync cron to keep stock levels current.</div>
+        <div class="ob-step-status upcoming">○ Upcoming</div>
+      </div>
+      <div class="onboarding-step">
+        <div class="ob-step-num">3</div>
+        <div class="ob-step-title">Performance Dashboards</div>
+        <div class="ob-step-sub">Activate Overview, Fulfillment, Sales, Marketing, and Events as data becomes available.</div>
+        <div class="ob-step-status upcoming">○ Upcoming</div>
+      </div>
+    </div>
+
+    <div class="placeholder-block">
+      <div class="ph-icon">🌿</div>
+      <div class="ph-title">Onboarding Content — Coming Soon</div>
+      <div class="ph-sub">This tab will be built out to guide Cosmette Skincare through the full onboarding process.<br>The Inventory tab is active and ready to build next.</div>
+    </div>
+  </div>
+
+  <!-- ══ INVENTORY ══ -->
+  <div class="page" id="page-inventory">
+    <div class="page-hd">
+      <div><div class="page-title">Inventory</div><div class="page-sub">ShipStation · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📦</div>
+      <div class="ph-title">Inventory Page</div>
+      <div class="ph-sub">Mirrors the standard Medaltus inventory page layout.<br>Tabs: All SKUs · Reorder Alerts · Warehouse breakdown</div>
+    </div>
+  </div>
+
+</div><!-- /.main -->
+</div><!-- /.shell -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// BRAND CONSTANTS — stub all Sheet IDs here; replace when available
+// ═══════════════════════════════════════════════════════════════════
+
+// TODO: Replace empty strings with real Sheet/GID values when provided
+
+const BRAND_CODE            = 'cosmette';           // used as brand tab key in API calls
+
+// Inventory sync sheet (ShipStation → Google Sheets)
+const INVENTORY_SHEET_ID    = '';                   // TODO: Sheet ID for inventory data
+const INVENTORY_GID         = '';                   // TODO: GID for Cosmette tab
+
+// Sales data sheets (Amazon, Website, Walmart)
+const AMAZON_SALES_SHEET_ID = '';                   // TODO: Sheet ID for Amazon sales
+const AMAZON_SALES_GID      = '';                   // TODO: GID for Cosmette Amazon tab
+
+const WEBSITE_SALES_SHEET_ID = '';                  // TODO: Sheet ID for website sales
+const WEBSITE_SALES_GID      = '';                  // TODO: GID for Cosmette website tab
+
+const WALMART_SALES_SHEET_ID = '';                  // TODO: Sheet ID for Walmart sales (if applicable)
+const WALMART_SALES_GID      = '';                  // TODO: GID for Cosmette Walmart tab
+
+// Product names lookup (SKU → display name)
+const PRODUCT_NAMES_SHEET_ID = '';                  // TODO: Sheet ID for product name map
+const PRODUCT_NAMES_GID      = '';                  // TODO: GID for Cosmette product names tab
+
+// Listings copy sheet (live listing copy sync)
+const SHEET_LISTINGS_ID      = '';                  // TODO: Sheet ID for listing copy source
+const SHEET_LISTINGS_GID     = '';                  // TODO: GID for Cosmette listings tab
+
+// Listing audit output sheet
+const LISTING_AUDIT_SHEET_ID = '';                  // TODO: Sheet ID for listing audit results
+const LISTING_AUDIT_GID      = '';                  // TODO: GID for Cosmette audit tab
+
+// Insights engine sheets (AI analysis upload log + results)
+const UPLOADS_SHEET_ID       = '';                  // TODO: Sheet ID for file uploads log
+const UPLOADS_GID            = '';                  // TODO: GID for Cosmette uploads tab
+
+const INSIGHTS_SHEET_ID      = '';                  // TODO: Sheet ID for AI insights output
+const INSIGHTS_GID           = '';                  // TODO: GID for Cosmette insights tab
+
+// Correct-received / fulfillment discrepancy sheet
+const CORRECT_RECEIVED_SHEET_ID = '';               // TODO: Sheet ID for correct-received log
+const CORRECT_RECEIVED_GID      = '';               // TODO: GID for Cosmette fulfillment tab
+
+// Marketing / stewardship data
+const MARKETING_SHEET_ID     = '';                  // TODO: Sheet ID for marketing data
+const MARKETING_GID          = '';                  // TODO: GID for Cosmette marketing tab
+
+// ═══════════════════════════════════════════════════════════════════
+// BRAND SKUs — stub; populate once Cosmette SKU list is confirmed
+// ═══════════════════════════════════════════════════════════════════
+// TODO: Replace with real Cosmette SKU IDs and product names
+const COSMETTE_SKUS = [
+  // { id: 'la-cmt0001', sku: 'CMT0001', name: 'Rose Garden Renewal Oil', travel: false },
+  // { id: 'la-cmt0002', sku: 'CMT0002', name: 'Timeless Hydration Moisturizer', travel: false },
+  // Add more SKUs here
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// NAV / PAGE ROUTING
+// ═══════════════════════════════════════════════════════════════════
+const PAGE_TITLES = {
+  onboarding: 'Onboarding — Cosmette Skincare',
+  inventory:  'Inventory — Cosmette Skincare',
+};
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  if (btn) btn.classList.add('active');
+  const titleEl = document.getElementById('topbar-title');
+  if (titleEl) titleEl.textContent = PAGE_TITLES[id] || id;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TOAST UTILITY
+// ═══════════════════════════════════════════════════════════════════
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (color ? ' ' + color : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+</script>
+</body>
+</html>
