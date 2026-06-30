@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       `'${folderId}' in parents and name contains 'Holiday Schedule' and mimeType = 'application/pdf' and trashed = false`
     );
     const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`,
+      `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives`,
       { headers }
     );
     if (!searchRes.ok) {
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   // ── Step 3: Stream the file directly to the browser ──────────────────
   try {
     const fileRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`,
       { headers }
     );
     if (!fileRes.ok) {
