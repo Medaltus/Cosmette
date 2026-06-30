@@ -1,5 +1,6 @@
 // api/basecamp-todos.js
-// Fetches top-level todos (no subtasks) from the Brand Onboarding todolist
+// Fetches top-level todos (no subtasks) from the "Brand Onboarding" todolist,
+// which lives inside the project's Todoset.
 // Uses refresh token to get a fresh access token on every call
 
 export default async function handler(req, res) {
@@ -13,7 +14,8 @@ export default async function handler(req, res) {
   const refreshToken  = process.env.BASECAMP_REFRESH_TOKEN;
   const accountId     = process.env.BASECAMP_ACCOUNT_ID;
   const projectId     = process.env.COSMETTE_BASECAMP_PROJECT_ID;
-  const todolistId    = process.env.COSMETTE_BASECAMP_TODOLIST_ID;
+  const todosetId     = process.env.COSMETTE_BASECAMP_TODOLIST_ID; // actually a Todoset ID
+  const LIST_NAME     = 'Brand Onboarding'; // the specific list we want inside the todoset
 
   // ── Step 1: Exchange refresh token for a fresh access token ──────
   let accessToken;
@@ -38,7 +40,34 @@ export default async function handler(req, res) {
     'Content-Type':  'application/json'
   };
 
-  // ── Step 2: Fetch all todos from the todolist ─────────────────────
+  // ── Step 2: Look up the todolists inside the Todoset ──────────────
+  let todolistId;
+  try {
+    const listsRes = await fetch(
+      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todosets/${todosetId}/todolists.json`,
+      { headers }
+    );
+    if (!listsRes.ok) {
+      const err = await listsRes.text();
+      return res.status(500).json({ error: 'Could not fetch todolists from todoset', detail: err });
+    }
+    const lists = await listsRes.json();
+
+    // Find the list matching our target name (case-insensitive)
+    const match = lists.find(l => l.title.trim().toLowerCase() === LIST_NAME.toLowerCase());
+
+    if (!match) {
+      return res.status(404).json({
+        error: `No todolist named "${LIST_NAME}" found in this todoset`,
+        available_lists: lists.map(l => l.title)
+      });
+    }
+    todolistId = match.id;
+  } catch (err) {
+    return res.status(500).json({ error: 'Error looking up todolist', detail: err.message });
+  }
+
+  // ── Step 3: Fetch all todos from that specific todolist ───────────
   // We request both completed and incomplete by hitting the endpoint twice
   let incomplete = [];
   let completed  = [];
@@ -67,14 +96,14 @@ export default async function handler(req, res) {
     console.warn('[basecamp] Could not fetch completed todos:', err.message);
   }
 
-  // ── Step 3: Merge and filter — top-level todos only (no subtasks) ─
+  // ── Step 4: Merge and filter — top-level todos only (no subtasks) ─
   // Subtasks have a parent.type of 'Todo'; top-level have parent.type of 'Todolist'
   const allTodos = [...incomplete, ...completed];
   const topLevel = allTodos.filter(todo => {
     return !todo.parent || todo.parent.type === 'Todolist';
   });
 
-  // ── Step 4: Shape the response ────────────────────────────────────
+  // ── Step 5: Shape the response ────────────────────────────────────
   const shaped = topLevel.map(todo => ({
     id:          todo.id,
     title:       todo.title,
