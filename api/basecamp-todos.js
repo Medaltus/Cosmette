@@ -67,96 +67,106 @@ export default async function handler(req, res) {
   }
 
   // ── Step 3: Check for todolist groups (sub-lists) inside this list ─
-  // Brand Onboarding may be organized into groups like "Share Assets",
+  // Brand Onboarding is organized into named groups like "Share Assets",
   // "Project Management", etc. Each group is itself a Todolist with todos.
-  let todolistIds = [todolistId];
+  let groups = [];
   try {
     const groupsRes = await fetch(
       `https://3.basecampapi.com/${accountId}/todolists/${todolistId}/groups.json`,
       { headers }
     );
     if (groupsRes.ok) {
-      const groups = await groupsRes.json();
-      if (Array.isArray(groups) && groups.length > 0) {
-        todolistIds = groups.map(g => g.id); // groups replace the parent for todo-fetching
+      const data = await groupsRes.json();
+      if (Array.isArray(data) && data.length > 0) {
+        groups = data.map(g => ({ id: g.id, title: g.title }));
       }
     }
   } catch (err) {
     console.warn('[basecamp] Could not fetch groups, falling back to top list:', err.message);
   }
 
-  // ── Step 4: Fetch all todos from every relevant todolist (flat routes) ─
-  let incomplete = [];
-  let completed  = [];
+  // If no groups exist, treat the top-level list itself as a single group
+  if (groups.length === 0) {
+    groups = [{ id: todolistId, title: LIST_NAME }];
+  }
 
-  for (const listId of todolistIds) {
+  // ── Step 4: Fetch todos for each group separately (flat routes) ──
+  const sections = [];
+
+  for (const group of groups) {
+    let incomplete = [];
+    let completed  = [];
+
     try {
       const incRes = await fetch(
-        `https://3.basecampapi.com/${accountId}/todolists/${listId}/todos.json`,
+        `https://3.basecampapi.com/${accountId}/todolists/${group.id}/todos.json`,
         { headers }
       );
       if (incRes.ok) {
-        const data = await incRes.json();
-        incomplete = incomplete.concat(data);
+        incomplete = await incRes.json();
       } else {
         const err = await incRes.text();
-        console.warn('[basecamp] incomplete fetch failed for list', listId, incRes.status, err);
+        console.warn('[basecamp] incomplete fetch failed for group', group.id, incRes.status, err);
       }
     } catch (err) {
-      console.warn('[basecamp] Could not fetch incomplete todos for list', listId, err.message);
+      console.warn('[basecamp] Could not fetch incomplete todos for group', group.id, err.message);
     }
 
     try {
       const compRes = await fetch(
-        `https://3.basecampapi.com/${accountId}/todolists/${listId}/todos.json?completed=true`,
+        `https://3.basecampapi.com/${accountId}/todolists/${group.id}/todos.json?completed=true`,
         { headers }
       );
       if (compRes.ok) {
-        const data = await compRes.json();
-        completed = completed.concat(data);
+        completed = await compRes.json();
       } else {
         const err = await compRes.text();
-        console.warn('[basecamp] completed fetch failed for list', listId, compRes.status, err);
+        console.warn('[basecamp] completed fetch failed for group', group.id, compRes.status, err);
       }
     } catch (err) {
-      console.warn('[basecamp] Could not fetch completed todos for list', listId, err.message);
+      console.warn('[basecamp] Could not fetch completed todos for group', group.id, err.message);
     }
+
+    // Top-level todos only (no subtasks) — subtasks have parent.type === 'Todo'
+    const allTodos = [...incomplete, ...completed];
+    const topLevel = allTodos.filter(todo => !todo.parent || todo.parent.type === 'Todolist');
+
+    const shaped = topLevel.map(todo => ({
+      id:         todo.id,
+      title:      todo.title,
+      completed:  todo.completed,
+      assignees:  (todo.assignees || []).map(a => a.name),
+      url:        todo.app_url || null,
+    }));
+
+    // Sort: incomplete first, then completed
+    shaped.sort((a, b) => {
+      if (a.completed === b.completed) return 0;
+      return a.completed ? 1 : -1;
+    });
+
+    sections.push({
+      id:    group.id,
+      title: group.title,
+      todos: shaped,
+      done:  shaped.filter(t => t.completed).length,
+      total: shaped.length,
+    });
   }
 
-  // ── Step 4: Merge and filter — top-level todos only (no subtasks) ─
-  // Subtasks have a parent.type of 'Todo'; top-level have parent.type of 'Todolist'
-  const allTodos = [...incomplete, ...completed];
-  const topLevel = allTodos.filter(todo => {
-    return !todo.parent || todo.parent.type === 'Todolist';
-  });
-
-  // ── Step 5: Shape the response ────────────────────────────────────
-  const shaped = topLevel.map(todo => ({
-    id:          todo.id,
-    title:       todo.title,
-    completed:   todo.completed,
-    due_on:      todo.due_on || null,
-    assignees:   (todo.assignees || []).map(a => a.name),
-    created_at:  todo.created_at,
-    updated_at:  todo.updated_at,
-    url:         todo.app_url || null,
-  }));
-
-  // Sort: incomplete first, then completed; within each group preserve Basecamp order
-  shaped.sort((a, b) => {
-    if (a.completed === b.completed) return 0;
-    return a.completed ? 1 : -1;
-  });
+  // ── Step 5: Overall stats across all sections ─────────────────────
+  const allShapedTodos = sections.flatMap(s => s.todos);
+  const totalCount     = allShapedTodos.length;
+  const doneCount      = allShapedTodos.filter(t => t.completed).length;
 
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
   res.status(200).json({
-    todos: shaped,
-    count: shaped.length,
-    _debug: {
-      resolvedTopListId: todolistId,
-      fetchedFromListIds: todolistIds,
-      raw_incomplete_count: incomplete.length,
-      raw_completed_count: completed.length
+    sections,
+    stats: {
+      done:      doneCount,
+      total:     totalCount,
+      remaining: totalCount - doneCount,
+      percent:   totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0,
     }
   });
 }
