@@ -68,17 +68,21 @@ export default async function handler(req, res) {
   }
 
   // ── Step 3: Fetch all todos from that specific todolist ───────────
-  // We request both completed and incomplete by hitting the endpoint twice
+  // Basecamp's default todos.json only returns incomplete items.
+  // Pass completed=true explicitly to get the completed ones too.
   let incomplete = [];
   let completed  = [];
 
   try {
     const incRes = await fetch(
-      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json?status=active`,
+      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json`,
       { headers }
     );
     if (incRes.ok) {
       incomplete = await incRes.json();
+    } else {
+      const err = await incRes.text();
+      console.warn('[basecamp] incomplete fetch failed:', incRes.status, err);
     }
   } catch (err) {
     console.warn('[basecamp] Could not fetch incomplete todos:', err.message);
@@ -86,11 +90,14 @@ export default async function handler(req, res) {
 
   try {
     const compRes = await fetch(
-      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json?status=completed`,
+      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json?completed=true`,
       { headers }
     );
     if (compRes.ok) {
       completed = await compRes.json();
+    } else {
+      const err = await compRes.text();
+      console.warn('[basecamp] completed fetch failed:', compRes.status, err);
     }
   } catch (err) {
     console.warn('[basecamp] Could not fetch completed todos:', err.message);
@@ -122,5 +129,13 @@ export default async function handler(req, res) {
   });
 
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
-  res.status(200).json({ todos: shaped, count: shaped.length });
+  res.status(200).json({
+    todos: shaped,
+    count: shaped.length,
+    _debug: {
+      todolistId,
+      raw_incomplete_count: incomplete.length,
+      raw_completed_count: completed.length
+    }
+  });
 }
