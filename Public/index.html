@@ -71,59 +71,60 @@ nav{flex:1;padding:8px 8px 0;}
 .toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:10px 18px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .25s;z-index:2000;pointer-events:none;}
 .toast.show{opacity:1;transform:translateY(0);}
 
-/* ── Onboarding hero ── */
-.onboarding-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+/* ── Launch Checklist hero ── */
+.onboarding-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:24px 32px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
 .ob-hero-left{}
-.ob-hero-eyebrow{font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;}
-.ob-hero-title{font-size:22px;font-weight:600;color:#fff;letter-spacing:-.3px;margin-bottom:6px;}
-.ob-hero-sub{font-size:12px;color:rgba(255,255,255,.5);line-height:1.6;max-width:420px;}
-.ob-hero-right{display:flex;gap:24px;flex-shrink:0;}
-.ob-stat{text-align:center;}
-.ob-stat-val{font-size:28px;font-weight:700;color:var(--green);line-height:1;}
-.ob-stat-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.07em;margin-top:4px;}
+.ob-hero-title{font-size:20px;font-weight:600;color:#fff;letter-spacing:-.3px;}
+.ob-hero-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px;}
+.ob-hero-right{display:flex;align-items:center;gap:16px;flex-shrink:0;min-width:240px;}
 
-/* ── Progress bar ── */
+/* ── Progress bar (full width under hero) ── */
 .ob-progress-wrap{margin-bottom:24px;}
-.ob-progress-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.ob-progress-label{font-size:11px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:.07em;}
-.ob-progress-pct{font-size:11px;color:var(--muted);font-family:var(--mono);}
-.ob-progress-track{height:6px;background:var(--border);border-radius:10px;overflow:hidden;}
+.ob-progress-track{height:7px;background:var(--border);border-radius:10px;overflow:hidden;}
 .ob-progress-fill{height:100%;background:var(--green);border-radius:10px;transition:width .6s ease;}
+.ob-progress-pct{font-size:12px;font-weight:700;color:var(--green);white-space:nowrap;}
 
-/* ── Todo list ── */
-.ob-list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
-.ob-list-title{font-size:13px;font-weight:600;color:var(--navy);}
+/* ── Sync status row ── */
+.ob-sync-row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-bottom:14px;}
+.ob-sync-status{font-size:10.5px;color:var(--muted);font-style:italic;}
+.ob-sync-status.ok{color:#1db88a;}
+.ob-sync-status.err{color:var(--danger);}
 .ob-sync-btn{display:flex;align-items:center;gap:5px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 11px;font-size:11px;color:var(--muted);cursor:pointer;font-family:var(--font);transition:all .13s;}
 .ob-sync-btn:hover{border-color:var(--navy);color:var(--navy);}
 .ob-sync-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;}
 .ob-sync-btn.spinning svg{animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.ob-sync-status{font-size:10.5px;color:var(--muted);font-style:italic;}
-.ob-sync-status.ok{color:#1db88a;}
-.ob-sync-status.err{color:var(--danger);}
+
+/* ── Section groups (collapsible) ── */
+.ob-groups{display:flex;flex-direction:column;gap:14px;}
+.ob-group{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.ob-group-header{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 18px;background:var(--bg);border:none;border-bottom:1px solid var(--border);cursor:pointer;text-align:left;font-family:var(--font);transition:background .12s;}
+.ob-group-header:hover{background:var(--bg2);}
+.ob-group-left{display:flex;align-items:center;gap:9px;}
+.ob-group-chevron{width:13px;height:13px;flex-shrink:0;transition:transform .15s;color:var(--navy);}
+.ob-group-chevron.collapsed{transform:rotate(-90deg);}
+.ob-group-name{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);}
+.ob-group-count{font-size:11px;font-weight:600;color:var(--muted);background:var(--silver);padding:2px 9px;border-radius:10px;opacity:.75;}
+.ob-group-body{padding:2px 0;}
+.ob-group-body.collapsed{display:none;}
 
 /* ── Todo item ── */
-.ob-todo-list{display:flex;flex-direction:column;gap:0;}
-.ob-todo{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);transition:background .1s;}
+.ob-todo{display:flex;align-items:flex-start;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border2);transition:background .1s;}
 .ob-todo:last-child{border-bottom:none;}
-.ob-todo-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ob-todo:hover{background:rgba(0,31,96,.015);}
+.ob-todo-check{width:17px;height:17px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .ob-todo.done .ob-todo-check{background:var(--green);border-color:var(--green);}
-.ob-todo.done .ob-todo-check::after{content:'';width:5px;height:9px;border:2px solid var(--navy);border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block;}
-.ob-todo-body{flex:1;min-width:0;}
+.ob-todo.done .ob-todo-check::after{content:'';width:4px;height:8px;border:2px solid var(--navy);border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block;}
+.ob-todo-body{flex:1;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;}
 .ob-todo-title{font-size:13px;color:var(--navy);font-weight:500;line-height:1.45;}
 .ob-todo.done .ob-todo-title{color:var(--muted);text-decoration:line-through;font-weight:400;}
-.ob-todo-meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;}
-.ob-todo-assignee{font-size:10.5px;color:var(--muted);}
-.ob-todo-due{font-size:10.5px;font-family:var(--mono);}
-.ob-todo-due.overdue{color:var(--danger);font-weight:600;}
-.ob-todo-due.soon-due{color:var(--warn);font-weight:600;}
-.ob-todo-due.ok-due{color:var(--muted);}
+.ob-todo-assignee{font-size:10.5px;color:var(--muted);background:var(--bg);padding:1px 8px;border-radius:10px;border:1px solid var(--border2);white-space:nowrap;}
 
 /* ── Loading skeleton ── */
 .ob-skeleton{display:flex;flex-direction:column;gap:0;}
-.ob-skeleton-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);}
+.ob-skeleton-item{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border2);}
 .ob-skeleton-item:last-child{border-bottom:none;}
-.ob-skel-circle{width:18px;height:18px;border-radius:50%;background:var(--bg2);flex-shrink:0;animation:shimmer 1.4s infinite;}
+.ob-skel-circle{width:17px;height:17px;border-radius:4px;background:var(--bg2);flex-shrink:0;animation:shimmer 1.4s infinite;}
 .ob-skel-line{height:13px;background:var(--bg2);border-radius:4px;animation:shimmer 1.4s infinite;}
 @keyframes shimmer{0%,100%{opacity:1}50%{opacity:.4}}
 
@@ -139,7 +140,7 @@ nav{flex:1;padding:8px 8px 0;}
   .ob-hero-right{gap:16px;}
 }
 </style>
-<link rel="icon" type="image/png" href="/cosmette-favicon.png">
+<link rel="icon" type="image/png" href="/cosmette_favicon.png">
 </head>
 <body>
 
@@ -155,7 +156,7 @@ nav{flex:1;padding:8px 8px 0;}
   <nav>
     <div class="nav-section">Getting Started</div>
     <button class="nav-btn active" onclick="showPage('onboarding',this)">
-      <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Onboarding
+      <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Launch Checklist
     </button>
 
     <div class="nav-section">Overview</div>
@@ -194,67 +195,54 @@ nav{flex:1;padding:8px 8px 0;}
 
   <!-- Topbar -->
   <div class="topbar">
-    <span class="topbar-title" id="topbar-title">Onboarding — Cosmette Skincare</span>
+    <span class="topbar-title" id="topbar-title">Launch Checklist — Cosmette Skincare</span>
     <div class="topbar-right"></div>
   </div>
 
-  <!-- ══ ONBOARDING ══ -->
+  <!-- ══ LAUNCH CHECKLIST ══ -->
   <div class="page active" id="page-onboarding">
 
     <!-- Hero -->
     <div class="onboarding-hero">
       <div class="ob-hero-left">
-        <div class="ob-hero-eyebrow">Getting Started</div>
-        <div class="ob-hero-title">Cosmette Skincare Onboarding</div>
-        <div class="ob-hero-sub">Formulas for your Tricky Skin · cosmetteskincare.com<br>Clean Beauty · Hypoallergenic · Derm Tested · Cruelty Free · Vegan</div>
+        <div class="ob-hero-title">Cosmette</div>
+        <div class="ob-hero-sub" id="ob-hero-stats">Loading tasks…</div>
       </div>
       <div class="ob-hero-right">
-        <div class="ob-stat"><div class="ob-stat-val" id="ob-stat-done">—</div><div class="ob-stat-lbl">Completed</div></div>
-        <div class="ob-stat"><div class="ob-stat-val" id="ob-stat-total">—</div><div class="ob-stat-lbl">Total Tasks</div></div>
-      </div>
-    </div>
-
-    <!-- Progress bar -->
-    <div class="ob-progress-wrap">
-      <div class="ob-progress-hd">
-        <span class="ob-progress-label">Overall Progress</span>
-        <span class="ob-progress-pct" id="ob-progress-pct">Loading…</span>
-      </div>
-      <div class="ob-progress-track">
-        <div class="ob-progress-fill" id="ob-progress-fill" style="width:0%"></div>
-      </div>
-    </div>
-
-    <!-- Todo list card -->
-    <div class="card">
-      <div class="ob-list-header">
-        <div>
-          <div class="ob-list-title">Brand Onboarding Checklist</div>
-          <div class="ob-sync-status" id="ob-sync-status">Syncing from Basecamp…</div>
+        <div class="ob-progress-track" style="flex:1;">
+          <div class="ob-progress-fill" id="ob-progress-fill" style="width:0%"></div>
         </div>
-        <button class="ob-sync-btn" id="ob-refresh-btn" onclick="loadTodos(true)">
-          <svg viewBox="0 0 16 16"><path d="M14 8A6 6 0 112 8"/><polyline points="14,4 14,8 10,8"/></svg>
-          Refresh
-        </button>
+        <span class="ob-progress-pct" id="ob-progress-pct">0%</span>
       </div>
+    </div>
 
-      <!-- Loading skeleton (shown while fetching) -->
-      <div class="ob-skeleton" id="ob-skeleton">
+    <!-- Sync status / refresh -->
+    <div class="ob-sync-row">
+      <span class="ob-sync-status" id="ob-sync-status">Syncing from Basecamp…</span>
+      <button class="ob-sync-btn" id="ob-refresh-btn" onclick="loadTodos(true)">
+        <svg viewBox="0 0 16 16"><path d="M14 8A6 6 0 112 8"/><polyline points="14,4 14,8 10,8"/></svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Loading skeleton (shown while fetching) -->
+    <div class="card" id="ob-skeleton">
+      <div class="ob-skeleton">
         <div class="ob-skeleton-item"><div class="ob-skel-circle"></div><div class="ob-skel-line" style="width:60%"></div></div>
         <div class="ob-skeleton-item"><div class="ob-skel-circle"></div><div class="ob-skel-line" style="width:75%"></div></div>
         <div class="ob-skeleton-item"><div class="ob-skel-circle"></div><div class="ob-skel-line" style="width:50%"></div></div>
         <div class="ob-skeleton-item"><div class="ob-skel-circle"></div><div class="ob-skel-line" style="width:65%"></div></div>
         <div class="ob-skeleton-item"><div class="ob-skel-circle"></div><div class="ob-skel-line" style="width:55%"></div></div>
       </div>
+    </div>
 
-      <!-- Actual todo list (populated by JS) -->
-      <div class="ob-todo-list" id="ob-todo-list" style="display:none;"></div>
+    <!-- Grouped sections (populated by JS) -->
+    <div class="ob-groups" id="ob-groups" style="display:none;"></div>
 
-      <!-- Error state -->
-      <div class="ob-error" id="ob-error" style="display:none;">
-        <span class="ob-error-icon">⚠️</span>
-        <span id="ob-error-msg">Could not load tasks from Basecamp. Check your API configuration and try refreshing.</span>
-      </div>
+    <!-- Error state -->
+    <div class="ob-error" id="ob-error" style="display:none;">
+      <span class="ob-error-icon">⚠️</span>
+      <span id="ob-error-msg">Could not load tasks from Basecamp. Check your API configuration and try refreshing.</span>
     </div>
 
   </div><!-- /#page-onboarding -->
@@ -281,7 +269,7 @@ nav{flex:1;padding:8px 8px 0;}
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 const PAGE_TITLES = {
-  onboarding: 'Onboarding — Cosmette Skincare',
+  onboarding: 'Launch Checklist — Cosmette Skincare',
   inventory:  'Inventory — Cosmette Skincare',
 };
 
@@ -306,29 +294,59 @@ function showToast(msg) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// BASECAMP TODOS
+// BASECAMP LAUNCH CHECKLIST
 // ═══════════════════════════════════════════════════════════════════
-function formatDue(dateStr) {
-  if (!dateStr) return null;
-  const due  = new Date(dateStr);
-  const now  = new Date();
-  const diff = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-  const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  if (diff < 0)  return { label: 'Overdue · ' + label, cls: 'overdue' };
-  if (diff <= 3) return { label: 'Due ' + label, cls: 'soon-due' };
-  return { label: 'Due ' + label, cls: 'ok-due' };
+function toggleGroup(groupId) {
+  const body     = document.getElementById('group-body-' + groupId);
+  const chevron  = document.getElementById('group-chevron-' + groupId);
+  const collapsed = body.classList.toggle('collapsed');
+  chevron.classList.toggle('collapsed', collapsed);
+}
+
+function renderTodo(todo) {
+  const assigneeTag = todo.assignees && todo.assignees.length
+    ? `<span class="ob-todo-assignee">${escHtml(todo.assignees.join(', '))}</span>`
+    : '';
+  return `
+    <div class="ob-todo${todo.completed ? ' done' : ''}">
+      <div class="ob-todo-check"></div>
+      <div class="ob-todo-body">
+        <span class="ob-todo-title">${escHtml(todo.title)}</span>
+        ${assigneeTag}
+      </div>
+    </div>`;
+}
+
+function renderGroup(section) {
+  return `
+    <div class="ob-group">
+      <button class="ob-group-header" onclick="toggleGroup('${section.id}')">
+        <div class="ob-group-left">
+          <svg class="ob-group-chevron" id="group-chevron-${section.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+          <span class="ob-group-name">${escHtml(section.title)}</span>
+        </div>
+        <span class="ob-group-count">${section.done}/${section.total}</span>
+      </button>
+      <div class="ob-group-body" id="group-body-${section.id}">
+        ${section.todos.length === 0
+          ? '<div style="padding:16px 18px;font-size:12px;color:var(--muted);font-style:italic;">No to-dos in this list yet.</div>'
+          : section.todos.map(renderTodo).join('')}
+      </div>
+    </div>`;
 }
 
 async function loadTodos(manual = false) {
-  const skeleton  = document.getElementById('ob-skeleton');
-  const listEl    = document.getElementById('ob-todo-list');
-  const errorEl   = document.getElementById('ob-error');
-  const statusEl  = document.getElementById('ob-sync-status');
-  const refreshBtn = document.getElementById('ob-refresh-btn');
+  const skeleton    = document.getElementById('ob-skeleton');
+  const groupsEl    = document.getElementById('ob-groups');
+  const errorEl     = document.getElementById('ob-error');
+  const statusEl    = document.getElementById('ob-sync-status');
+  const refreshBtn  = document.getElementById('ob-refresh-btn');
+  const heroStats   = document.getElementById('ob-hero-stats');
 
-  // Show skeleton
-  skeleton.style.display  = 'flex';
-  listEl.style.display    = 'none';
+  skeleton.style.display  = 'block';
+  groupsEl.style.display  = 'none';
   errorEl.style.display   = 'none';
   statusEl.textContent    = 'Syncing from Basecamp…';
   statusEl.className      = 'ob-sync-status';
@@ -338,43 +356,21 @@ async function loadTodos(manual = false) {
     const res  = await fetch('/api/basecamp-todos');
     if (!res.ok) throw new Error('API returned ' + res.status);
     const data = await res.json();
-    const todos = data.todos || [];
+    const sections = data.sections || [];
+    const stats    = data.stats || { done: 0, total: 0, remaining: 0, percent: 0 };
 
-    // Stats
-    const total    = todos.length;
-    const done     = todos.filter(t => t.completed).length;
-    const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+    // Hero stats + progress bar
+    heroStats.textContent = `${stats.done} of ${stats.total} tasks complete · ${stats.remaining} remaining`;
+    document.getElementById('ob-progress-pct').textContent  = stats.percent + '%';
+    document.getElementById('ob-progress-fill').style.width = stats.percent + '%';
 
-    document.getElementById('ob-stat-done').textContent  = done;
-    document.getElementById('ob-stat-total').textContent = total;
-    document.getElementById('ob-progress-pct').textContent = pct + '% complete';
-    document.getElementById('ob-progress-fill').style.width = pct + '%';
+    // Render grouped sections
+    groupsEl.innerHTML = sections.length === 0
+      ? '<div class="card" style="text-align:center;color:var(--muted);font-size:12px;padding:30px;">No to-do lists found.</div>'
+      : sections.map(renderGroup).join('');
 
-    // Render todos
-    listEl.innerHTML = '';
-    if (todos.length === 0) {
-      listEl.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;">No tasks found in this to-do list.</div>';
-    } else {
-      todos.forEach(todo => {
-        const due = formatDue(todo.due_on);
-        const div = document.createElement('div');
-        div.className = 'ob-todo' + (todo.completed ? ' done' : '');
-        div.innerHTML = `
-          <div class="ob-todo-check"></div>
-          <div class="ob-todo-body">
-            <div class="ob-todo-title">${escHtml(todo.title)}</div>
-            <div class="ob-todo-meta">
-              ${todo.assignees && todo.assignees.length ? `<span class="ob-todo-assignee">👤 ${escHtml(todo.assignees.join(', '))}</span>` : ''}
-              ${due ? `<span class="ob-todo-due ${due.cls}">${due.label}</span>` : ''}
-            </div>
-          </div>`;
-        listEl.appendChild(div);
-      });
-    }
-
-    // Swap skeleton → list
     skeleton.style.display = 'none';
-    listEl.style.display   = 'flex';
+    groupsEl.style.display = 'flex';
 
     const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     statusEl.textContent = '✓ Synced from Basecamp · ' + now;
