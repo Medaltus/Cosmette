@@ -40,11 +40,11 @@ export default async function handler(req, res) {
     'Content-Type':  'application/json'
   };
 
-  // ── Step 2: Look up the todolists inside the Todoset ──────────────
+  // ── Step 2: Look up the todolists inside the Todoset (flat route) ─
   let todolistId;
   try {
     const listsRes = await fetch(
-      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todosets/${todosetId}/todolists.json`,
+      `https://3.basecampapi.com/${accountId}/todosets/${todosetId}/todolists.json`,
       { headers }
     );
     if (!listsRes.ok) {
@@ -53,13 +53,12 @@ export default async function handler(req, res) {
     }
     const lists = await listsRes.json();
 
-    // Find the list matching our target name (case-insensitive)
     const match = lists.find(l => l.title.trim().toLowerCase() === LIST_NAME.toLowerCase());
 
     if (!match) {
       return res.status(404).json({
         error: `No todolist named "${LIST_NAME}" found in this todoset`,
-        available_lists: lists.map(l => l.title)
+        available_lists: lists.map(l => ({ id: l.id, title: l.title }))
       });
     }
     todolistId = match.id;
@@ -67,40 +66,61 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Error looking up todolist', detail: err.message });
   }
 
-  // ── Step 3: Fetch all todos from that specific todolist ───────────
-  // Basecamp's default todos.json only returns incomplete items.
-  // Pass completed=true explicitly to get the completed ones too.
+  // ── Step 3: Check for todolist groups (sub-lists) inside this list ─
+  // Brand Onboarding may be organized into groups like "Share Assets",
+  // "Project Management", etc. Each group is itself a Todolist with todos.
+  let todolistIds = [todolistId];
+  try {
+    const groupsRes = await fetch(
+      `https://3.basecampapi.com/${accountId}/todolists/${todolistId}/groups.json`,
+      { headers }
+    );
+    if (groupsRes.ok) {
+      const groups = await groupsRes.json();
+      if (Array.isArray(groups) && groups.length > 0) {
+        todolistIds = groups.map(g => g.id); // groups replace the parent for todo-fetching
+      }
+    }
+  } catch (err) {
+    console.warn('[basecamp] Could not fetch groups, falling back to top list:', err.message);
+  }
+
+  // ── Step 4: Fetch all todos from every relevant todolist (flat routes) ─
   let incomplete = [];
   let completed  = [];
 
-  try {
-    const incRes = await fetch(
-      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json`,
-      { headers }
-    );
-    if (incRes.ok) {
-      incomplete = await incRes.json();
-    } else {
-      const err = await incRes.text();
-      console.warn('[basecamp] incomplete fetch failed:', incRes.status, err);
+  for (const listId of todolistIds) {
+    try {
+      const incRes = await fetch(
+        `https://3.basecampapi.com/${accountId}/todolists/${listId}/todos.json`,
+        { headers }
+      );
+      if (incRes.ok) {
+        const data = await incRes.json();
+        incomplete = incomplete.concat(data);
+      } else {
+        const err = await incRes.text();
+        console.warn('[basecamp] incomplete fetch failed for list', listId, incRes.status, err);
+      }
+    } catch (err) {
+      console.warn('[basecamp] Could not fetch incomplete todos for list', listId, err.message);
     }
-  } catch (err) {
-    console.warn('[basecamp] Could not fetch incomplete todos:', err.message);
-  }
 
-  try {
-    const compRes = await fetch(
-      `https://3.basecampapi.com/${accountId}/buckets/${projectId}/todolists/${todolistId}/todos.json?completed=true`,
-      { headers }
-    );
-    if (compRes.ok) {
-      completed = await compRes.json();
-    } else {
-      const err = await compRes.text();
-      console.warn('[basecamp] completed fetch failed:', compRes.status, err);
+    try {
+      const compRes = await fetch(
+        `https://3.basecampapi.com/${accountId}/todolists/${listId}/todos.json?completed=true`,
+        { headers }
+      );
+      if (compRes.ok) {
+        const data = await compRes.json();
+        completed = completed.concat(data);
+      } else {
+        const err = await compRes.text();
+        console.warn('[basecamp] completed fetch failed for list', listId, compRes.status, err);
+      }
+    } catch (err) {
+      console.warn('[basecamp] Could not fetch completed todos for list', listId, err.message);
     }
-  } catch (err) {
-    console.warn('[basecamp] Could not fetch completed todos:', err.message);
   }
 
   // ── Step 4: Merge and filter — top-level todos only (no subtasks) ─
@@ -133,7 +153,8 @@ export default async function handler(req, res) {
     todos: shaped,
     count: shaped.length,
     _debug: {
-      todolistId,
+      resolvedTopListId: todolistId,
+      fetchedFromListIds: todolistIds,
       raw_incomplete_count: incomplete.length,
       raw_completed_count: completed.length
     }
