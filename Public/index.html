@@ -133,11 +133,51 @@ nav{flex:1;padding:8px 8px 0;}
 .ob-error-icon{font-size:18px;flex-shrink:0;}
 
 /* ── Responsive ── */
+/* ── Home page ── */
+.home-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:32px 36px;margin-bottom:20px;position:relative;}
+.home-hero-wordmark{font-size:18px;font-weight:700;color:#fff;letter-spacing:.04em;text-transform:uppercase;}
+.home-badges{position:absolute;top:28px;right:32px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.home-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(36,233,163,0.16);border:1px solid rgba(36,233,163,0.35);color:var(--green);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:20px;}
+.home-badge svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;}
+.home-badge-channel{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;}
+.home-hero-title{font-size:24px;font-weight:600;color:#fff;letter-spacing:-.4px;margin-top:18px;}
+.home-hero-sub{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.6;margin-top:8px;max-width:560px;}
+.home-hero-date{font-size:11px;color:rgba(255,255,255,.35);margin-top:14px;}
+
+.home-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.home-kpi-card{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--green);border-radius:var(--radius);padding:18px 20px;}
+.home-kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+.home-kpi-value{font-size:28px;font-weight:700;color:var(--navy);letter-spacing:-1px;line-height:1;}
+.home-kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;}
+
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.home-card-title{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.home-card-sub{font-size:11.5px;color:var(--muted);margin-bottom:16px;}
+
+.home-team-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);}
+.home-team-item:last-child{border-bottom:none;}
+.home-team-avatar{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.home-team-name{font-size:13px;font-weight:600;color:var(--navy);}
+.home-team-role{font-size:11px;color:var(--muted);margin-top:1px;}
+.home-team-email{font-size:11px;color:var(--green);text-decoration:none;margin-top:2px;display:inline-block;}
+.home-team-email:hover{text-decoration:underline;}
+
+.home-resource-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);text-decoration:none;transition:all .13s;margin-bottom:10px;}
+.home-resource-item:last-child{margin-bottom:0;}
+.home-resource-item:hover{border-color:var(--navy);background:var(--bg);}
+.home-resource-icon{font-size:20px;flex-shrink:0;}
+.home-resource-title{font-size:13px;font-weight:600;color:var(--navy);}
+.home-resource-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+
+.home-footer{text-align:center;margin-top:28px;font-size:12px;color:var(--muted);}
+.home-footer .brand{color:var(--navy);font-weight:700;}
+.home-footer .brand span{color:var(--green);}
+
 @media(max-width:900px){
   .sidebar{width:200px;min-width:200px;}
   .two-col{grid-template-columns:1fr;}
   .page{padding:16px;}
-  .ob-hero-right{gap:16px;}
+  .home-kpi-row,.home-grid{grid-template-columns:1fr;}
 }
 </style>
 <link rel="icon" type="image/png" href="/cosmette_favicon.png">
@@ -154,8 +194,11 @@ nav{flex:1;padding:8px 8px 0;}
   </div>
 
   <nav>
-    <div class="nav-section">Getting Started</div>
-    <button class="nav-btn active" onclick="showPage('onboarding',this)">
+    <div class="nav-section">Dashboard</div>
+    <button class="nav-btn active" onclick="showPage('home',this)">
+      <svg viewBox="0 0 16 16"><path d="M2 7l6-5 6 5v7a1 1 0 01-1 1H3a1 1 0 01-1-1V7z"/><path d="M6 15V9h4v6"/></svg>Home
+    </button>
+    <button class="nav-btn" onclick="showPage('onboarding',this)">
       <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Launch Checklist
     </button>
 
@@ -195,12 +238,120 @@ nav{flex:1;padding:8px 8px 0;}
 
   <!-- Topbar -->
   <div class="topbar">
-    <span class="topbar-title" id="topbar-title">Launch Checklist — Cosmette Skincare</span>
+    <span class="topbar-title" id="topbar-title">Home — Cosmette Skincare</span>
     <div class="topbar-right"></div>
   </div>
 
+  <!-- ══ HOME ══ -->
+  <div class="page active" id="page-home">
+
+    <!-- Hero -->
+    <div class="home-hero">
+      <div class="home-hero-wordmark">cosmette</div>
+      <div class="home-badges">
+        <span class="home-badge">
+          <svg viewBox="0 0 16 16"><path d="M8 1l6 2.5v4c0 4-2.6 6.8-6 7.5-3.4-.7-6-3.5-6-7.5v-4L8 1z"/></svg>
+          Brand Partner
+        </span>
+        <span class="home-badge-channel">Amazon</span>
+      </div>
+      <div class="home-hero-title">Welcome to Your Medaltus Dashboard</div>
+      <div class="home-hero-sub">Your real-time view into inventory, launch progress, and brand performance — powered by Medaltus.</div>
+      <div class="home-hero-date" id="home-date"></div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="home-kpi-row">
+      <div class="home-kpi-card">
+        <div class="home-kpi-label">Total SKUs</div>
+        <div class="home-kpi-value">9</div>
+        <div class="home-kpi-sub">In your catalog</div>
+      </div>
+      <div class="home-kpi-card">
+        <div class="home-kpi-label">Units On Hand</div>
+        <div class="home-kpi-value">0</div>
+        <div class="home-kpi-sub">At Medaltus warehouse</div>
+      </div>
+    </div>
+
+    <!-- Team + Resources -->
+    <div class="home-grid">
+      <div class="card">
+        <div class="home-card-title">Your Medaltus Team</div>
+        <div class="home-card-sub">Reach out anytime — we're here to help.</div>
+
+        <div class="home-team-item">
+          <div class="home-team-avatar">AW</div>
+          <div>
+            <div class="home-team-name">Ashley Wilcox</div>
+            <div class="home-team-role">COO</div>
+            <a class="home-team-email" href="mailto:awilcox@medaltus.com">awilcox@medaltus.com</a>
+          </div>
+        </div>
+        <div class="home-team-item">
+          <div class="home-team-avatar">JC</div>
+          <div>
+            <div class="home-team-name">Josh Carter</div>
+            <div class="home-team-role">CRO</div>
+            <a class="home-team-email" href="mailto:jcarter@medaltus.com">jcarter@medaltus.com</a>
+          </div>
+        </div>
+        <div class="home-team-item">
+          <div class="home-team-avatar">IF</div>
+          <div>
+            <div class="home-team-name">Isabella Fernandez</div>
+            <div class="home-team-role">Brand Manager</div>
+            <a class="home-team-email" href="mailto:ifernandez@medaltus.com">ifernandez@medaltus.com</a>
+          </div>
+        </div>
+        <div class="home-team-item">
+          <div class="home-team-avatar">JR</div>
+          <div>
+            <div class="home-team-name">Jaclyn Risser</div>
+            <div class="home-team-role">Brand Manager</div>
+            <a class="home-team-email" href="mailto:jrisser@medaltus.com">jrisser@medaltus.com</a>
+          </div>
+        </div>
+        <div class="home-team-item">
+          <div class="home-team-avatar">MG</div>
+          <div>
+            <div class="home-team-name">Michelle Gallagher</div>
+            <div class="home-team-role">Creative Marketing Manager</div>
+            <a class="home-team-email" href="mailto:mgallagher@medaltus.com">mgallagher@medaltus.com</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="home-card-title">Resources</div>
+        <div class="home-card-sub">Shared files, routing guides, and brand docs.</div>
+
+        <a class="home-resource-item" href="https://www.dropbox.com/scl/fo/yxfbfwsj4z0b28ccsqf26/AMT_JlaMrBZhBSFtKPk2OO4?rlkey=rjyvva2l745jab0q5ccusoghe&st=fllx6v6b&dl=0" target="_blank" rel="noopener">
+          <span class="home-resource-icon">📁</span>
+          <div>
+            <div class="home-resource-title">Shared Dropbox Folder</div>
+            <div class="home-resource-sub">Brand assets, content, and shared files</div>
+          </div>
+        </a>
+
+        <a class="home-resource-item" href="/api/holiday-schedule" target="_blank" rel="noopener">
+          <span class="home-resource-icon">📅</span>
+          <div>
+            <div class="home-resource-title">2026 Holiday Schedule</div>
+            <div class="home-resource-sub">Observed Medaltus office closures</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="home-footer">
+      <span class="brand">medal<span>tus</span>.</span> A trusted partner for your brand.
+    </div>
+
+  </div><!-- /#page-home -->
+
   <!-- ══ LAUNCH CHECKLIST ══ -->
-  <div class="page active" id="page-onboarding">
+  <div class="page" id="page-onboarding">
 
     <!-- Hero -->
     <div class="onboarding-hero">
@@ -269,9 +420,12 @@ nav{flex:1;padding:8px 8px 0;}
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 const PAGE_TITLES = {
+  home:       'Home — Cosmette Skincare',
   onboarding: 'Launch Checklist — Cosmette Skincare',
   inventory:  'Inventory — Cosmette Skincare',
 };
+
+let todosLoaded = false;
 
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -281,6 +435,17 @@ function showPage(id, btn) {
   if (btn) btn.classList.add('active');
   const titleEl = document.getElementById('topbar-title');
   if (titleEl) titleEl.textContent = PAGE_TITLES[id] || id;
+
+  if (id === 'onboarding' && !todosLoaded) {
+    todosLoaded = true;
+    loadTodos();
+  }
+}
+
+function setHomeDate() {
+  const el = document.getElementById('home-date');
+  if (!el) return;
+  el.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -396,8 +561,8 @@ function escHtml(str) {
     .replace(/"/g,'&quot;');
 }
 
-// Auto-load on page ready
-document.addEventListener('DOMContentLoaded', () => loadTodos());
+// Set today's date on Home; Launch Checklist todos load lazily on first visit
+document.addEventListener('DOMContentLoaded', () => setHomeDate());
 </script>
 </body>
 </html>
