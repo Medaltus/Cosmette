@@ -117,7 +117,8 @@ nav{flex:1;padding:8px 8px 0;}
 /* ── Launch Checklist hero ── */
 .onboarding-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:24px 32px;margin-bottom:20px;display:flex;flex-direction:column;gap:16px;}
 .ob-hero-left{}
-.ob-hero-title{font-size:20px;font-weight:400;font-style:italic;font-family:var(--font-serif);color:#fff;letter-spacing:-.1px;}
+.ob-hero-title{display:block;}
+.ob-hero-stats{font-size:14px;font-weight:400;font-style:italic;font-family:var(--font-serif);color:rgba(255,255,255,.85);margin-top:6px;}
 .ob-hero-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px;}
 
 /* ── Progress bar (full width under hero text) ── */
@@ -405,8 +406,8 @@ nav{flex:1;padding:8px 8px 0;}
     <!-- Hero -->
     <div class="onboarding-hero">
       <div class="ob-hero-left">
-        <div class="ob-hero-title">Cosmette</div>
-        <div class="ob-hero-sub" id="ob-hero-stats">Loading tasks…</div>
+        <svg style="height:32px;width:auto;" viewBox="0 0 170 52" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.08 32.07a9.49 9.49 0 1 1-.08-15.2 1.34 1.34 0 0 0 1.64-.32l.4-.4a11.36 11.36 0 1 0 .13 16.58l-.44-.41a1.34 1.34 0 0 0-1.66-.25m28.79-7.57a11.43 11.43 0 1 0-11.43 11.36A11.35 11.35 0 0 0 46.87 24.5m-20.98 0a9.55 9.55 0 1 1 5.9 8.79 9.5 9.5 0 0 1-5.9-8.79m31.07 11.36c4.21 0 7.2-2.65 7.2-6.37 0-2.93-2.02-5.03-6.51-6.69-3.07-1.18-4.42-2.38-4.42-4.05 0-2.23 1.86-3.73 4.46-3.73 1.3.03 2.55.49 3.57 1.3a1.03 1.03 0 0 0 1.44-.4l.32-.53a7.7 7.7 0 0 0-5.33-2.24c-3.7 0-6.34 2.32-6.34 5.61 0 2.48 1.76 4.3 5.76 5.84 3.6 1.46 5.17 2.9 5.17 4.9 0 2.82-2.27 4.52-5.32 4.49a8 8 0 0 1-4.53-1.9 1.07 1.07 0 0 0-1.44.06l-.42.64a8.7 8.7 0 0 0 6.39 3.07M71.88 16.9q0-.27-.1-.53h.02l8.4 15.36a1.06 1.06 0 0 0 1.99 0l8.39-15.36h.03q-.1.26-.11.53v18.7h1.88V13.42h-1.24c-.75 0-1.08.3-1.49 1.02l-8.28 14.96q-.13.3-.16.62h-.03a2 2 0 0 0-.17-.62l-8.28-14.96c-.4-.72-.72-1.02-1.47-1.02H70V35.6h1.88zm41.37 16.83h-11.41v-8.48h9.25v-1.88h-9.25v-8.08h11.41v-1.87H99.96V35.6h13.3zm10.37 1.87h1.88V15.3h7.39V13.4h-16.66v1.88h7.39zm10.86-20.3h7.39v20.3h1.87v-20.3h7.4V13.4h-16.66zm34.52 0V13.4h-13.3V35.6H169v-1.87h-11.41v-8.48h9.25v-1.88h-9.25v-8.07z" fill="#fff"></path></svg>
+        <div class="ob-hero-stats" id="ob-hero-stats">Loading tasks…</div>
       </div>
       <div class="ob-progress-wrap">
         <div class="ob-progress-track">
