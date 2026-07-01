@@ -39,10 +39,10 @@
   font-display: swap;
 }
 @font-face {
-  font-family: 'GT Walsheim Pro';
-  src: url('/GT Walsheim Pro Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
+  font-family: 'Plantin MT Pro';
+  src: url('/Monotype - PlantinMTPro-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
   font-display: swap;
 }
 </style>
@@ -55,6 +55,7 @@
   --text:#001F60; --muted:#6B7BA2; --success:#24e9a3; --warn:#C87D2F; --danger:#db372d;
   --sidebar-w:224px;
   --font:'GT Walsheim Pro',system-ui,sans-serif; --mono:'DM Mono','Fira Mono',monospace;
+  --font-serif:'Plantin MT Pro','Georgia',serif;
   --radius:10px; --radius-sm:6px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -116,7 +117,7 @@ nav{flex:1;padding:8px 8px 0;}
 /* ── Launch Checklist hero ── */
 .onboarding-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:24px 32px;margin-bottom:20px;display:flex;flex-direction:column;gap:16px;}
 .ob-hero-left{}
-.ob-hero-title{font-size:20px;font-weight:600;color:#fff;letter-spacing:-.3px;}
+.ob-hero-title{font-size:20px;font-weight:400;font-style:italic;font-family:var(--font-serif);color:#fff;letter-spacing:-.1px;}
 .ob-hero-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px;}
 
 /* ── Progress bar (full width under hero text) ── */
@@ -185,7 +186,7 @@ nav{flex:1;padding:8px 8px 0;}
 .home-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(36,233,163,0.16);border:1px solid rgba(36,233,163,0.35);color:var(--green);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:20px;}
 .home-badge svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;}
 .home-badge-channel{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;}
-.home-hero-title{font-size:24px;font-weight:600;color:#fff;letter-spacing:-.4px;margin-top:18px;}
+.home-hero-title{font-size:24px;font-weight:400;font-style:italic;font-family:var(--font-serif);color:#fff;letter-spacing:-.2px;margin-top:18px;}
 .home-hero-sub{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.6;margin-top:8px;max-width:560px;}
 .home-hero-date{font-size:11px;color:rgba(255,255,255,.35);margin-top:14px;}
 
