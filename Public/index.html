@@ -1830,6 +1830,41 @@ function csRootSku(s) {
   return m ? m[0] : csBaseSku(s);
 }
 
+// Product names live on the Master SKU List's "Product Short Name" column
+// (ASIN | SKU | Product Short Name | Brand | ...) — NOT on the orders
+// sheets themselves (those only ever carry sku/asin, no product_name
+// column, despite earlier code here assuming otherwise). Fetched once and
+// cached; keyed by BOTH ASIN and base SKU (stripped -SF) since different
+// sheets identify products differently (order rows mostly by SKU, some by
+// ASIN) — whichever key a given row has, this resolves the same name.
+let _csProductNamesPromise = null;
+function csFetchProductNames() {
+  if (_csProductNamesPromise) return _csProductNamesPromise;
+  _csProductNamesPromise = (async () => {
+    const nameByAsin = {}, nameBySku = {};
+    const cfg = window.SHEET_CFG.SHEET_MASTER_SKU_LIST;
+    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku }; }
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku }; }
+      const rows = csParseCsv(csv);
+      console.log('[CosmetteProductNames] rows loaded:', rows.length, '— columns:', rows.length ? Object.keys(rows[0]) : '(none)');
+      rows.forEach(r => {
+        // Column names confirmed from the sheet header: ASIN, SKU, Product Short Name, Brand, ...
+        const asin = (r.ASIN || r.asin || '').trim().toUpperCase();
+        const sku = csBaseSku(r.SKU || r.sku);
+        const name = (r['Product Short Name'] || r.product_short_name || r.product_name || '').trim();
+        if (!name) return;
+        if (asin) nameByAsin[asin] = name;
+        if (sku) nameBySku[sku] = name;
+      });
+      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names');
+    } catch (e) { console.warn('[CosmetteProductNames] fetch failed:', e.message); }
+    return { nameByAsin, nameBySku };
+  })();
+  return _csProductNamesPromise;
+}
+
 async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adOrderRows, prevYear, prevMonth, prevOrderRows, prevAdOrderRows) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
@@ -1852,16 +1887,16 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
   const skuUnitsPrev = unitsBySku(rowsPrev);
   const skuAdUnits = adUnitsBySku(adOrderRows || []);
   const skuAdUnitsPrev = adUnitsBySku(prevAdOrderRows || []);
-  // Index by both base SKU and root SKU (letters+digits only) — a row
-  // carrying the -SF variant may have a blank product_name while its FBA
-  // counterpart has it, or vice versa; root indexing catches either.
-  const skuNameMap = {};
+
+  // ASIN for each SKU seen this month (so the Master SKU List lookup can
+  // try ASIN first, falling back to SKU) — order rows carry both.
+  const asinBySku = {};
   rowsThis.concat(rowsPrev).forEach(r => {
-    if (!r.sku || !r.product_name) return;
-    const base = csBaseSku(r.sku), root = csRootSku(r.sku);
-    if (base) skuNameMap[base] = r.product_name;
-    if (root && !skuNameMap[root]) skuNameMap[root] = r.product_name;
+    const sku = csBaseSku(r.sku);
+    const asin = (r.asin || '').trim().toUpperCase();
+    if (sku && asin && !asinBySku[sku]) asinBySku[sku] = asin;
   });
+  const { nameByAsin, nameBySku } = await csFetchProductNames();
 
   const sorted = Object.entries(skuUnits).filter(([,u]) => u > 0).sort((a,b) => b[1]-a[1]);
   let totalAdUnits = 0;
@@ -1871,7 +1906,8 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
     return { totalAdUnits: 0 };
   }
   sorted.forEach(([sku, units], idx) => {
-    const name = skuNameMap[sku] || skuNameMap[csRootSku(sku)] || sku;
+    const asin = asinBySku[sku];
+    const name = (asin && nameByAsin[asin]) || nameBySku[sku] || nameBySku[csRootSku(sku)] || sku;
     const prevUnits = skuUnitsPrev[sku] || 0;
     const adUnits = Math.min(skuAdUnits[sku] || 0, units);
     const adUnitsPrev = Math.min(skuAdUnitsPrev[sku] || 0, prevUnits);
@@ -2708,21 +2744,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .reduce((s, r) => s + (parseInt(String(r.ad_units || '').replace(/^'/, ''), 10) || 0), 0);
   }
   async function getProductNames() {
-    const map = {};
-    const cfg = window.SHEET_CFG.SHEET_MASTER_SKU_LIST;
-    if (!cfg) return map;
-    try {
-      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid)).then(r => r.ok ? r.text() : '').catch(() => '');
-      if (!csIsCsv(csv)) return map;
-      const lines = csv.trim().split('\n');
-      for (let i = 1; i < lines.length; i++) {
-        const cols = csParseCsvLine(lines[i]);
-        const asin = (cols[0] || '').replace(/^"|"$/g,'').trim().toUpperCase();
-        const name = (cols[2] || '').replace(/^"|"$/g,'').trim();
-        if (asin && name) map[asin] = name;
-      }
-    } catch (e) { console.warn('[EventReport] name lookup failed:', e.message); }
-    return map;
+    const { nameByAsin } = await csFetchProductNames();
+    return nameByAsin;
   }
   function wrapBarLabel(label, maxLen) {
     const words = String(label).split(' ');
