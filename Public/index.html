@@ -114,6 +114,9 @@ nav{flex:1;padding:8px 8px 0;}
 .channel-tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;overflow:hidden;align-self:flex-start;flex-wrap:wrap;}
 .channel-tabs-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
 .channel-tabs-row .channel-tabs{margin-bottom:0;}
+.period-pill{border:none;background:transparent;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.period-pill:hover{color:var(--navy);}
+.period-pill.active{background:var(--navy);color:#fff;}
 .channel-page{display:none;}
 .channel-page.active{display:block;}
 
@@ -733,6 +736,11 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
       </div>
+      <!-- Hidden on Overview, shown on Amazon — toggled in showChannel(). -->
+      <div class="period-selector" id="sales-period-selector" style="display:none;align-items:center;gap:10px;">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Period</span>
+        <div class="period-pills" id="sales-period-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
+      </div>
     </div>
 
     <div class="channel-page active" id="s-overview">
@@ -956,6 +964,13 @@ function showChannel(page, channelId, btn) {
   // Per-channel lazy inits — cheap to call repeatedly, each memoizes itself.
   if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
+
+  // Period selector only makes sense on Amazon (internal Sales page) — hidden
+  // everywhere else, matching Skinuva's real behavior.
+  if (page === 'sales') {
+    const sel = document.getElementById('sales-period-selector');
+    if (sel) sel.style.display = (channelId === 's-amazon') ? 'flex' : 'none';
+  }
 }
 
 function setHomeDate() {
@@ -1434,7 +1449,136 @@ async function csBuildRevenueChart(canvasId, currentYear) {
   });
 }
 
-// ── INTERNAL Amazon Sales (live current month) ──────────────────────────
+// ── INTERNAL Amazon Sales — period-aware (MTD / Last Full Month / Prior
+//    Month / Last Year), adapted from Skinuva's real renderAmazonPeriod
+//    system. Simplifications vs. Skinuva's version, on purpose:
+//      - No territory (US/CA/UK) split — Cosmette doesn't sell multi-territory.
+//      - No returns netting yet — same v1 gap noted elsewhere in this file.
+//    Fetches all four source sheets ONCE and caches the COS-filtered rows;
+//    switching periods only re-aggregates in memory, no re-fetch.
+// ═══════════════════════════════════════════════════════════════════════
+const CS_PERIOD_LABELS = { mtd: 'Month to Date', lastFull: 'Last Full Month', prior: 'Prior Month', lastYear: 'Last Year' };
+
+function csAggregateMonthThroughDay(rows, year, month, throughDay) {
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+  const filtered = rows.filter(r => {
+    const d = csNormalizeDate(r.date);
+    if (d.substring(0,7) !== prefix) return false;
+    const day = parseInt(d.substring(8,10), 10);
+    return day && day <= throughDay;
+  });
+  if (filtered.length === 0) return null;
+  const orderIds = new Set(filtered.map(r => r.order_id).filter(Boolean));
+  const totalOrders = orderIds.size;
+  const totalUnits = filtered.reduce((s, r) => s + (parseInt(r.unit_count, 10) || 0), 0);
+  const orderTotals = {};
+  filtered.forEach(r => { if (r.order_id) orderTotals[r.order_id] = (orderTotals[r.order_id] || 0) + csParseAmt(r.item_price); });
+  const totalRevenue = Object.values(orderTotals).reduce((s, v) => s + v, 0);
+  const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  return { totalUnits, totalOrders, avgOrder };
+}
+
+function csBuildPeriodConfig(key) {
+  const { year, month } = csGetLastFullMonth();
+  let prevMonth = month - 1, prevYear = year;
+  if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+  const yoyYear = year - 1, yoyMonth = month;
+
+  if (key === 'lastFull') {
+    return { year, month, prevYear, prevMonth, isPartial: false, isHistorical: false, label: CS_PERIOD_LABELS.lastFull };
+  }
+  if (key === 'prior') {
+    let priorPrevMonth = prevMonth - 1, priorPrevYear = prevYear;
+    if (priorPrevMonth === 0) { priorPrevMonth = 12; priorPrevYear--; }
+    return { year: prevYear, month: prevMonth, prevYear: priorPrevYear, prevMonth: priorPrevMonth, isPartial: false, isHistorical: false, label: CS_PERIOD_LABELS.prior };
+  }
+  if (key === 'lastYear') {
+    // isHistorical: true — SHEET_ORDERS is a rolling ~90-day window (same
+    // convention as Skinuva's sync sheet); a genuine year-back comparison
+    // needs SHEET_ORDERS_HISTORICAL instead. NOT VERIFIED for Cosmette that
+    // the historical sheet actually reaches back a full year yet — if this
+    // period shows no data, that's the first thing to check.
+    return { year: yoyYear, month: yoyMonth, prevYear: null, prevMonth: null, isPartial: false, isHistorical: true, label: CS_PERIOD_LABELS.lastYear };
+  }
+  // mtd
+  const now = new Date();
+  const mtdYear = now.getFullYear(), mtdMonth = now.getMonth() + 1, mtdDay = now.getDate();
+  let mtdPrevMonth = mtdMonth - 1, mtdPrevYear = mtdYear;
+  if (mtdPrevMonth === 0) { mtdPrevMonth = 12; mtdPrevYear--; }
+  return { year: mtdYear, month: mtdMonth, throughDay: mtdDay, prevYear: mtdPrevYear, prevMonth: mtdPrevMonth, isPartial: true, isHistorical: false, label: CS_PERIOD_LABELS.mtd };
+}
+
+window.renderCosmettePeriod = function (key) {
+  const cache = window._csDataCache;
+  if (!cache) { console.warn('[CosmetteSalesInternal] renderCosmettePeriod called before data loaded.'); return; }
+  window._csActivePeriod = key;
+  const cfg = csBuildPeriodConfig(key);
+  const monthNames = csMonths12;
+  const orderRows = cfg.isHistorical ? cache.histRows : cache.syncRows;
+
+  const subEl = document.getElementById('sales-page-sub');
+  if (cfg.isPartial) {
+    if (subEl) subEl.textContent = `${monthNames[cfg.month-1]} 1 – ${cfg.throughDay}, ${cfg.year} · ${cfg.label}`;
+  } else {
+    const lastDay = new Date(cfg.year, cfg.month, 0).getDate();
+    if (subEl) subEl.textContent = `${monthNames[cfg.month-1]} 1 – ${monthNames[cfg.month-1]} ${lastDay}, ${cfg.year} · ${cfg.label}`;
+  }
+  const heroEl = document.getElementById('overview-hero-date');
+  if (heroEl) heroEl.textContent = `${monthNames[cfg.month-1]} ${cfg.year}`;
+
+  const curr = cfg.isPartial
+    ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
+    : csAggregateMonth(orderRows, cfg.year, cfg.month);
+  if (!curr) {
+    console.warn(`[CosmetteSalesInternal] No Cosmette rows found for ${cfg.year}-${cfg.month} (period: ${key}).`);
+    csSetKpiValue('kpi-total-units', '—'); csSetKpiValue('kpi-total-orders', '—');
+    csSetKpiValue('kpi-avg-order', '—'); csSetKpiValue('kpi-units-ads', '—'); csSetKpiValue('kpi-units-organic', '—');
+    const tbody = document.getElementById('tp-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No data for this period.</td></tr>';
+    return;
+  }
+  // Prior-period comparison always reads the sync sheet (same convention as
+  // Skinuva) — Prior Month and MTD's comparison month are always within
+  // SHEET_ORDERS' rolling window; Last Year has no prior-period comparison.
+  const prev = cfg.prevYear
+    ? (cfg.isPartial
+        ? csAggregateMonthThroughDay(cache.syncRows, cfg.prevYear, cfg.prevMonth, cfg.throughDay)
+        : csAggregateMonth(cache.syncRows, cfg.prevYear, cfg.prevMonth))
+    : null;
+
+  let adUnitsKpi = 0, prevAdUnitsKpi = 0;
+  const adRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.year && parseInt(r.month,10) === cfg.month);
+  if (adRow) adUnitsKpi = parseInt(adRow.ad_units, 10) || 0;
+  if (cfg.prevYear) {
+    const prevAdRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.prevYear && parseInt(r.month,10) === cfg.prevMonth);
+    if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units, 10) || 0;
+  }
+  csRenderKPIs('', curr, prev, adUnitsKpi, cfg.prevYear ? prevAdUnitsKpi : null);
+  if (!prev) csSetBadge('kpi-total-units', 'kpi-mom', null, ''); // no comparison period for Last Year
+
+  if (cfg.isHistorical) {
+    const tbody = document.getElementById('tp-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Per-product breakdown not available for Last Year yet — showing headline KPIs only for this period.</td></tr>';
+  } else {
+    const adOrderRows = cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.year && parseInt(r.month,10)===cfg.month);
+    const prevAdOrderRows = cfg.prevYear ? cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.prevYear && parseInt(r.month,10)===cfg.prevMonth) : [];
+    csBuildTopProducts('tp-tbody', 'amazon-products-source', orderRows, cfg.year, cfg.month, adOrderRows, cfg.prevYear, cfg.prevMonth, orderRows, prevAdOrderRows);
+  }
+  csBuildRevenueChart('chart-amazon', cfg.year).catch(e => console.warn('[CosmetteRevenue] failed:', e.message));
+};
+
+function csRenderPeriodPills(activeKey) {
+  const container = document.getElementById('sales-period-pills');
+  if (!container) return;
+  container.innerHTML = Object.entries(CS_PERIOD_LABELS).map(([key, label]) =>
+    `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectPeriod('${key}')">${label}</button>`
+  ).join('');
+}
+window.__cosmetteSelectPeriod = function (key) {
+  csRenderPeriodPills(key);
+  window.renderCosmettePeriod(key);
+};
+
 window.initAmazonSalesInternal = function () {
   if (window._csInternalPromise) return window._csInternalPromise;
   window._csInternalPromise = (async function () {
@@ -1443,46 +1587,26 @@ window.initAmazonSalesInternal = function () {
     const missing = need.filter(k => !cfg[k]);
     if (missing.length) { console.warn('[CosmetteSalesInternal] Missing SHEET_CONFIG keys:', missing); return; }
 
-    const { year, month } = csGetLastFullMonth();
-    let prevMonth = month - 1, prevYear = year;
-    if (prevMonth === 0) { prevMonth = 12; prevYear--; }
-    const monthNames = csMonths12;
-
-    const subEl = document.getElementById('sales-page-sub');
-    const lastDay = new Date(year, month, 0).getDate();
-    if (subEl) subEl.textContent = `${monthNames[month-1]} 1 – ${monthNames[month-1]} ${lastDay}, ${year} · Current`;
-    const heroEl = document.getElementById('overview-hero-date');
-    if (heroEl) heroEl.textContent = `${monthNames[month-1]} ${year}`;
-
     try {
-      const [syncCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
+      const [syncCsv, histCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
         fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+        fetch(csSheetCsvUrl(cfg.SHEET_ORDERS_HISTORICAL.fileId, cfg.SHEET_ORDERS_HISTORICAL.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
         fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
         fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
       ]);
       const syncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
-      console.log('[CosmetteSalesInternal] order rows after COS filter:', syncRows.length);
+      const histRows = csIsCsv(histCsv) ? csFilterRows(csParseCsv(histCsv)) : [];
+      console.log('[CosmetteSalesInternal] sync rows after COS filter:', syncRows.length, '| historical rows:', histRows.length);
 
-      const curr = csAggregateMonth(syncRows, year, month);
-      const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
-      if (!curr) {
-        console.warn(`[CosmetteSalesInternal] No Cosmette rows found for ${year}-${month}. Check SKU prefix / date column / sheet gid.`);
-        return;
-      }
+      window._csDataCache = {
+        syncRows, histRows,
+        adSummaryRows: csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [],
+        adOrdersRows: csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv) : [],
+      };
 
-      let adUnitsKpi = 0, prevAdUnitsKpi = 0;
-      const adRows = csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [];
-      const adRow = adRows.find(r => parseInt(r.year,10) === year && parseInt(r.month,10) === month);
-      if (adRow) adUnitsKpi = parseInt(adRow.ad_units, 10) || 0;
-      const prevAdRow = adRows.find(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
-      if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units, 10) || 0;
-
-      csRenderKPIs('', curr, prev, adUnitsKpi, prevAdUnitsKpi);
-
-      const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===year && parseInt(r.month,10)===month) : [];
-      const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
-      await csBuildTopProducts('tp-tbody', 'amazon-products-source', syncRows, year, month, adOrderRows, prevYear, prevMonth, syncRows, prevAdOrderRows);
-      csBuildRevenueChart('chart-amazon', year).catch(e => console.warn('[CosmetteRevenue] failed:', e.message));
+      const startPeriod = window._csActivePeriod || 'lastFull';
+      csRenderPeriodPills(startPeriod);
+      window.renderCosmettePeriod(startPeriod);
 
     } catch (err) {
       console.error('[CosmetteSalesInternal] error:', err);
