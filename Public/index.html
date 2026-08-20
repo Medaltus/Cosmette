@@ -258,6 +258,8 @@ nav{flex:1;padding:8px 8px 0;}
 .priority-item:last-child{border-bottom:none;}
 .priority-num{width:20px;height:20px;border-radius:50%;background:var(--navy);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
 .priority-text{font-size:12.5px;color:var(--navy);line-height:1.55;}
+.org-sqp-alert{display:flex;align-items:flex-start;gap:10px;background:rgba(200,125,47,.08);border:1px solid rgba(200,125,47,.2);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--navy);line-height:1.6;margin-bottom:14px;}
+.org-sqp-alert span:first-child{font-size:16px;flex-shrink:0;}
 .org-sqp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
 .org-sqp-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
 .org-sqp-badge{font-size:10px;font-weight:500;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:2px 8px;margin-left:8px;}
@@ -1874,11 +1876,17 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div class="ppc-note">ℹ Sessions/Units/Revenue/Conv% pulled live from the Business Report sheet, every product in the catalog.</div>
       </div>
 
-      <div class="ppc-card">
-        <div class="ppc-card-title">What Good Looks Like — Benchmark Reference</div>
-        <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category ACoS Target</div><div class="ppc-metric-val">30%</div></div>
-        <div class="ppc-metric-row"><div class="ppc-metric-lbl">TACoS Target</div><div class="ppc-metric-val">10–15%</div></div>
-        <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category Conv% Benchmark</div><div class="ppc-metric-val">15–20%</div></div>
+      <div class="two-col" style="margin-bottom:20px;">
+        <div class="ppc-card">
+          <div class="ppc-card-title">What Good Looks Like — Benchmark Reference</div>
+          <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category ACoS Target</div><div class="ppc-metric-val">30%</div></div>
+          <div class="ppc-metric-row"><div class="ppc-metric-lbl">TACoS Target</div><div class="ppc-metric-val">10–15%</div></div>
+          <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category Conv% Benchmark</div><div class="ppc-metric-val">15–20%</div></div>
+        </div>
+        <div class="ppc-card">
+          <div class="ppc-card-title">Keyword Coverage Status</div>
+          <div class="ppc-note" style="margin-bottom:12px;">ℹ Needs a `keyword_sales` column on the Keyword Tracker sheet — confirmed directly that Cosmette's sheet doesn't have this field yet (only date, asin, sku, keyword, organic_rank, sponsored_rank, search_volume, boosted, last_synced). Build once that column exists.</div>
+        </div>
       </div>
     </div>
 
@@ -1953,6 +1961,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <div class="p1-list" id="org-p1-list"><div style="color:var(--muted);font-size:12px;padding:14px 18px;">Loading…</div></div>
 
     <div class="org-sqp-card">
+      <div class="org-sqp-alert" id="org-rt-banner" style="margin-bottom:14px;">
+        <span>📈</span>
+        <span id="org-rt-banner-text">Loading…</span>
+      </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
         <div class="org-sqp-title" style="margin-bottom:0;">Rank Changes <span class="org-sqp-badge" id="org-rt-daterange">Loading…</span></div>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -1968,12 +1980,18 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div style="overflow-x:auto;">
         <table class="data-table">
           <thead><tr>
-            <th>Product</th><th>Keyword</th><th>Search Volume</th>
-            <th id="org-rt-col-older">Older</th><th id="org-rt-col-newer">Newer</th><th>Change</th>
-            <th>Where in Listing</th><th>PPC</th>
+            <th>Product</th><th>Keyword</th><th>Vol/mo</th>
+            <th id="org-rt-col-older">Earlier</th><th id="org-rt-col-newer">Latest</th><th>Change</th>
+            <th>Where in Listing</th><th>PPC (Spend · Sales · ACoS)</th><th>Recommended Action</th>
           </tr></thead>
-          <tbody id="org-rt-tbody"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">Loading…</td></tr></tbody>
+          <tbody id="org-rt-tbody"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
         </table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
+        Rows are sorted with anything needing immediate attention first (🔴), then best-performing, down to lowest-performing — not alphabetical or by volume.<br>
+        <strong>Where in Listing</strong> and <strong>PPC</strong> are always live — recomputed from the listing-copy and ad-search-terms sheets on every page load. PPC is exact-match only (a keyword tracked as an exact phrase won't catch spend under a slightly different variant) — a wrong fuzzy match that looks confident is worse than an honest "No spend."<br>
+        <strong>Recommended Action</strong> shows the ✨ AI-written recommendation (factors in rank change, PPC performance, and listing placement together) whenever one exists for that keyword — generated by Run Analysis, not on every page load, so it's only as fresh as the last time someone clicked it. Keywords Run Analysis hasn't covered yet fall back to a simpler rank-only rule, shown without the ✨.<br>
+        <strong>Where in Listing</strong> reflects the live listing copy as of its last sync only — it can't show when a keyword was added, since the listings sheet doesn't keep dated history.
       </div>
     </div>
   </div>
@@ -5234,6 +5252,28 @@ document.addEventListener('DOMContentLoaded', () => {
     return { label: `$${spend.toFixed(2)} · 0 ord`, tier: 'warn' };
   }
 
+  function rankPillClass(rank) {
+    if (!rank || !rank.ranked) return 'rank-none';
+    if (rank.numeric <= 20) return 'rank-top';
+    if (rank.numeric <= 100) return 'rank-mid';
+    return 'rank-low';
+  }
+  function rankPillHtml(rank) {
+    if (!rank) return '<span class="rank-pill rank-none">—</span>';
+    return `<span class="rank-pill ${rankPillClass(rank)}">${rank.ranked ? rank.numeric : 'Not ranking'}</span>`;
+  }
+  function suggestAction(older, newer) {
+    const oR = older && older.ranked, nR = newer && newer.ranked;
+    if (!older && !newer) return { text: 'No data for this window', cls: '' };
+    if (!oR && !nR) return { text: 'Not ranking — needs listing optimization or PPC push', cls: '' };
+    if (!oR && nR) return { text: '🆕 Newly ranking — keep momentum, consider PPC support', cls: 'rank-top' };
+    if (oR && !nR) return { text: '⚠️ Dropped out of ranking — investigate listing/inventory/pricing', cls: 'rank-low' };
+    const change = older.numeric - newer.numeric;
+    if (change >= 10) return { text: `📈 Improved ${change} spots — monitor, no action needed`, cls: 'rank-top' };
+    if (change <= -10) return { text: `📉 Declined ${Math.abs(change)} spots — review PPC bid/listing placement`, cls: 'rank-low' };
+    return { text: '→ Holding steady', cls: '' };
+  }
+
   window.renderOrganicRankTracker = function () {
     const cache = window._csOrgDataCache;
     if (!cache) return;
@@ -5241,12 +5281,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateRangeEl = document.getElementById('org-rt-daterange');
     const colOlderEl = document.getElementById('org-rt-col-older');
     const colNewerEl = document.getElementById('org-rt-col-newer');
+    const bannerText = document.getElementById('org-rt-banner-text');
+    const banner = document.getElementById('org-rt-banner');
     const windowSelect = document.getElementById('org-rt-window');
     const windowDays = windowSelect ? parseInt(windowSelect.value,10) : 28;
 
     const rows = cache.kwRows;
     if (!rows.length) {
-      if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">No keyword tracker data found.</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);">No keyword tracker data found.</td></tr>';
+      if (bannerText) bannerText.textContent = 'No keyword tracker data found yet.';
       return;
     }
 
@@ -5267,6 +5310,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ppcByTerm = aggregatePpcByTerm(cache.ppcRows);
     const tableRows = [];
+    let improved = 0, declined = 0, newlyRanking = 0, droppedOut = 0, notRanking = 0, steady = 0, urgentCount = 0;
+
     groups.forEach((observations, key) => {
       const [asin, keyword] = key.split('||');
       if (!asin || !keyword) return;
@@ -5279,12 +5324,28 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const newerRank = parseRank(newerObs.organic_rank);
       const olderRank = olderObs ? parseRank(olderObs.organic_rank) : null;
+
+      if (!olderObs) { /* insufficient history — still show the row */ }
+      else if (!olderRank?.ranked && !newerRank?.ranked) notRanking++;
+      else if (!olderRank?.ranked && newerRank?.ranked) newlyRanking++;
+      else if (olderRank?.ranked && !newerRank?.ranked) droppedOut++;
+      else if (olderRank && newerRank) {
+        const change = olderRank.numeric - newerRank.numeric;
+        if (change >= 10) improved++;
+        else if (change <= -10) declined++;
+        else steady++;
+      }
+
       const sku = cache.skuByAsin[asin] || '';
       const whereInListing = computeWhereInListing(cache.listingRows, keyword, sku);
       const ppcEntry = ppcByTerm.get(keyword.toLowerCase());
       const ppc = classifyPpc(ppcEntry);
-      const urgent = ppc.tier === 'urgent';
-      tableRows.push({ asin, sku, keyword, olderObs, newerObs, olderRank, newerRank, whereInListing, ppc, urgent, searchVolume: parseInt(newerObs.search_volume,10)||0 });
+      const action = suggestAction(olderRank, newerRank);
+      const aiRecommendation = cache.aiRecommendations ? cache.aiRecommendations.get(keyword.toLowerCase()) : null;
+      const urgent = ppc.tier === 'urgent' || (action.cls === 'rank-low' && action.text.indexOf('Dropped') !== -1);
+      if (urgent) urgentCount++;
+
+      tableRows.push({ asin, sku, keyword, olderObs, olderRank, newerRank, whereInListing, ppc, action, aiRecommendation, urgent, searchVolume: parseInt(newerObs.search_volume,10)||0 });
     });
 
     tableRows.sort((a,b) => {
@@ -5294,7 +5355,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tbody) {
       if (!tableRows.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted);">No data.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);">No data.</td></tr>';
       } else {
         tbody.innerHTML = tableRows.map(r => {
           const product = cache.nameByAsin[r.asin] || r.sku || r.asin;
@@ -5306,20 +5367,40 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (!r.olderRank.ranked && r.newerRank.ranked) { changeCell = '<span style="color:#1db88a;font-weight:600;">🆕 New</span>'; }
             else if (r.olderRank.ranked && !r.newerRank.ranked) { changeCell = '<span style="color:var(--danger);font-weight:600;">⚠️ Dropped</span>'; }
           }
+          const actionCell = r.aiRecommendation
+            ? `<span style="color:var(--navy);font-weight:600;">✨ ${escapeHtml(r.aiRecommendation)}</span>`
+            : `<span style="${r.action.cls ? `color:${r.action.cls==='rank-top'?'#1db88a':r.action.cls==='rank-low'?'var(--danger)':'var(--navy)'};` : ''}">${escapeHtml(r.action.text)}</span>`;
           const rowBg = r.urgent ? 'rgba(219,55,45,0.06)' : r.ppc.tier === 'good' ? 'var(--green-dim)' : '';
           return `<tr style="background:${rowBg};">
             <td>${escapeHtml(product)}</td>
             <td>${escapeHtml(r.keyword)}</td>
             <td>${r.searchVolume.toLocaleString()}</td>
-            <td>${r.olderRank ? (r.olderRank.ranked ? r.olderRank.numeric : 'Not ranking') : '—'}</td>
-            <td>${r.newerRank.ranked ? r.newerRank.numeric : 'Not ranking'}</td>
+            <td>${rankPillHtml(r.olderRank)}</td>
+            <td>${rankPillHtml(r.newerRank)}</td>
             <td>${changeCell}</td>
-            <td style="font-size:11px;">${escapeHtml(r.whereInListing)}</td>
-            <td style="font-size:11px;">${escapeHtml(r.ppc.label)}</td>
+            <td style="font-size:11.5px;">${escapeHtml(r.whereInListing)}</td>
+            <td style="font-size:11.5px;">${escapeHtml(r.ppc.label)}</td>
+            <td style="font-size:11.5px;">${actionCell}</td>
           </tr>`;
         }).join('');
       }
     }
+
+    if (bannerText) {
+      const total = tableRows.length;
+      const skuCount = new Set(tableRows.map(r=>r.sku)).size;
+      const urgentPrefix = urgentCount > 0 ? `<strong style="color:var(--danger);">🔴 ${urgentCount} need attention now</strong> — ` : '';
+      const aiFreshness = cache.aiRecommendations
+        ? ` <span style="color:var(--muted);">· ✨ AI recommendations as of ${escapeHtml(cache.aiRecommendations.__asOfDate || '—')} (Run Analysis)</span>`
+        : ` <span style="color:var(--muted);">· No AI recommendations yet — click Run Analysis on the Insights Log page</span>`;
+      bannerText.innerHTML = urgentPrefix + `<strong>${total} tracked keywords</strong> across ${skuCount} SKU${skuCount===1?'':'s'}, comparing ${targetOlderDate} to ${newestDate}: ` +
+        `<strong style="color:#1db88a;">${improved} improved</strong>, ` +
+        `<strong style="color:var(--danger);">${declined} declined</strong>, ` +
+        `<strong style="color:#1db88a;">${newlyRanking} newly ranking</strong>, ` +
+        `<strong style="color:var(--danger);">${droppedOut} dropped out</strong>, ` +
+        `${steady} holding steady, ${notRanking} still not ranking.` + aiFreshness;
+    }
+    if (banner) banner.style.borderColor = urgentCount > 0 ? 'rgba(219,55,45,.4)' : (declined+droppedOut > improved+newlyRanking ? 'rgba(219,55,45,.3)' : 'rgba(36,233,163,.3)');
   };
 
   const P1_RANK_CUTOFF = 48, P1_CLOSE_MAX = 100;
@@ -5376,21 +5457,45 @@ document.addEventListener('DOMContentLoaded', () => {
       const cfg = window.SHEET_CFG;
       if (!cfg.SHEET_KEYWORD_TRACKER) { console.warn('[CosmetteOrganic] Missing SHEET_KEYWORD_TRACKER.'); return; }
       try {
-        const [kwCsv, listingCsv, ppcCsv, names] = await Promise.all([
-          fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER.fileId, cfg.SHEET_KEYWORD_TRACKER.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
-          cfg.SHEET_PRODUCT_INVENTORY ? fetch(csSheetCsvUrl(cfg.SHEET_PRODUCT_INVENTORY.fileId, cfg.SHEET_PRODUCT_INVENTORY.gid)).then(r => r.ok ? r.text() : '').catch(() => '') : Promise.resolve(''),
-          cfg.SHEET_AD_SEARCH_TERMS ? fetch(csSheetCsvUrl(cfg.SHEET_AD_SEARCH_TERMS.fileId, cfg.SHEET_AD_SEARCH_TERMS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '') : Promise.resolve(''),
-          csFetchProductNames(),
-        ]);
+        const kwPromise = fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER.fileId, cfg.SHEET_KEYWORD_TRACKER.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const invPromise = cfg.SHEET_PRODUCT_INVENTORY
+          ? fetch(csSheetCsvUrl(cfg.SHEET_PRODUCT_INVENTORY.fileId, cfg.SHEET_PRODUCT_INVENTORY.gid)).then(r => r.ok ? r.text() : '').catch(() => '')
+          : Promise.resolve('');
+        const adPromise = cfg.SHEET_AD_SEARCH_TERMS
+          ? fetch(csSheetCsvUrl(cfg.SHEET_AD_SEARCH_TERMS.fileId, cfg.SHEET_AD_SEARCH_TERMS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '')
+          : Promise.resolve('');
+        const insightsPromise = cfg.SHEET_INSIGHTS
+          ? fetch(csSheetCsvUrl(cfg.SHEET_INSIGHTS.fileId, cfg.SHEET_INSIGHTS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '')
+          : Promise.resolve('');
+        const namesPromise = csFetchProductNames();
+        const [kwCsv, listingCsv, ppcCsv, insightsCsv, names] = await Promise.all([kwPromise, invPromise, adPromise, insightsPromise, namesPromise]);
         const kwRows = csIsCsv(kwCsv) ? csParseCsv(kwCsv).filter(r => r.date && r.asin && r.keyword) : [];
         console.log('[CosmetteOrganic] keyword tracker rows loaded:', kwRows.length, '— columns:', kwRows.length ? Object.keys(kwRows[0]).join(' | ') : '(none)');
         const allListingRows = csIsCsv(listingCsv) ? csParseCsv(listingCsv) : [];
         const latestListingDate = allListingRows.reduce((max,r) => ((r.date||'') > max ? r.date : max), '');
+
+        // AI recommendations — organic_json.rank_changes[].recommended_action,
+        // from the most recent SHEET_INSIGHTS row (Run Analysis output).
+        // Matches Skinuva's buildAiRecommendationMap() exactly.
+        let aiRecommendations = null;
+        const insightRows = csIsCsv(insightsCsv) ? csParseCsv(insightsCsv) : [];
+        if (insightRows.length) {
+          const sorted = insightRows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+          const latest = sorted[0];
+          const organic = csSafeJson(latest.organic_json);
+          if (organic && organic.rank_changes && organic.rank_changes.length) {
+            aiRecommendations = new Map();
+            organic.rank_changes.forEach(r => { if (r.keyword && r.recommended_action) aiRecommendations.set(r.keyword.toLowerCase(), r.recommended_action); });
+            aiRecommendations.__asOfDate = latest.date || '';
+          }
+        }
+
         window._csOrgDataCache = {
           kwRows,
           listingRows: latestListingDate ? allListingRows.filter(r => r.date === latestListingDate) : allListingRows,
           ppcRows: csIsCsv(ppcCsv) ? csParseCsv(ppcCsv) : [],
           nameByAsin: names.nameByAsin, skuByAsin: names.skuByAsin,
+          aiRecommendations,
         };
         window.renderOrganicRankTracker();
         renderFastestPathToPage1();
@@ -5398,7 +5503,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.warn('[CosmetteOrganic] failed:', err.message);
         const tbody = document.getElementById('org-rt-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--danger);">Failed to load.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--danger);">Failed to load.</td></tr>';
       }
     })();
     return window._csOrgPromise;
