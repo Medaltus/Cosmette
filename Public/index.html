@@ -282,6 +282,31 @@ nav{flex:1;padding:8px 8px 0;}
 .org-callout.warn{background:rgba(219,55,45,.06);border:1px solid rgba(219,55,45,.2);color:var(--navy);}
 .org-callout.info{background:rgba(0,31,96,.05);border:1px solid rgba(0,31,96,.12);color:var(--navy);}
 .org-callout-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
+.upload-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:24px 26px;margin-bottom:20px;}
+.upload-panel-title{font-size:19px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+.upload-run-btn{display:flex;align-items:center;gap:9px;background:var(--green);color:var(--navy);border:none;border-radius:999px;padding:13px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;box-shadow:0 2px 8px rgba(36,233,163,.35);}
+.upload-run-btn:hover{box-shadow:0 4px 14px rgba(36,233,163,.5);transform:translateY(-1px);}
+.upload-run-btn:disabled{background:var(--muted);color:#fff;cursor:not-allowed;box-shadow:none;transform:none;}
+.upload-run-btn .spinner{width:14px;height:14px;border:2px solid rgba(0,31,96,.25);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.upload-run-btn.running .spinner{display:block;}
+.upload-run-btn.running .btn-label{opacity:.7;}
+.last-run-note{font-size:10.5px;color:var(--muted);margin-top:6px;text-align:center;}
+.upload-status{font-size:11.5px;color:var(--muted);margin-left:12px;font-style:italic;}
+.upload-status.error{color:var(--danger);}
+.upload-status.success{color:#1db88a;}
+.audit-run-btn{display:flex;align-items:center;gap:9px;background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);color:#fff;border:none;border-radius:999px;padding:13px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;box-shadow:0 2px 8px rgba(0,31,96,.18);}
+.audit-run-btn:hover{box-shadow:0 4px 14px rgba(0,31,96,.28);transform:translateY(-1px);}
+.audit-run-btn:disabled{background:var(--muted);cursor:not-allowed;box-shadow:none;transform:none;}
+.audit-run-btn .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.audit-run-btn.running .spinner{display:block;}
+.audit-run-btn.running .btn-label{opacity:.7;}
+.ppc-run-btn{display:flex;align-items:center;gap:9px;background:var(--sand);color:var(--navy);border:none;border-radius:999px;padding:13px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;box-shadow:0 2px 8px rgba(244,223,208,.6);}
+.ppc-run-btn:hover{box-shadow:0 4px 14px rgba(244,223,208,.85);transform:translateY(-1px);}
+.ppc-run-btn:disabled{background:var(--muted);color:#fff;cursor:not-allowed;box-shadow:none;transform:none;}
+.ppc-run-btn .spinner{width:14px;height:14px;border:2px solid rgba(0,31,96,.25);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.ppc-run-btn.running .spinner{display:block;}
+.ppc-run-btn.running .btn-label{opacity:.7;}
+@keyframes spin{to{transform:rotate(360deg)}}
 .channel-page{display:none;}
 .channel-page.active{display:block;}
 
@@ -1648,11 +1673,36 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <!-- ── INSIGHTS LOG ── (SHEET_INSIGHTS's cosmette tab exists now, but
          has no rows yet — run-analysis.js hasn't run for Cosmette. This
          renders live and will show real entries the moment it does;
-         "No insights logged yet" is the correct/expected empty state. -->
+         "No insights logged yet" is the correct/expected empty state.
+         Markup matches Skinuva's real upload-panel structure exactly
+         (button classes, spinner elements, ids) — not an approximation. -->
     <div class="channel-page" id="ins-log">
-      <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:14px;">
-        <span id="run-analysis-status" style="font-size:11px;color:var(--muted);"></span>
-        <button class="btn-approve" id="run-analysis-btn" onclick="window.__csRunAnalysis()">▶ Run Analysis</button>
+      <div class="upload-panel">
+        <div class="upload-panel-title">Weekly Brand Analysis</div>
+        <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;">
+          <div>
+            <button class="upload-run-btn" id="run-analysis-btn" onclick="window.__csRunAnalysis()">
+              <div class="spinner"></div>
+              <span class="btn-label">📊 Run Analysis</span>
+            </button>
+            <div class="last-run-note" id="last-run-analysis">Last run: —</div>
+          </div>
+          <div>
+            <button class="audit-run-btn" id="run-audit-btn" onclick="window.__csRunListingAudit()">
+              <div class="spinner"></div>
+              <span class="btn-label">📋 Run Listing Audit</span>
+            </button>
+            <div class="last-run-note" id="last-run-audit">Last run: —</div>
+          </div>
+          <div>
+            <button class="ppc-run-btn" id="run-ppc-strategy-btn" onclick="window.__csRunPpcAnalysis()">
+              <div class="spinner"></div>
+              <span class="btn-label">📈 Run PPC Analysis</span>
+            </button>
+            <div class="last-run-note" id="last-run-ppc">Last run: —</div>
+          </div>
+          <span class="upload-status" id="upload-status" style="align-self:center;"></span>
+        </div>
       </div>
       <div id="ai-log-entries"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
     </div>
@@ -1675,8 +1725,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div><div class="page-title">Listing Audit</div><div class="page-sub">Live listing copy · Title (≤75) · Item Highlights (≤125) · Bullets 1–5 · Description · Backend Keywords</div></div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span id="la-sync-badge" style="font-size:10px;color:var(--muted);font-family:var(--mono);"></span>
-        <span id="run-listing-audit-status" style="font-size:11px;color:var(--muted);"></span>
-        <button class="btn-approve" id="run-listing-audit-btn" onclick="window.__csRunListingAudit()">▶ Run Audit</button>
         <button class="btn-edit" style="padding:6px 12px;font-size:11px;" onclick="window.initListingAudit(true)">↻ Refresh</button>
       </div>
     </div>
@@ -1725,14 +1773,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="ppc-strategy">
-      <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:14px;">
-        <span id="run-ppc-analysis-status" style="font-size:11px;color:var(--muted);"></span>
-        <button class="btn-approve" id="run-ppc-analysis-btn" onclick="window.__csRunPpcAnalysis()">▶ Run PPC Analysis</button>
-      </div>
       <div class="placeholder-block">
         <div class="ph-icon">📈</div>
         <div class="ph-title">Strategy by Product</div>
-        <div class="ph-sub">Needs the ppc_strategy tab on SHEET_INSIGHTS — output of run-ppc-strategy-analysis.js. Click "Run PPC Analysis" above once the backend endpoint is deployed and env vars are confirmed.</div>
+        <div class="ph-sub">Needs the ppc_strategy tab on SHEET_INSIGHTS — output of run-ppc-strategy-analysis.js. Run it from the "Weekly Brand Analysis" card on the Insights → Insights Log tab.</div>
       </div>
     </div>
     <div class="channel-page" id="ppc-opportunities">
@@ -5146,14 +5190,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function logCardHtml(ins) {
     const mini = (cardType, badgeHtml, text) =>
-      `<div class="ppc-opp-card ${cardType}"><div class="ppc-opp-hd">${badgeHtml}</div><div class="ppc-opp-body" style="font-size:12px;">${escapeHtml(text) || '—'}</div></div>`;
+      `<div class="ppc-opp-card ${cardType}"><div class="ppc-opp-hd">${badgeHtml}</div><div class="ppc-opp-body" style="font-size:12.5px;">${escapeHtml(text) || '—'}</div></div>`;
     return `<div class="ppc-opp-card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);">
-        <span style="font-size:11px;font-weight:700;color:var(--navy);">✦ AI Analysis — Organic · PPC · Listing</span>
-        <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">${escapeHtml(ins.date)}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:linear-gradient(135deg,var(--navy) 0%,var(--slate) 100%);">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#fff;">✦ AI ANALYSIS — ORGANIC · PPC · LISTING</span>
+        <span style="font-size:10.5px;color:rgba(255,255,255,0.75);font-family:var(--mono);">${escapeHtml(ins.date)}</span>
       </div>
-      <div style="padding:14px 18px;">
-        <p style="font-size:13px;color:var(--navy);margin:0 0 12px;">${escapeHtml(ins.log_summary)}</p>
+      <div style="padding:18px 20px;">
+        <p style="font-size:13.5px;color:var(--navy);line-height:1.6;margin:0 0 16px;">${escapeHtml(ins.log_summary)}</p>
         <div class="insight-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
           ${mini('win-type', '<div class="ppc-opp-badge" style="color:#1db88a;">ORGANIC</div>', ins.organic && ins.organic.summary)}
           ${mini('opportunity-type', '<div class="ppc-opp-badge high">PPC</div>', ins.ppc && ins.ppc.summary)}
@@ -5163,6 +5207,52 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>`;
   }
 
+  // Matches Skinuva's real formatLastRun() exactly, including the
+  // "never" wording (not "—") and the numeric/2-digit-year date format.
+  function formatLastRun(dateStr) {
+    if (!dateStr) return 'Last run: never';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Last run: never';
+    return 'Last run: ' + d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+  }
+  function setLastRun(elId, dateStr) {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = formatLastRun(dateStr);
+  }
+
+  // Matches Skinuva's real loadLastRunDates() exactly — same 3 sheets,
+  // same columns (audited_at for Listing Audit; uploaded_at, filtered by
+  // brand, for the shared ppc_strategy tab), same element ids.
+  window.loadLastRunDates = async function () {
+    const insCfg = window.SHEET_CFG.SHEET_INSIGHTS;
+    if (insCfg) {
+      try {
+        const csv = await fetch(csSheetCsvUrl(insCfg.fileId, insCfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+        const latest = rows.reduce((max,r) => ((r.date||'') > max ? r.date : max), '');
+        setLastRun('last-run-analysis', latest);
+      } catch (e) { console.warn('[LastRun] analysis failed:', e.message); }
+    }
+    const laCfg = window.SHEET_CFG.SHEET_LISTING_AUDIT;
+    if (laCfg) {
+      try {
+        const csv = await fetch(csSheetCsvUrl(laCfg.fileId, laCfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+        const latest = rows.reduce((max,r) => ((r.audited_at||'') > max ? r.audited_at : max), '');
+        setLastRun('last-run-audit', latest);
+      } catch (e) { console.warn('[LastRun] audit failed:', e.message); }
+    }
+    if (insCfg) {
+      try {
+        const csv = await fetch(csSheetCsvUrl(insCfg.fileId, '1273080018') + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const brand = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+        const rows = (csIsCsv(csv) ? csParseCsv(csv) : []).filter(r => (r.brand||'').trim().toLowerCase() === brand);
+        const latest = rows.reduce((max,r) => ((r.uploaded_at||'') > max ? r.uploaded_at : max), '');
+        setLastRun('last-run-ppc', latest);
+      } catch (e) { console.warn('[LastRun] ppc failed:', e.message); }
+    }
+  };
+
   window.initInsightsLog = function () {
     if (window._csInsightsLogPromise) return window._csInsightsLogPromise;
     window._csInsightsLogPromise = (async function () {
@@ -5170,6 +5260,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!logEl) return;
       const cfg = window.SHEET_CFG.SHEET_INSIGHTS;
       if (!cfg) { logEl.innerHTML = '<div style="color:var(--muted);font-size:12px;">SHEET_INSIGHTS missing from SHEET_CONFIG.</div>'; return; }
+
+      window.loadLastRunDates();
+
       try {
         const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
         const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
@@ -5213,14 +5306,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // not a sign something's stuck.
   const CRON_TIMEOUT_MS = 180000;
 
-  async function runCron(btnId, statusId, endpoint, onSuccess) {
+  // Matches Skinuva's real runInsightAnalysis()/runListingAudit()/
+  // runPpcStrategyAnalysis(): toggle the button's own .running class
+  // (drives the spinner + dimmed label via CSS, not a text swap) and use
+  // the single shared #upload-status line, not one status span per button.
+  async function runCron(btnId, endpoint, onSuccess) {
     const btn = document.getElementById(btnId);
-    const statusEl = document.getElementById(statusId);
+    const st = document.getElementById('upload-status');
     if (!btn) return;
-    const orig = btn.textContent;
+    btn.classList.add('running');
     btn.disabled = true;
-    btn.textContent = '⏳ Running…';
-    if (statusEl) { statusEl.textContent = 'This can take a couple of minutes…'; statusEl.style.color = ''; }
+    if (st) { st.textContent = 'Running AI analysis…'; st.className = 'upload-status'; }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CRON_TIMEOUT_MS);
@@ -5233,21 +5329,22 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-      if (statusEl) { statusEl.textContent = '✓ Done — ' + new Date().toLocaleTimeString(); statusEl.style.color = '#1a9b6f'; }
+      if (st) { st.textContent = '✓ Done — ' + new Date().toLocaleTimeString(); st.className = 'upload-status success'; }
+      if (typeof window.loadLastRunDates === 'function') window.loadLastRunDates();
       if (onSuccess) onSuccess(json);
     } catch (err) {
       const msg = err.name === 'AbortError' ? 'Timed out after 3 minutes' : err.message;
       console.warn(`[${btnId}] failed:`, msg);
-      if (statusEl) { statusEl.textContent = '✗ ' + msg; statusEl.style.color = 'var(--danger)'; }
+      if (st) { st.textContent = '✗ ' + msg; st.className = 'upload-status error'; }
     } finally {
       clearTimeout(timer);
+      btn.classList.remove('running');
       btn.disabled = false;
-      btn.textContent = orig;
     }
   }
 
   window.__csRunAnalysis = function () {
-    runCron('run-analysis-btn', 'run-analysis-status', '/api/run-analysis', () => {
+    runCron('run-analysis-btn', '/api/run-analysis', () => {
       // Insights Log + Overview's Brand at a Glance/Priority Actions all
       // read the same sheet — clear their memoized promises so the new
       // row shows up without a manual page refresh.
@@ -5259,14 +5356,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.__csRunListingAudit = function () {
-    runCron('run-listing-audit-btn', 'run-listing-audit-status', '/api/run-listing-audit', () => {
+    runCron('run-audit-btn', '/api/run-listing-audit', () => {
       window._csListingAuditPromise = null;
       if (typeof window.initListingAudit === 'function') window.initListingAudit(true);
     });
   };
 
   window.__csRunPpcAnalysis = function () {
-    runCron('run-ppc-analysis-btn', 'run-ppc-analysis-status', '/api/run-ppc-strategy-analysis', () => {
+    runCron('run-ppc-strategy-btn', '/api/run-ppc-strategy-analysis', () => {
       // Strategy by Product / Opportunities tabs aren't wired to a live
       // render function yet (no ppc_strategy display built) — this just
       // confirms the cron ran; the tabs still need their own render pass
