@@ -699,11 +699,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <div class="page-hd">
       <div><div class="page-title">Inventory</div><div class="page-sub">Amazon · Last synced —</div></div>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📦</div>
-      <div class="ph-title">Inventory</div>
-      <div class="ph-sub">Current Amazon FBA stock levels by SKU.</div>
-    </div>
 
     <!-- ══ REVIEWS — built dynamically from SHEET_AMAZON_REVIEWS's own
          product_category column (see initExternalReviews() below), rather
@@ -1639,14 +1634,40 @@ function csParseCsvLine(line) {
   out.push(cur);
   return out;
 }
+// Full-document, quote-aware CSV tokenizer. Unlike splitting on '\n' first
+// (the previous approach — and a real bug it had: a review/note field
+// containing an actual line break inside quotes would get split into two
+// "rows" right there, corrupting that field AND shifting every column
+// after it for the rest of that logical row). This parses character by
+// character across the ENTIRE text in one pass, so a newline inside an
+// open quote is treated as literal field content, not a row boundary.
+function csParseCsvRecords(text) {
+  const records = [];
+  let field = '', record = [], inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else { inQ = false; } }
+      else { field += c; }
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { record.push(field); field = ''; }
+      else if (c === '\r') { /* skip — \n (or \r\n) handled below */ }
+      else if (c === '\n') { record.push(field); field = ''; records.push(record); record = []; }
+      else { field += c; }
+    }
+  }
+  // Flush the final field/record if the text didn't end with a newline.
+  if (field.length || record.length) { record.push(field); records.push(record); }
+  return records.filter(r => !(r.length === 1 && r[0] === ''));
+}
 function csParseCsv(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = csParseCsvLine(lines[0]).map(h => h.replace(/^"|"$/g,'').trim());
+  const records = csParseCsvRecords(text.trim() + '\n');
+  if (records.length < 2) return [];
+  const headers = records[0].map(h => h.replace(/^"|"$/g,'').trim());
   const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const vals = csParseCsvLine(lines[i]);
+  for (let i = 1; i < records.length; i++) {
+    const vals = records[i];
     const row = {};
     headers.forEach((h, idx) => { row[h] = (vals[idx] || '').replace(/^"|"$/g,'').trim(); });
     rows.push(row);
@@ -2801,11 +2822,10 @@ document.addEventListener('DOMContentLoaded', () => {
   'use strict';
 
   function csvToRows(text) {
-    const lines = text.replace(/\r/g, '').split('\n').filter(l => l.length > 0);
-    if (lines.length < 2) return [];
-    const headers = csParseCsvLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
-    return lines.slice(1).map(line => {
-      const cells = csParseCsvLine(line);
+    const records = csParseCsvRecords(text.trim() + '\n');
+    if (records.length < 2) return [];
+    const headers = records[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    return records.slice(1).map(cells => {
       const row = {};
       headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
       return row;
