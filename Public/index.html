@@ -223,7 +223,39 @@ nav{flex:1;padding:8px 8px 0;}
 .org-sqp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;}
 .org-sqp-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
 .org-sqp-badge{font-size:10px;font-weight:500;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:2px 8px;margin-left:8px;}
+.sub-tabs{display:flex;gap:2px;margin-bottom:22px;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;overflow:hidden;flex-wrap:wrap;}
+.sub-tab{padding:7px 16px;border:none;background:none;border-radius:999px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .13s;white-space:nowrap;}
+.sub-tab:hover{background:var(--bg2);color:var(--navy);}
+.sub-tab.active{background:var(--navy);color:var(--white);font-weight:600;}
+.sub-page{display:none;}
+.sub-page.active{display:block;}
 .la-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:20px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;}
+.pcard-exec{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
+.pcard-exec:last-child{margin-bottom:0;}
+.pcard-exec-hd{padding:16px 22px;background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.pcard-exec-hd b{font-size:16px;font-weight:700;color:#fff;}
+.pcard-exec-hd .meta{font-size:11px;color:rgba(255,255,255,.65);margin-left:8px;}
+.pcard-itemtype{font-size:11px;font-weight:400;color:#fff;margin-top:2px;}
+.pcard-exec-body{padding:18px 20px;display:grid;grid-template-columns:1.2fr 1fr;gap:24px;position:relative;}
+.hero-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--bg2);color:var(--navy);border:1px solid var(--border);margin:2px 3px 2px 0;}
+.free-from-tag{display:inline-block;background:rgba(36,233,163,.1);border:1px solid rgba(36,233,163,.25);color:#1db88a;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;margin:2px 3px 2px 0;}
+details.inci-toggle{margin:8px 0 14px;}
+details.inci-toggle summary{font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;list-style:none;}
+details.inci-toggle summary::-webkit-details-marker{display:none;}
+details.inci-toggle summary::before{content:'▸ ';font-size:9px;}
+details.inci-toggle[open] summary::before{content:'▾ ';}
+.inci-toggle-body{font-size:10px;line-height:1.7;color:var(--muted);margin-top:7px;padding:9px 11px;background:var(--bg);border-radius:6px;font-family:var(--mono);}
+.exec-fact{margin:10px 0;font-size:12px;line-height:1.55;color:var(--navy);}
+.exec-fact b{display:block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.price-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.price-bar-name{font-size:11px;font-weight:600;color:var(--navy);width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.price-bar-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+.price-bar-fill{height:100%;border-radius:4px;background:var(--sand);}
+.price-bar-fill.ours{background:var(--navy);}
+.price-bar-tag{font-size:11px;font-weight:700;color:var(--navy);width:52px;text-align:right;flex-shrink:0;}
+.price-bar-delta{font-size:9.5px;font-weight:700;width:32px;text-align:right;flex-shrink:0;}
+.price-bar-delta.lower{color:#1db88a;} .price-bar-delta.same{color:var(--muted);} .price-bar-delta.higher{color:var(--danger);}
+.our-price-badge{font-size:8.5px;font-weight:700;text-transform:uppercase;color:var(--navy);background:var(--sand);padding:2px 6px;border-radius:4px;width:42px;text-align:center;flex-shrink:0;}
 .la-hero-meta{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:8px;}
 .la-hero-title{font-size:22px;font-weight:700;color:#fff;margin-bottom:12px;line-height:1.25;}
 .la-hero-tags{display:flex;flex-wrap:wrap;gap:6px;}
@@ -1647,12 +1679,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <!-- ── PRODUCTS ── -->
+    <!-- ── PRODUCTS ── (real now: 5 categories confirmed, competitor
+         research sheets confirmed at the real gids Jaclyn gave. Category
+         tabs still built dynamically from Master SKU List data, not
+         hand-coded, matching the same convention as Listing Audit. -->
     <div class="channel-page" id="ins-products">
-      <div class="placeholder-block">
-        <div class="ph-icon">🧴</div>
-        <div class="ph-title">Products Page</div>
-        <div class="ph-sub">Needs two things Cosmette doesn't have finalized yet: (1) a SKU → product-category mapping (same category work in progress for Reviews), and (2) a Helium 10 competitor-research sheet tab per category. Build once those exist.</div>
-      </div>
+      <div id="ins-products-tabs" class="sub-tabs" style="margin-bottom:18px;"></div>
+      <div id="ins-products-panels"><div class="placeholder-block"><div class="ph-icon">🧴</div><div class="ph-title">Loading products…</div></div></div>
     </div>
 
     <!-- ── SEARCH QUERY PERFORMANCE ── -->
@@ -1709,17 +1742,17 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   </div>
 
   <!-- ══ LISTING AUDIT (INTERNAL) ══
-       Adapted from Skinuva's real Listing Audit page, but built DYNAMICALLY
-       from SHEET_PRODUCT_INVENTORY instead of hand-written per-category,
-       per-SKU HTML — Cosmette's categories aren't finalized, so there's no
-       fixed list to hand-code yet. One tab per real Cosmette SKU, showing
-       live Title/Item Highlights/Bullets/Description/Backend Keywords with
-       character-count validation against the July 27, 2026 policy (Title
-       ≤75 chars, Item Highlights ≤125 chars — NOT the 200-char limit shown
-       on Skinuva's older page, which predates that policy). Audit
-       recommendations (from SHEET_LISTING_AUDIT / run-listing-audit.js)
-       aren't wired in yet — that sheet has no Cosmette tab until the cron
-       runs — so each product's insight area shows a stub instead. -->
+       Adapted from Skinuva's real Listing Audit page, now with real
+       Cosmette categories (Cleansers/Serums/Moisturizer/Eyes/Masks — from
+       Master SKU List column K, "COS • " prefix stripped, several
+       products sharing a category). Category tabs still built DYNAMICALLY
+       from the data rather than hand-coded, so a future new category
+       needs no HTML change. Within each category: an insight-grid (from
+       SHEET_INSIGHTS's shared listing_json — same brand-wide field used
+       on Insights Log, not a separate blocked source) + per-product
+       sub-tabs with live copy from SHEET_PRODUCT_INVENTORY. Character
+       limits match the July 27, 2026 policy (Title ≤75, Item Highlights
+       ≤125), not Skinuva's older 200-char page. -->
   <div class="page" id="page-listing">
     <div class="page-hd">
       <div><div class="page-title">Listing Audit</div><div class="page-sub">Live listing copy · Title (≤75) · Item Highlights (≤125) · Bullets 1–5 · Description · Backend Keywords</div></div>
@@ -1728,8 +1761,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <button class="btn-edit" style="padding:6px 12px;font-size:11px;" onclick="window.initListingAudit(true)">↻ Refresh</button>
       </div>
     </div>
-    <div id="la-product-tabs" class="channel-tabs" style="flex-wrap:wrap;"></div>
-    <div id="la-product-panels"><div class="placeholder-block"><div class="ph-icon">📋</div><div class="ph-title">Loading listings…</div></div></div>
+    <div id="la-category-tabs" class="channel-tabs" style="flex-wrap:wrap;"></div>
+    <div id="la-category-panels"><div class="placeholder-block"><div class="ph-icon">📋</div><div class="ph-title">Loading listings…</div></div></div>
   </div>
 
   <!-- ══ PPC (INTERNAL) ══
@@ -1906,6 +1939,7 @@ function showPage(id, btn) {
   if (id === 'inventory' && typeof window.initInventoryPage === 'function') window.initInventoryPage();
   if (id === 'insights') {
     if (typeof window.initInsightsOverview === 'function') window.initInsightsOverview();
+    if (typeof window.initInsightsProducts === 'function') window.initInsightsProducts();
     if (typeof window.initSearchQueryPerformance === 'function') window.initSearchQueryPerformance();
     if (typeof window.initInsightsReviews === 'function') window.initInsightsReviews();
     if (typeof window.initInsightsLog === 'function') window.initInsightsLog();
@@ -2408,27 +2442,36 @@ let _csProductNamesPromise = null;
 function csFetchProductNames() {
   if (_csProductNamesPromise) return _csProductNamesPromise;
   _csProductNamesPromise = (async () => {
-    const nameByAsin = {}, nameBySku = {}, skuByAsin = {};
+    const nameByAsin = {}, nameBySku = {}, skuByAsin = {}, categoryBySku = {}, priceBySku = {};
     const cfg = window.SHEET_CFG.SHEET_MASTER_SKU_LIST;
-    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku, skuByAsin }; }
+    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku }; }
     try {
       const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku, skuByAsin }; }
+      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku }; }
       const rows = csParseCsv(csv);
       console.log('[CosmetteProductNames] rows loaded:', rows.length, '— columns:', rows.length ? Object.keys(rows[0]) : '(none)');
       rows.forEach(r => {
-        // Column names confirmed from the sheet header: ASIN, SKU, Product Short Name, Brand, ...
+        // Column names confirmed from the sheet header: ASIN, SKU, Product Short Name, Brand, Price, ..., Product Category (col K), ...
         const asin = (r.ASIN || r.asin || '').trim().toUpperCase();
         const sku = csBaseSku(r.SKU || r.sku);
         const name = (r['Product Short Name'] || r.product_short_name || r.product_name || '').trim();
+        const price = csParseAmt(r.Price || r.price);
+        // Raw values are "COS • Cleansers", "COS • Serums", etc. — strip
+        // the brand-prefix segment per instruction, keep just the
+        // category name itself ("Cleansers", "Serums", "Moisturizer",
+        // "Eyes", "Masks"). Several products share the same category.
+        const rawCategory = (r['Product Category'] || r.product_category || '').trim();
+        const category = rawCategory.replace(/^[^•]*•\s*/, '').trim();
         if (asin && sku) skuByAsin[asin] = sku;
+        if (sku && category) categoryBySku[sku] = category;
+        if (sku && price) priceBySku[sku] = price;
         if (!name) return;
         if (asin) nameByAsin[asin] = name;
         if (sku) nameBySku[sku] = name;
       });
-      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names,', Object.keys(skuByAsin).length, 'ASIN→SKU mappings');
+      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names,', Object.keys(skuByAsin).length, 'ASIN→SKU mappings,', Object.keys(categoryBySku).length, 'SKU categories:', [...new Set(Object.values(categoryBySku))]);
     } catch (e) { console.warn('[CosmetteProductNames] fetch failed:', e.message); }
-    return { nameByAsin, nameBySku, skuByAsin };
+    return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku };
   })();
   return _csProductNamesPromise;
 }
@@ -4714,13 +4757,19 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 })();
 // ══════════════════════════════════════════════════════════════════════════
-// LISTING AUDIT (INTERNAL) — dynamic, flat per-SKU live-copy viewer
-// Built from SHEET_PRODUCT_INVENTORY directly (no hardcoded category/SKU
-// list — Cosmette's categories aren't finalized). Character limits match
-// the July 27, 2026 policy (Title ≤75, Item Highlights ≤125) — NOT the
-// 200-char limit on Skinuva's own older page, which predates that policy.
-// Audit recommendations (SHEET_LISTING_AUDIT) aren't wired in — no
-// Cosmette tab exists there until run-listing-audit.js actually runs.
+// LISTING AUDIT (INTERNAL) — real category tabs (Cleansers/Serums/
+// Moisturizer/Eyes/Masks, from Master SKU List column K), each with
+// per-product sub-tabs showing live copy from SHEET_PRODUCT_INVENTORY.
+// Category tabs are still built DYNAMICALLY from the data rather than
+// hand-coded, so a future new category needs no HTML change — matches
+// Skinuva's exact two-level structure (category → insight-grid → product
+// sub-tabs → hero/cards), just data-driven instead of hardcoded.
+// Character limits match the July 27, 2026 policy (Title ≤75, Item
+// Highlights ≤125) — NOT the 200-char limit on Skinuva's older page.
+// The insight-grid reuses SHEET_INSIGHTS's shared listing_json field
+// (same one Insights Log reads) — not a separate blocked source; it's
+// brand-wide, so the same content is injected into every category tab,
+// matching Skinuva's own "same content in every tab" convention.
 // ══════════════════════════════════════════════════════════════════════════
 (function () {
   'use strict';
@@ -4729,6 +4778,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function slugify(s) {
+    return String(s || 'uncategorized').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'uncategorized';
   }
   function charPillClass(len, limit) {
     return len > limit ? 'error' : len > limit * 0.85 ? 'warn' : 'ok';
@@ -4754,12 +4806,26 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>`;
   }
+  // Same 4-card shape/colors as PPC/Organic insights, labeled for what
+  // listing audit data actually is — matches Skinuva's renderListingInsightCards().
+  function listingInsightCardsHtml(listing) {
+    const list = arr => (arr && arr.length)
+      ? '<ul style="margin:0;padding-left:18px;">' + arr.map(t => `<li style="margin-bottom:6px;">${escapeHtml(t)}</li>`).join('') + '</ul>'
+      : '<span style="color:var(--muted);">None this week.</span>';
+    const summaryBody = listing && listing.summary ? `<p style="margin:0;">${escapeHtml(listing.summary)}</p>` : '<span style="color:var(--muted);">No summary yet — run analysis to populate this.</span>';
+    return `
+      <div class="ppc-opp-card summary-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge med">SUMMARY</div><div class="ppc-opp-title">This Week</div></div><div class="ppc-opp-body">${summaryBody}</div></div>
+      <div class="ppc-opp-card action-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge urgent">⚠ COMPLIANCE</div></div><div class="ppc-opp-body">${list(listing && listing.violations)}</div></div>
+      <div class="ppc-opp-card opportunity-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge high">🔑 KEYWORD GAPS</div></div><div class="ppc-opp-body">${list(listing && listing.keyword_gaps)}</div></div>
+      <div class="ppc-opp-card win-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge" style="color:#1db88a;">✎ PRIORITY REWRITES</div></div><div class="ppc-opp-body">${list(listing && listing.rewrites_recommended)}</div></div>
+    `;
+  }
 
   window.initListingAudit = function (forceRefresh) {
     if (window._csListingAuditPromise && !forceRefresh) return window._csListingAuditPromise;
     window._csListingAuditPromise = (async function () {
-      const tabsEl = document.getElementById('la-product-tabs');
-      const panelsEl = document.getElementById('la-product-panels');
+      const tabsEl = document.getElementById('la-category-tabs');
+      const panelsEl = document.getElementById('la-category-panels');
       const badge = document.getElementById('la-sync-badge');
       if (!tabsEl || !panelsEl) return;
       const cfg = window.SHEET_CFG.SHEET_PRODUCT_INVENTORY;
@@ -4767,9 +4833,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (badge) badge.textContent = 'Loading live copy…';
       try {
-        const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const [csv, names, insightsCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          csFetchProductNames(),
+          window.SHEET_CFG.SHEET_INSIGHTS
+            ? fetch(csSheetCsvUrl(window.SHEET_CFG.SHEET_INSIGHTS.fileId, window.SHEET_CFG.SHEET_INSIGHTS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '')
+            : Promise.resolve(''),
+        ]);
         const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
         if (!rows.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No data</div></div>'; return; }
+
+        // Shared, brand-wide listing insight (same field Insights Log
+        // reads) — injected identically into every category tab.
+        let listingInsight = null;
+        if (csIsCsv(insightsCsv)) {
+          const insRows = csParseCsv(insightsCsv);
+          const sorted = insRows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+          if (sorted.length) listingInsight = csSafeJson(sorted[0].listing_json);
+        }
 
         // Latest-dated row per SKU (daily snapshot sheet).
         const latestBySku = {};
@@ -4781,38 +4862,59 @@ document.addEventListener('DOMContentLoaded', () => {
         const skus = Object.keys(latestBySku).sort();
         if (!skus.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No SKUs found</div></div>'; return; }
 
-        tabsEl.innerHTML = skus.map((sku, i) =>
-          `<button class="ch-tab${i===0?' active':''}" onclick="window.__csSelectListingSku('${sku}', this)">${escapeHtml(latestBySku[sku].name || sku)}</button>`
+        // Group by real category from Master SKU List (col K, "COS • "
+        // prefix already stripped in csFetchProductNames). Uncategorized
+        // catches anything missing a category value rather than
+        // silently dropping it.
+        const byCategory = {};
+        skus.forEach(sku => {
+          const cat = names.categoryBySku[sku] || 'Uncategorized';
+          (byCategory[cat] = byCategory[cat] || []).push(sku);
+        });
+        const categories = Object.keys(byCategory).sort();
+
+        tabsEl.innerHTML = categories.map((cat, i) =>
+          `<button class="ch-tab${i===0?' active':''}" onclick="window.__csSelectListingCategory('${slugify(cat)}', this)">${escapeHtml(cat)}</button>`
         ).join('');
 
-        panelsEl.innerHTML = skus.map((sku, i) => {
-          const row = latestBySku[sku];
-          const title = row.title || '', ih = row.item_highlights || '';
-          return `<div class="channel-page${i===0?' active':''}" id="la-panel-${sku}">
-            <div class="la-hero">
-              <div class="la-hero-left">
-                <div class="la-hero-meta">${escapeHtml(sku)} &nbsp;·&nbsp; ASIN ${escapeHtml(row.asin || '—')}</div>
-                <div class="la-hero-title">${escapeHtml(row.name || sku)}</div>
-                <div class="la-hero-tags"><span class="la-hero-tag bsr">${row.sales_ranks ? escapeHtml(row.sales_ranks) : 'BSR —'}</span></div>
+        panelsEl.innerHTML = categories.map((cat, ci) => {
+          const catSlug = slugify(cat);
+          const catSkus = byCategory[cat];
+          const prodTabsHtml = catSkus.map((sku, j) =>
+            `<button class="sub-tab${j===0?' active':''}" onclick="window.__csSelectListingProduct('${catSlug}','${sku}', this)">${escapeHtml(latestBySku[sku].name || sku)}</button>`
+          ).join('');
+          const prodPanelsHtml = catSkus.map((sku, j) => {
+            const row = latestBySku[sku];
+            const title = row.title || '', ih = row.item_highlights || '';
+            return `<div class="sub-page${j===0?' active':''}" id="la-panel-${catSlug}-${sku}">
+              <div class="la-hero">
+                <div class="la-hero-left">
+                  <div class="la-hero-meta">${escapeHtml(sku)} &nbsp;·&nbsp; ASIN ${escapeHtml(row.asin || '—')}</div>
+                  <div class="la-hero-title">${escapeHtml(row.name || sku)}</div>
+                  <div class="la-hero-tags"><span class="la-hero-tag bsr">${row.sales_ranks ? escapeHtml(row.sales_ranks) : 'BSR —'}</span></div>
+                </div>
               </div>
-            </div>
-            <div class="placeholder-block" style="margin-bottom:16px;padding:16px;">
-              <div class="ph-sub">Audit recommendations not available yet — needs SHEET_LISTING_AUDIT populated by run-listing-audit.js, which hasn't run for Cosmette.</div>
-            </div>
-            ${copyRow(1, 'Active Title', title, TITLE_LIMIT)}
-            ${copyRow(2, 'Item Highlights', ih, IH_LIMIT)}
-            <div class="la-card">
-              <div class="la-card-label">Active Bullet Points</div>
-              ${[1,2,3,4,5].map(n => bulletCard(n, row['bullet_' + n])).join('')}
-            </div>
-            <div class="la-card">
-              <div class="la-card-label">Active Product Description</div>
-              <div class="la-copy-block ok">${escapeHtml(row.description) || '<span style="color:var(--muted);font-style:italic;">Empty</span>'}</div>
-            </div>
-            <div class="la-card">
-              <div class="la-card-label">Backend Keywords</div>
-              <div class="la-backend-block">${escapeHtml(row.backend_keywords) || '<span style="color:var(--muted);font-style:italic;">Empty</span>'}</div>
-            </div>
+              ${copyRow(1, 'Active Title', title, TITLE_LIMIT)}
+              ${copyRow(2, 'Item Highlights', ih, IH_LIMIT)}
+              <div class="la-card">
+                <div class="la-card-label">Active Bullet Points</div>
+                ${[1,2,3,4,5].map(n => bulletCard(n, row['bullet_' + n])).join('')}
+              </div>
+              <div class="la-card">
+                <div class="la-card-label">Active Product Description</div>
+                <div class="la-copy-block ok">${escapeHtml(row.description) || '<span style="color:var(--muted);font-style:italic;">Empty</span>'}</div>
+              </div>
+              <div class="la-card">
+                <div class="la-card-label">Backend Keywords</div>
+                <div class="la-backend-block">${escapeHtml(row.backend_keywords) || '<span style="color:var(--muted);font-style:italic;">Empty</span>'}</div>
+              </div>
+            </div>`;
+          }).join('');
+
+          return `<div class="channel-page${ci===0?' active':''}" id="la-catpanel-${catSlug}">
+            <div class="insight-grid">${listingInsightCardsHtml(listingInsight)}</div>
+            <div class="sub-tabs">${prodTabsHtml}</div>
+            ${prodPanelsHtml}
           </div>`;
         }).join('');
 
@@ -4827,11 +4929,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return window._csListingAuditPromise;
   };
 
-  window.__csSelectListingSku = function (sku, btn) {
-    document.querySelectorAll('#la-product-tabs .ch-tab').forEach(b => b.classList.remove('active'));
+  window.__csSelectListingCategory = function (catSlug, btn) {
+    document.querySelectorAll('#la-category-tabs .ch-tab').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
-    document.querySelectorAll('#la-product-panels .channel-page').forEach(p => p.classList.remove('active'));
-    const panel = document.getElementById(`la-panel-${sku}`);
+    document.querySelectorAll('#la-category-panels .channel-page').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`la-catpanel-${catSlug}`);
+    if (panel) panel.classList.add('active');
+  };
+  window.__csSelectListingProduct = function (catSlug, sku, btn) {
+    const scope = document.getElementById(`la-catpanel-${catSlug}`);
+    if (!scope) return;
+    scope.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    scope.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`la-panel-${catSlug}-${sku}`);
     if (panel) panel.classList.add('active');
   };
 })();
@@ -5369,6 +5480,240 @@ document.addEventListener('DOMContentLoaded', () => {
       // confirms the cron ran; the tabs still need their own render pass
       // once that's built.
     });
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// INSIGHTS — Products tab
+// Adapted from Skinuva's renderCategoryPerformanceTable()/
+// renderProductPortfolioCards() — but reads the competitor-research sheet's
+// actual clean header row (row index 4: #, ASIN, Brand, Product Name,
+// Price, Size, Rating, # Reviews, ...) rather than Skinuva's fragile
+// "rows 6-10, fixed column position" hack, since Cosmette's real sheet
+// (confirmed directly, 2026-08-20) has a properly labeled table instead.
+// Category-wide fields (Use/Benefits/Clean Statements/Key Differentiation)
+// still read by fixed position from row index 2 — confirmed to match
+// Skinuva's exact column layout (E-K, N) on Cosmette's real sheet too.
+// Per-product Ingredients/Key Ingredients/Bullets/Description come from
+// the sheet's own "Variations" section (per-ASIN, confirmed populated
+// with real Cosmette data), not SHEET_PRODUCT_INVENTORY.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  const COMPETITOR_SHEET_ID = '19SfYJ99fMtqXna4VKGr8TtNMNxg6z52b0yDQPm7yI9M'; // shared, non-brand-specific
+  const CATEGORY_GID = {
+    'Cleansers': '138748067',
+    'Serums': '1838200005',
+    'Moisturizer': '1758364220',
+    'Eyes': '1982532831',
+    'Masks': '847197271',
+  };
+  // Fixed column positions on the category-summary row (row index 2) —
+  // confirmed directly against Cosmette's real sheet, same layout as Skinuva's.
+  const CAT_COL = { size: 7, use: 8, benefits: 9, cleanStatements: 10, keyDifferentiation: 13 };
+  // Fixed column positions on the "Variations" section's data rows —
+  // confirmed directly against Cosmette's real sheet (header row logged
+  // for reference only; these are read by position, not by that text).
+  const VAR_COL = { asin: 1, sku: 2, name: 3, itemHighlights: 4, ingredients: 5, size: 11, benefits: 13, keyIngredients: 21, bullet1: 23, bullet2: 24, bullet3: 25, bullet4: 26, bullet5: 27, description: 28 };
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function slugify(s) {
+    return String(s || 'uncategorized').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'uncategorized';
+  }
+  function pillsHtml(raw, cls) {
+    if (!raw) return '';
+    return raw.split(/[,;]/).map(s => s.trim()).filter(Boolean).map(s => `<span class="${cls}">${escapeHtml(s)}</span>`).join('');
+  }
+  function renderPriceContext(ourName, ourPrice, competitors) {
+    const priced = competitors.filter(c => c.price > 0).slice(0, 5);
+    const allPrices = [ourPrice, ...priced.map(c => c.price)].filter(p => p > 0);
+    const maxPrice = allPrices.length ? Math.max(...allPrices) : 0;
+    const widthOf = p => maxPrice > 0 ? Math.round((p / maxPrice) * 100) : 0;
+    let html = `<div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Competitive Price Context</div>`;
+    html += `<div class="price-bar-row"><span class="our-price-badge">OURS</span><span class="price-bar-name" style="font-weight:700;">${escapeHtml(ourName)}</span><div class="price-bar-track"><div class="price-bar-fill ours" style="width:${widthOf(ourPrice)}%;"></div></div><span class="price-bar-tag">${ourPrice ? '$'+ourPrice.toFixed(2) : '—'}</span></div>`;
+    if (!priced.length) {
+      html += `<div style="font-size:11px;color:var(--muted);margin-top:6px;">No competitor prices found on this category's research sheet yet.</div>`;
+      return html;
+    }
+    priced.forEach(c => {
+      const deltaPct = ourPrice > 0 ? Math.round(((c.price - ourPrice) / ourPrice) * 100) : 0;
+      const deltaClass = deltaPct < 0 ? 'lower' : (deltaPct > 0 ? 'higher' : 'same');
+      const sign = deltaPct > 0 ? '+' : '';
+      html += `<div class="price-bar-row"><span class="price-bar-delta ${deltaClass}">${sign}${deltaPct}%</span><span class="price-bar-name">${escapeHtml(c.brand ? c.brand+' — '+c.name : c.name)}</span><div class="price-bar-track"><div class="price-bar-fill" style="width:${widthOf(c.price)}%;"></div></div><span class="price-bar-tag">$${c.price.toFixed(2)}</span></div>`;
+    });
+    return html;
+  }
+
+  function parseCompetitorTab(rows) {
+    const catRow = rows[2] || [];
+    const categorySummary = {
+      size: (catRow[CAT_COL.size]||'').trim(),
+      use: (catRow[CAT_COL.use]||'').trim(),
+      benefits: (catRow[CAT_COL.benefits]||'').trim(),
+      cleanStatements: (catRow[CAT_COL.cleanStatements]||'').trim(),
+      keyDifferentiation: (catRow[CAT_COL.keyDifferentiation]||'').trim(),
+    };
+
+    const varIdx = rows.findIndex(r => (r[0]||'').trim().toLowerCase() === 'variations');
+
+    const competitors = [];
+    const competitorTableEnd = varIdx >= 0 ? varIdx : rows.length;
+    for (let i = 5; i < competitorTableEnd; i++) {
+      const r = rows[i];
+      const asin = (r && r[2] || '').trim();
+      if (!asin) continue;
+      competitors.push({
+        asin, brand: (r[3]||'').trim(), name: (r[4]||'').trim(),
+        price: csParseAmt(r[6]), size: (r[7]||'').trim(),
+        rating: (r[9]||'').trim(), reviews: (r[10]||'').trim(),
+        keyBenefits: (r[15]||'').trim(), skinType: (r[16]||'').trim(),
+      });
+    }
+
+    const variationsByAsin = {};
+    if (varIdx >= 0) {
+      for (let i = varIdx + 2; i < rows.length; i++) {
+        const r = rows[i];
+        const asin = (r && r[VAR_COL.asin] || '').trim().toUpperCase();
+        if (!asin) continue;
+        variationsByAsin[asin] = {
+          sku: csBaseSku(r[VAR_COL.sku]),
+          itemHighlights: (r[VAR_COL.itemHighlights]||'').trim(),
+          ingredients: (r[VAR_COL.ingredients]||'').trim(),
+          size: (r[VAR_COL.size]||'').trim(),
+          benefits: (r[VAR_COL.benefits]||'').trim(),
+          keyIngredients: (r[VAR_COL.keyIngredients]||'').trim(),
+          bullets: [VAR_COL.bullet1,VAR_COL.bullet2,VAR_COL.bullet3,VAR_COL.bullet4,VAR_COL.bullet5].map(idx => (r[idx]||'').trim()),
+          description: (r[VAR_COL.description]||'').trim(),
+        };
+      }
+    }
+    return { categorySummary, competitors, variationsByAsin };
+  }
+
+  function categorySummaryHtml(s) {
+    return `<div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Category Snapshot</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:14px;">
+        <div class="exec-fact"><b>Size</b>${escapeHtml(s.size) || '—'}</div>
+        <div class="exec-fact"><b>Use</b>${escapeHtml(s.use) || '—'}</div>
+        <div class="exec-fact"><b>Benefits</b>${escapeHtml(s.benefits) || '—'}</div>
+        <div class="exec-fact"><b>Clean Statements</b>${escapeHtml(s.cleanStatements) || '—'}</div>
+      </div>
+      ${s.keyDifferentiation ? `<div class="exec-fact"><b>Key Differentiation</b>${escapeHtml(s.keyDifferentiation)}</div>` : ''}
+    </div>`;
+  }
+  function competitiveLandscapeHtml(competitors) {
+    if (!competitors.length) return `<div class="card" style="margin-bottom:16px;"><div class="card-title">Competitive Landscape</div><div style="color:var(--muted);font-size:12px;">No competitor rows found on this category's research sheet yet.</div></div>`;
+    const rowsHtml = competitors.map(c => `<tr>
+      <td>${escapeHtml(c.brand)}</td>
+      <td>${escapeHtml(c.name)}</td>
+      <td>${c.price ? '$'+c.price.toFixed(2) : '—'}</td>
+      <td>${escapeHtml(c.size)}</td>
+      <td>${escapeHtml(c.rating)}</td>
+      <td>${escapeHtml(c.reviews)}</td>
+      <td style="font-size:11px;">${escapeHtml(c.keyBenefits)}</td>
+    </tr>`).join('');
+    return `<div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Competitive Landscape</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Brand</th><th>Product</th><th>Price</th><th>Size</th><th>Rating</th><th># Reviews</th><th>Key Benefits</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  function productPortfolioCardHtml(sku, entry, categorySummary, variation, competitors) {
+    const name = entry.name, asin = entry.asin || '—', price = entry.price || 0, size = (variation && variation.size) || categorySummary.size;
+    const benefits = (variation && variation.benefits) || categorySummary.benefits;
+    const ingredients = (variation && variation.ingredients) || '';
+    const keyIngredients = (variation && variation.keyIngredients) || '';
+    const description = (variation && variation.description) || '';
+    const bullets = (variation && variation.bullets) || [];
+    return `<div class="pcard-exec">
+      <div class="pcard-exec-hd">
+        <div><b>${escapeHtml(name)}</b><span class="meta">${escapeHtml(sku)} · ${escapeHtml(asin)} · ${price?'$'+price.toFixed(2):'—'} · ${escapeHtml(size)||'—'}</span></div>
+      </div>
+      <div class="pcard-exec-body">
+        <div>
+          ${keyIngredients ? `<div style="margin-bottom:6px;">${pillsHtml(keyIngredients, 'hero-tag')}</div>` : ''}
+          ${ingredients ? `<details class="inci-toggle"><summary>View full INCI</summary><div class="inci-toggle-body">${escapeHtml(ingredients)}</div></details>` : ''}
+          <div class="exec-fact"><b>Use</b>${escapeHtml(categorySummary.use) || '—'}</div>
+          <div class="exec-fact"><b>Benefits</b>${escapeHtml(benefits) || '—'}</div>
+          ${categorySummary.cleanStatements ? `<div style="margin-top:8px;">${pillsHtml(categorySummary.cleanStatements, 'free-from-tag')}</div>` : ''}
+          ${description ? `<div class="exec-fact" style="margin-top:10px;"><b>Product Description</b>${escapeHtml(description)}</div>` : ''}
+          ${bullets.filter(Boolean).length ? `<div class="exec-fact"><b>Bullets</b><ul style="margin:4px 0 0;padding-left:16px;">${bullets.filter(Boolean).map(b=>`<li style="margin-bottom:4px;">${escapeHtml(b)}</li>`).join('')}</ul></div>` : ''}
+        </div>
+        <div>${renderPriceContext(name, price, competitors)}</div>
+      </div>
+    </div>`;
+  }
+
+  window.initInsightsProducts = function () {
+    if (window._csInsProductsPromise) return window._csInsProductsPromise;
+    window._csInsProductsPromise = (async function () {
+      const tabsEl = document.getElementById('ins-products-tabs');
+      const panelsEl = document.getElementById('ins-products-panels');
+      if (!tabsEl || !panelsEl) return;
+
+      try {
+        const names = await csFetchProductNames();
+        const byCategory = {};
+        Object.entries(names.categoryBySku).forEach(([sku, cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
+        const categories = Object.keys(CATEGORY_GID).filter(c => byCategory[c] && byCategory[c].length);
+        if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found — check Master SKU List column K.</div></div>'; return; }
+
+        tabsEl.innerHTML = categories.map((cat, i) =>
+          `<button class="sub-tab${i===0?' active':''}" onclick="window.__csSelectProductCategory('${slugify(cat)}', this)">${escapeHtml(cat)}</button>`
+        ).join('');
+
+        const panels = await Promise.all(categories.map(async (cat, i) => {
+          const catSlug = slugify(cat);
+          const gid = CATEGORY_GID[cat];
+          let categorySummary = {}, competitors = [], variationsByAsin = {};
+          try {
+            const csv = await fetch(csSheetCsvUrl(COMPETITOR_SHEET_ID, gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+            if (csIsCsv(csv)) {
+              const rows = csParseCsvRecords(csv.trim() + '\n');
+              const parsed = parseCompetitorTab(rows);
+              categorySummary = parsed.categorySummary; competitors = parsed.competitors; variationsByAsin = parsed.variationsByAsin;
+              console.log(`[InsightsProducts:${cat}] competitors:`, competitors.length, '— variations (our ASINs):', Object.keys(variationsByAsin).length);
+            }
+          } catch (e) { console.warn(`[InsightsProducts:${cat}] competitor sheet fetch failed:`, e.message); }
+
+          const portfolioCards = byCategory[cat].map(sku => {
+            const asin = Object.keys(names.skuByAsin).find(a => names.skuByAsin[a] === sku) || '';
+            const entry = { name: names.nameBySku[sku] || sku, asin, price: names.priceBySku[sku] || 0 };
+            const variation = variationsByAsin[asin.toUpperCase()];
+            return productPortfolioCardHtml(sku, entry, categorySummary, variation, competitors);
+          }).join('');
+
+          return `<div class="sub-page${i===0?' active':''}" id="ins-products-panel-${catSlug}">
+            ${categorySummaryHtml(categorySummary)}
+            ${competitiveLandscapeHtml(competitors)}
+            <div class="card-title" style="margin-bottom:10px;">Product Portfolio</div>
+            ${portfolioCards || '<div style="color:var(--muted);font-size:12px;">No products found for this category.</div>'}
+          </div>`;
+        }));
+
+        panelsEl.innerHTML = panels.join('');
+      } catch (err) {
+        console.warn('[InsightsProducts] failed:', err.message);
+        panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">Error loading products</div></div>';
+      }
+    })();
+    return window._csInsProductsPromise;
+  };
+
+  window.__csSelectProductCategory = function (catSlug, btn) {
+    document.querySelectorAll('#ins-products-tabs .sub-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('#ins-products-panels .sub-page').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`ins-products-panel-${catSlug}`);
+    if (panel) panel.classList.add('active');
   };
 })();
 </script>
