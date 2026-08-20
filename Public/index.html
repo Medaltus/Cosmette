@@ -230,6 +230,18 @@ nav{flex:1;padding:8px 8px 0;}
 .sub-page{display:none;}
 .sub-page.active{display:block;}
 .la-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:20px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;}
+table.perf-compare{width:100%;border-collapse:collapse;}
+table.perf-compare th{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);}
+table.perf-compare th.prodcol{text-align:center;}
+table.perf-compare td{padding:12px 14px;border-bottom:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--navy);text-align:center;}
+table.perf-compare td:first-child{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+table.perf-compare tr:last-child td{border-bottom:none;}
+.prodcol-oos-pill{display:inline-block;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:8px;background:var(--danger);color:#fff;text-transform:uppercase;}
+.bsr-trend{font-size:10px;font-weight:700;white-space:nowrap;}
+.bsr-trend-improved{color:#1db88a;}
+.bsr-trend-worsened{color:var(--danger);}
+.prodcol-name{font-size:14px;font-weight:700;color:var(--navy);}
+.prodcol-sku{font-size:10px;color:var(--muted);font-weight:400;}
 .pcard-exec{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
 .pcard-exec:last-child{margin-bottom:0;}
 .pcard-exec-hd{padding:16px 22px;background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
@@ -4605,9 +4617,17 @@ document.addEventListener('DOMContentLoaded', () => {
           const csv = await fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
           const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
           if (rows.length) {
+            console.log('[InsightsOverview] Business Report columns:', Object.keys(rows[0]));
+            // Confirmed 2026-08-20: real headers are UPPERCASE
+            // (MONTH,YEAR,ASIN,SKU,SESSIONS,...,UNITS_ORDERED,
+            // ORDERED_PRODUCT_SALES,CONVERSION_RATE,...) — this was
+            // reading r.month/r.sessions/r.units_ordered (lowercase),
+            // which always resolved to undefined against real data. Both
+            // cases checked defensively now in case a future re-export
+            // changes casing again.
             const sumsFor = (yy,mm) => {
-              const matching = rows.filter(r => parseInt(r.month,10)===mm && parseInt(r.year,10)===yy);
-              return { sessions: matching.reduce((s,r)=>s+(parseInt(r.sessions,10)||0),0), units: matching.reduce((s,r)=>s+(parseInt(r.units_ordered,10)||0),0) };
+              const matching = rows.filter(r => parseInt(r.MONTH||r.month,10)===mm && parseInt(r.YEAR||r.year,10)===yy);
+              return { sessions: matching.reduce((s,r)=>s+(parseInt(r.SESSIONS||r.sessions,10)||0),0), units: matching.reduce((s,r)=>s+(parseInt(r.UNITS_ORDERED||r.units_ordered,10)||0),0) };
             };
             const curr = sumsFor(year, month);
             const currConv = curr.sessions > 0 ? (curr.units/curr.sessions)*100 : 0;
@@ -5631,8 +5651,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const benefits = (variation && variation.benefits) || categorySummary.benefits;
     const ingredients = (variation && variation.ingredients) || '';
     const keyIngredients = (variation && variation.keyIngredients) || '';
-    const description = (variation && variation.description) || '';
-    const bullets = (variation && variation.bullets) || [];
     return `<div class="pcard-exec">
       <div class="pcard-exec-hd">
         <div><b>${escapeHtml(name)}</b><span class="meta">${escapeHtml(sku)} · ${escapeHtml(asin)} · ${price?'$'+price.toFixed(2):'—'} · ${escapeHtml(size)||'—'}</span></div>
@@ -5644,11 +5662,96 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="exec-fact"><b>Use</b>${escapeHtml(categorySummary.use) || '—'}</div>
           <div class="exec-fact"><b>Benefits</b>${escapeHtml(benefits) || '—'}</div>
           ${categorySummary.cleanStatements ? `<div style="margin-top:8px;">${pillsHtml(categorySummary.cleanStatements, 'free-from-tag')}</div>` : ''}
-          ${description ? `<div class="exec-fact" style="margin-top:10px;"><b>Product Description</b>${escapeHtml(description)}</div>` : ''}
-          ${bullets.filter(Boolean).length ? `<div class="exec-fact"><b>Bullets</b><ul style="margin:4px 0 0;padding-left:16px;">${bullets.filter(Boolean).map(b=>`<li style="margin-bottom:4px;">${escapeHtml(b)}</li>`).join('')}</ul></div>` : ''}
         </div>
         <div>${renderPriceContext(name, price, competitors)}</div>
       </div>
+    </div>`;
+  }
+
+  // Rating/review count come from SHEET_AMAZON_REVIEWS (Cosmette has no
+  // dedicated rating/review_count column anywhere else) — same star-count
+  // logic as the external Reviews page's distribution card.
+  // BSR / Subcategory BSR / Rating now come from the real
+  // SHEET_KEYWORD_TRACKER_SUMMARY tab (gid 579593778, confirmed 2026-08-20:
+  // date,brand,asin,sku,total_tracked_keywords,top50_organic_count,
+  // avg_organic_rank,boosted_count,last_synced,bsr,subcategory_bsr,
+  // review_count,rating,category,subcategory) — a shared multi-brand
+  // sheet, filtered by brand=cosmette. Matches Skinuva's real Performance
+  // table exactly (separate BSR and Subcategory BSR rows, each with its
+  // own trend arrow) instead of the earlier sales_ranks-string-parsing
+  // workaround this replaces. Trend arrow compares each ASIN's latest row
+  // to its most recent earlier row (buildBsrTrendHtml equivalent).
+  function pickSummaryRowForAsin(rows, asin) {
+    const matches = rows.filter(r => (r.asin||'').trim().toUpperCase() === asin.toUpperCase());
+    if (!matches.length) return null;
+    return matches.reduce((best,r) => (!best || (r.date||'') > (best.date||'')) ? r : best, null);
+  }
+  function pickPreviousSummaryRowForAsin(rows, asin, currentDate) {
+    const matches = rows.filter(r => (r.asin||'').trim().toUpperCase() === asin.toUpperCase() && (r.date||'') < currentDate);
+    if (!matches.length) return null;
+    return matches.reduce((best,r) => (!best || (r.date||'') > (best.date||'')) ? r : best, null);
+  }
+  function bsrTrendHtml(curValue, prevRow, field) {
+    if (!prevRow || !prevRow[field]) return '';
+    const cur = Number(curValue) || 0, prev = Number(prevRow[field]) || 0;
+    if (!cur || !prev || cur === prev) return '';
+    const improved = cur < prev;
+    const delta = Math.abs(prev - cur);
+    return ` <span class="bsr-trend ${improved?'bsr-trend-improved':'bsr-trend-worsened'}">${improved?'▼':'▲'} ${delta.toLocaleString()}</span>`;
+  }
+
+  function performanceTableHtml(skus, names, bizRows, summaryRows, year, month) {
+    const rowDefs = [
+      ['BSR', 'bsr'], ['Subcategory BSR', 'subBsr'], ['Sessions', 'sessions'], [`Units — ${csMonths12[month-1]}`, 'units'],
+      ['Revenue', 'revenue'], ['Conversion', 'conv'], ['Rating', 'rating'],
+    ];
+    const rowsData = { bsr: [], subBsr: [], sessions: [], units: [], revenue: [], conv: [], rating: [] };
+    skus.forEach(sku => {
+      const asin = Object.keys(names.skuByAsin).find(a => names.skuByAsin[a] === sku) || '';
+      const row = asin ? pickSummaryRowForAsin(summaryRows, asin) : null;
+      const prevRow = row ? pickPreviousSummaryRowForAsin(summaryRows, asin, row.date||'') : null;
+
+      let bsrText = '—';
+      if (row && row.bsr) {
+        bsrText = '#' + (Number(row.bsr)||0).toLocaleString();
+        if (row.category) bsrText += ` (${escapeHtml(row.category)})`;
+        bsrText += bsrTrendHtml(row.bsr, prevRow, 'bsr');
+      }
+      rowsData.bsr.push(bsrText);
+
+      let subBsrText = '—';
+      if (row && row.subcategory_bsr) {
+        subBsrText = '#' + (Number(row.subcategory_bsr)||0).toLocaleString();
+        if (row.subcategory) subBsrText += ` (${escapeHtml(row.subcategory)})`;
+        subBsrText += bsrTrendHtml(row.subcategory_bsr, prevRow, 'subcategory_bsr');
+      }
+      rowsData.subBsr.push(subBsrText);
+
+      const rating = row ? parseFloat(row.rating) : NaN;
+      const reviews = row ? parseInt(row.review_count,10) : NaN;
+      rowsData.rating.push((!isNaN(rating) && !isNaN(reviews) && reviews > 0) ? `${rating.toFixed(1)} ★ (${reviews})` : '—');
+
+      const bizRow = bizRows.find(r => (r.ASIN||r.asin||'').trim().toUpperCase() === asin.toUpperCase() && parseInt(r.MONTH||r.month,10)===month && parseInt(r.YEAR||r.year,10)===year);
+      const sessions = bizRow ? (parseInt(bizRow.SESSIONS||bizRow.sessions,10)||0) : null;
+      const units = bizRow ? (parseInt(bizRow.UNITS_ORDERED||bizRow.units_ordered,10)||0) : null;
+      const revenue = bizRow ? csParseAmt(bizRow.ORDERED_PRODUCT_SALES||bizRow.ordered_product_sales) : null;
+      rowsData.sessions.push(sessions != null ? sessions.toLocaleString() : '—');
+      rowsData.units.push(units != null ? units.toLocaleString() : '—');
+      rowsData.revenue.push(revenue != null ? '$'+revenue.toFixed(2) : '—');
+      rowsData.conv.push((sessions && units != null) ? ((units/sessions)*100).toFixed(2)+'%' : '—');
+    });
+
+    const theadHtml = '<tr><th></th>' + skus.map(sku =>
+      `<th class="prodcol"><div class="prodcol-name">${escapeHtml(names.nameBySku[sku]||sku)}</div><div class="prodcol-sku">${escapeHtml(sku)}</div></th>`
+    ).join('') + '</tr>';
+    const tbodyHtml = rowDefs.map(([label,key]) =>
+      `<tr><td>${label}</td>${rowsData[key].map(v=>`<td>${v}</td>`).join('')}</tr>`
+    ).join('');
+
+    return `<div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="margin-bottom:2px;">Performance — ${csMonths12[month-1]} ${year}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Amazon</div>
+      <div style="overflow-x:auto;"><table class="perf-compare"><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table></div>
     </div>`;
   }
 
@@ -5660,7 +5763,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!tabsEl || !panelsEl) return;
 
       try {
-        const names = await csFetchProductNames();
+        const { year, month } = csGetLastFullMonth();
+        const cfg = window.SHEET_CFG;
+        const [names, bizCsv, summaryCsv] = await Promise.all([
+          csFetchProductNames(),
+          cfg.SHEET_BUSINESS_REPORT ? fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
+          cfg.SHEET_KEYWORD_TRACKER_SUMMARY ? fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER_SUMMARY.fileId, cfg.SHEET_KEYWORD_TRACKER_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
+        ]);
+        const bizRows = csIsCsv(bizCsv) ? csParseCsv(bizCsv) : [];
+        if (bizRows.length) console.log('[InsightsProducts] Business Report columns:', Object.keys(bizRows[0]));
+        const brandSlug = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+        const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv).filter(r => (r.brand||'').trim().toLowerCase() === brandSlug) : [];
+        console.log('[InsightsProducts] Keyword Tracker Summary rows for', brandSlug + ':', summaryRows.length);
+
         const byCategory = {};
         Object.entries(names.categoryBySku).forEach(([sku, cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
         const categories = Object.keys(CATEGORY_GID).filter(c => byCategory[c] && byCategory[c].length);
@@ -5692,6 +5807,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }).join('');
 
           return `<div class="sub-page${i===0?' active':''}" id="ins-products-panel-${catSlug}">
+            ${performanceTableHtml(byCategory[cat], names, bizRows, summaryRows, year, month)}
             ${categorySummaryHtml(categorySummary)}
             ${competitiveLandscapeHtml(competitors)}
             <div class="card-title" style="margin-bottom:10px;">Product Portfolio</div>
