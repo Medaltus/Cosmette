@@ -1656,17 +1656,17 @@ window.initAmazonSalesInternal = function () {
       const el = document.getElementById(id);
       if (!el) return;
       const v = el.querySelector('.kpi-value'); if (v) v.textContent = '—';
-      const m = el.querySelector('.kpi-mom'); if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not yet approved'; }
+      const m = el.querySelector('.kpi-mom'); if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not yet ready'; }
     });
     const tbody = document.getElementById('x-tp-tbody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No approved report yet.</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Not yet ready.</td></tr>';
   }
 
   window.initSalesExternalPage = function () {
     if (window._csExternalPromise) return window._csExternalPromise;
     window._csExternalPromise = (async function () {
       const key = await getLatestApprovedMonth();
-      if (!key) { showEmptyState('No approved report available yet.'); return; }
+      if (!key) { showEmptyState('This month\'s report isn\'t ready yet — check back soon.'); return; }
       window.__csApprovedMonth = key;
 
       const monthNames = csMonths12;
@@ -1703,7 +1703,7 @@ window.initAmazonSalesInternal = function () {
         const syncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
         const curr = csAggregateMonth(syncRows, key.year, key.month);
         const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
-        if (!curr) { showEmptyState(`Approved for ${monthNames[key.month-1]} ${key.year}, but no order data found for that month — check the sync window covers it.`); return; }
+        if (!curr) { showEmptyState(`This month's report isn't ready yet — check back soon.`); return; }
 
         let adUnitsKpi = 0, prevAdUnitsKpi = 0;
         const adRows = csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [];
@@ -1719,7 +1719,7 @@ window.initAmazonSalesInternal = function () {
         csBuildRevenueChart('x-chart-amazon', key.year).catch(e => console.warn('[SalesExternal] revenue chart failed:', e.message));
       } catch (err) {
         console.error('[SalesExternal] error:', err);
-        showEmptyState('Something went wrong loading the approved report.');
+        showEmptyState('Something went wrong loading this report — check back soon.');
       }
     })();
     return window._csExternalPromise;
