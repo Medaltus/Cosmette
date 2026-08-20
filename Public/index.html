@@ -723,19 +723,103 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   </div>
 
   <!-- ══ MARKETING (EXTERNAL) ══ -->
+  <!-- ══ MARKETING (EXTERNAL) ══
+       Two tabs, matching internal Marketing's scope: Brand Stewardship +
+       Opportunities. No Fulfillment/Customer Service tab — same reason as
+       internal (no 3PL data yet). Brand Stewardship is locked to the
+       latest APPROVED month (shares the same approval as Sales external —
+       one report, one Approve button); Subscribe & Save is live/current,
+       matching Skinuva's own actual behavior (its Opportunity cards ARE
+       approved-month-gated since they're part of the same report row,
+       but Subscribe & Save numbers are just live facts, not report
+       narrative). -->
   <div class="page" id="page-marketing-external">
     <div class="page-hd">
-      <div><div class="page-title">Marketing</div><div class="page-sub">Amazon · Last synced —</div></div>
+      <div><div class="page-title">Marketing</div><div class="page-sub">Brand stewardship · Growth opportunities</div></div>
     </div>
     <div class="channel-tabs">
-      <button class="ch-tab active" onclick="showChannel('marketing-external','x-amazon',this)">Amazon</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing-external','x-walmart',this)">Walmart</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing-external','x-website',this)">Website</button>
+      <button class="ch-tab active" onclick="showChannel('marketing-external','mx-stewardship',this)">Brand Stewardship</button>
+      <button class="ch-tab" onclick="showChannel('marketing-external','mx-opportunities',this)">Opportunities</button>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📣</div>
-      <div class="ph-title">Marketing Page</div>
-      <div class="ph-sub">Client-facing PPC/ad performance summary — mirrors the standard Medaltus external Marketing layout once wired to Cosmette's ad data.</div>
+
+    <div class="channel-page active" id="mx-stewardship">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:14px;" id="mx-stewardship-date-note">Loading…</div>
+
+      <div class="kpi-row">
+        <div class="kpi-card" id="mx-kpi-pct-revenue-invested"><div class="kpi-label">% Revenue Invested</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+        <div class="kpi-card" id="mx-kpi-amazon-fees"><div class="kpi-label">Amazon Fees</div><div class="kpi-value sm">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Pending Finances API sync</div></div>
+        <div class="kpi-card" id="mx-kpi-pct-units-ads"><div class="kpi-label">% Units from Ads</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+        <div class="kpi-card" id="mx-kpi-ad-clicks"><div class="kpi-label">Ad Clicks</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+        <div class="kpi-card" id="mx-kpi-ad-impressions"><div class="kpi-label">Ad Impressions</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;">
+        <div class="card" style="height:420px;margin-top:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">Investments</div>
+            <div style="display:flex;gap:18px;font-size:13px;color:var(--muted);">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--navy);border-radius:2px;display:inline-block;"></span>Ads</span>
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>Vine</span>
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--border);border-radius:2px;display:inline-block;"></span>Promos</span>
+            </div>
+          </div>
+          <div style="height:254px;flex-shrink:0;position:relative;"><canvas id="mx-chart-invest"></canvas></div>
+          <div style="margin-top:12px;">
+            <div id="mx-ltd-total-investments" style="font-size:20px;font-weight:700;color:var(--navy);">—</div>
+            <div style="font-size:10px;color:var(--muted);">Launch to date · Total Investments</div>
+          </div>
+        </div>
+        <div class="card" style="height:420px;margin-top:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">Ad Impressions</div>
+            <div style="display:flex;gap:18px;font-size:13px;color:var(--muted);" id="mx-impressions-legend"></div>
+          </div>
+          <div style="flex:1;min-height:0;position:relative;"><canvas id="mx-chart-impressions"></canvas></div>
+          <div class="insight-bar" id="mx-adimp-insight-bar" style="margin-top:12px;flex-shrink:0;">
+            <strong>Note:</strong>
+            <span class="insight-text" id="mx-adimp-insight-text"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="mx-opportunities">
+      <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Subscribe &amp; Save</div>
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="mx-kpi-active-subs"><div class="kpi-label">Active Subscriptions</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="mx-kpi-retention"><div class="kpi-label">Subscribe &amp; Save Retention (90 Days)</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">Active Subscriptions by Month</div>
+        <div style="position:relative;height:320px;"><canvas id="mx-chart-sns"></canvas></div>
+      </div>
+
+      <!-- Opportunity cards — read-only, locked to the approved month
+           (same report row as Sales/Stewardship). Only cards with a
+           title filled in are shown. -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="mx-opp-grid">
+        <div class="card" id="mx-opp-card-1" style="display:none;">
+          <div class="card-title" id="mx-opp1-title"></div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="mx-opp1-subtitle"></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="mx-opp1-body"></div>
+        </div>
+        <div class="card" id="mx-opp-card-2" style="display:none;">
+          <div class="card-title" id="mx-opp2-title"></div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="mx-opp2-subtitle"></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="mx-opp2-body"></div>
+        </div>
+        <div class="card" id="mx-opp-card-3" style="display:none;">
+          <div class="card-title" id="mx-opp3-title"></div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="mx-opp3-subtitle"></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="mx-opp3-body"></div>
+        </div>
+        <div class="card" id="mx-opp-card-4" style="display:none;">
+          <div class="card-title" id="mx-opp4-title"></div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="mx-opp4-subtitle"></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="mx-opp4-body"></div>
+        </div>
+      </div>
+      <div id="mx-opp-empty" style="display:none;color:var(--muted);font-size:12px;">No opportunities added yet.</div>
     </div>
   </div>
 
@@ -1492,6 +1576,10 @@ function showPage(id, btn) {
     if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
   }
   if (id === 'inventory-external' && typeof window.initExternalReviews === 'function') window.initExternalReviews();
+  if (id === 'marketing-external') {
+    if (typeof window.initStewardshipExternal === 'function') window.initStewardshipExternal();
+    if (typeof window.initSubscriptionsExternal === 'function') window.initSubscriptionsExternal();
+  }
   if (id === 'overview' && typeof window.initOverviewInternal === 'function') window.initOverviewInternal();
   if (id === 'inventory' && typeof window.initInventoryPage === 'function') window.initInventoryPage();
 }
@@ -1525,6 +1613,7 @@ function showChannel(page, channelId, btn) {
   if (channelId === 'm-stewardship' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
   if (channelId === 'm-opportunities' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
   if (channelId === 'inv-oos-log' && typeof window.initOosLog === 'function') window.initOosLog();
+  if (channelId === 'mx-opportunities' && typeof window.initOpportunitiesExternal === 'function') window.initOpportunitiesExternal();
 
   // Period selector only makes sense on Amazon (internal Sales page) — hidden
   // everywhere else, matching Skinuva's real behavior.
@@ -2469,19 +2558,19 @@ window.initAmazonSalesInternal = function () {
   });
 })();
 
-// ── EXTERNAL Sales replica — locked to the latest Approved month only ───
-(function () {
-  const REPORT_INSIGHTS_SHEET_ID = window.SHEET_CFG.SHEET_REPORT_INSIGHTS
-    ? window.SHEET_CFG.SHEET_REPORT_INSIGHTS.fileId
-    : '1Fz0bEArdx54vTSGMGj-m6TYec1kizKyPubJOZNWBaLg';
-  const BRAND = window.SHEET_CFG.BRAND_SLUG || 'cosmette';
-
-  function gvizCsvUrl(tabName) {
-    return `https://docs.google.com/spreadsheets/d/${REPORT_INSIGHTS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}&_cb=${Date.now()}`;
-  }
-  async function getLatestApprovedMonth() {
+// Shared, memoized approved-month resolver — used by Sales external AND
+// Marketing external (Brand Stewardship), since both are locked to the
+// same monthly report row/approval. Whichever page loads first resolves
+// it; the other just awaits the same cached promise.
+window.csResolveApprovedMonth = function () {
+  if (window._csApprovedMonthPromise) return window._csApprovedMonthPromise;
+  window._csApprovedMonthPromise = (async function () {
+    const REPORT_INSIGHTS_SHEET_ID = window.SHEET_CFG.SHEET_REPORT_INSIGHTS
+      ? window.SHEET_CFG.SHEET_REPORT_INSIGHTS.fileId
+      : '1Fz0bEArdx54vTSGMGj-m6TYec1kizKyPubJOZNWBaLg';
+    const BRAND = window.SHEET_CFG.BRAND_SLUG || 'cosmette';
     try {
-      const res = await fetch(gvizCsvUrl(BRAND));
+      const res = await fetch(`https://docs.google.com/spreadsheets/d/${REPORT_INSIGHTS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(BRAND)}&_cb=${Date.now()}`);
       if (!res.ok) return null;
       const csv = await res.text();
       if (!csIsCsv(csv)) return null;
@@ -2489,8 +2578,13 @@ window.initAmazonSalesInternal = function () {
       if (!rows.length) return null;
       rows.sort((a,b) => (parseInt(b.year,10)*12+parseInt(b.month,10)) - (parseInt(a.year,10)*12+parseInt(a.month,10)));
       return { year: parseInt(rows[0].year,10), month: parseInt(rows[0].month,10) };
-    } catch (e) { console.warn('[SalesExternal] getLatestApprovedMonth failed:', e.message); return null; }
-  }
+    } catch (e) { console.warn('[csResolveApprovedMonth] failed:', e.message); return null; }
+  })();
+  return window._csApprovedMonthPromise;
+};
+
+// ── EXTERNAL Sales replica — locked to the latest Approved month only ───
+(function () {
   function setDisplay(id, val) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -2521,7 +2615,7 @@ window.initAmazonSalesInternal = function () {
   window.initSalesExternalPage = function () {
     if (window._csExternalPromise) return window._csExternalPromise;
     window._csExternalPromise = (async function () {
-      const key = await getLatestApprovedMonth();
+      const key = await window.csResolveApprovedMonth();
       if (!key) { showEmptyState('This month\'s report isn\'t ready yet — check back soon.'); return; }
       window.__csApprovedMonth = key;
 
@@ -3476,28 +3570,39 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[CosmetteInventory] latestDate:', latestDate, '— rows at that date:', latestRows.length);
 
       const perVariantRows = latestRows.filter(r => isCatalogSku(r.sku)).map(r => {
-        const inboundReceiving = parseInt(r.inbound_receiving, 10) || 0;
+        const inboundReceiving = parseInt(r.inbound_receiving_quantity, 10) || 0;
         const qtyAtAmazon = (parseInt(r.fulfillable_quantity, 10) || 0) + inboundReceiving;
         const qtyAtMedaltus = parseInt(r.seller_fulfilled_quantity, 10) || 0;
         const allocated = parseInt(r.reserved_quantity, 10) || 0;
+        // Available comes directly from the sheet's own total_quantity —
+        // confirmed against real data (2026-08-20) that this already
+        // equals fulfillable + seller_fulfilled and does NOT net out
+        // reserved_quantity. Cosmette's reserved_quantity runs consistently
+        // higher than fulfillable+seller_fulfilled (e.g. 12 or 48 against
+        // single-digit stock), so subtracting it — Skinuva's original
+        // formula — floored Available at 0 for every single SKU. Allocated
+        // is still shown as its own standalone KPI card below, just no
+        // longer subtracted here.
+        const totalQty = parseFloat(r.total_quantity) || 0;
         const onHand = parseFloat(r.qty_on_hand) || 0;
         const daysRaw = r.days_of_inventory;
         const days = (daysRaw === '' || daysRaw === null || daysRaw === undefined) ? '' : parseFloat(daysRaw);
         const skuUpper = csBaseSku(r.sku);
         return {
           root: csRootSku(r.sku), name: r.name || r.sku || '',
-          qtyAtAmazon, qtyAtMedaltus, allocated, onHand, days,
+          qtyAtAmazon, qtyAtMedaltus, allocated, totalQty, onHand, days,
           discontinued: statusMap[skuUpper] === 'DELETED',
         };
       });
 
       const byRoot = {};
       perVariantRows.forEach(v => {
-        if (!byRoot[v.root]) byRoot[v.root] = { sku: v.root, name: v.name, qtyAtAmazon: 0, qtyAtMedaltus: 0, allocated: 0, onHand: 0, days: '', discontinued: true };
+        if (!byRoot[v.root]) byRoot[v.root] = { sku: v.root, name: v.name, qtyAtAmazon: 0, qtyAtMedaltus: 0, allocated: 0, totalQty: 0, onHand: 0, days: '', discontinued: true };
         const acc = byRoot[v.root];
         acc.qtyAtAmazon += v.qtyAtAmazon;
         acc.qtyAtMedaltus += v.qtyAtMedaltus;
         acc.allocated += v.allocated;
+        acc.totalQty += v.totalQty;
         acc.onHand += v.onHand;
         if (v.name && (!acc.name || acc.name === v.root)) acc.name = v.name;
         if (v.days !== '') acc.days = (acc.days === '' ? v.days : Math.min(acc.days, v.days));
@@ -3505,7 +3610,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       _invAllRows = Object.values(byRoot).map(acc => {
-        const available = Math.max(0, acc.qtyAtAmazon + acc.qtyAtMedaltus - acc.allocated);
+        const available = Math.max(0, acc.totalQty);
         const status = available === 0 ? 'oos' : invStatusFor(acc.days);
         return {
           sku: acc.sku, name: acc.name,
@@ -3695,6 +3800,268 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_oosLogLoaded) return;
     _oosLogLoaded = true;
     await loadOosLog();
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// MARKETING (EXTERNAL) — Brand Stewardship (approved-month gated),
+// Subscribe & Save (live), Opportunities (approved-month gated).
+// Stewardship and Opportunities share the SAME approved month as Sales
+// external (window.csResolveApprovedMonth()) — one report, one Approve
+// button. Subscribe & Save stays live, matching Skinuva's own actual
+// behavior: it's a live fact, not part of the report narrative.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function trailingMonths(year, month, count) {
+    const out = [];
+    let y = year, m = month;
+    for (let i = 0; i < count; i++) { out.unshift({ year: y, month: m }); m--; if (m === 0) { m = 12; y--; } }
+    return out;
+  }
+  function setKpiVal(id, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = el.querySelector('.kpi-value');
+    if (v) v.textContent = text;
+  }
+  function setKpiMom(id, pctVal) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const badge = el.querySelector('.kpi-mom');
+    if (!badge) return;
+    if (pctVal == null) { badge.className = 'kpi-mom flat'; badge.textContent = ''; return; }
+    const cls = pctVal === 0 ? 'flat' : pctVal > 0 ? 'up' : 'dn';
+    badge.className = 'kpi-mom ' + cls;
+    badge.textContent = `${pctVal > 0 ? '▲ ' : pctVal < 0 ? '▼ ' : ''}${Math.abs(pctVal)}% MOM`;
+  }
+
+  window.initStewardshipExternal = function () {
+    if (window._csStewardshipExtPromise) return window._csStewardshipExtPromise;
+    window._csStewardshipExtPromise = (async function () {
+      const dateNoteEl = document.getElementById('mx-stewardship-date-note');
+      const key = await window.csResolveApprovedMonth();
+      if (!key) {
+        if (dateNoteEl) dateNoteEl.textContent = "This month's report isn't ready yet — check back soon.";
+        return;
+      }
+      const { year, month } = key;
+      let prevMonth = month - 1, prevYear = year;
+      if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+      if (dateNoteEl) dateNoteEl.textContent = `${csMonths12[month-1]} ${year}`;
+
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_STEWARDSHIP_SUMMARY) { console.warn('[StewardshipExternal] Missing SHEET_STEWARDSHIP_SUMMARY.'); return; }
+      try {
+        const summaryCsv = await fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv) : [];
+        if (!summaryRows.length) { console.warn('[StewardshipExternal] Summary sheet returned no rows.'); return; }
+        const findRow = (y, m) => summaryRows.find(r => parseInt(r.year,10) === y && parseInt(r.month,10) === m);
+
+        const invMonths = trailingMonths(year, month, 13);
+        const investLabels = [], adsData = [], vineData = [], promosData = [];
+        invMonths.forEach(({ year: y, month: m }) => {
+          investLabels.push(`${csMonths12[m-1]} '${String(y).slice(2)}`);
+          const row = findRow(y, m);
+          adsData.push(row ? csParseAmt(row.ads_spend) : 0);
+          vineData.push(row ? csParseAmt(row.vine_total) : 0);
+          promosData.push(row ? csParseAmt(row.promos_total) : 0);
+        });
+
+        const impMonthNums = [1,2,3,4,5,6,7,8,9,10,11,12];
+        const impLabels = impMonthNums.map(m => csMonths12[m-1]);
+        const impCurr = [], impPrev = [];
+        impMonthNums.forEach(m => {
+          if (m > month) { impCurr.push(null); }
+          else { const row = findRow(year, m); impCurr.push(row ? (parseInt(row.impressions,10) || 0) : null); }
+          const prevRow = findRow(year - 1, m);
+          impPrev.push(prevRow ? (parseInt(prevRow.impressions,10) || 0) : null);
+        });
+
+        // Charts — same rendering as internal Stewardship, different canvas ids.
+        if (window._csMxInvestChart) window._csMxInvestChart.destroy();
+        window._csMxInvestChart = new Chart(document.getElementById('mx-chart-invest'), {
+          type: 'bar',
+          data: { labels: investLabels, datasets: [
+            { label: 'Ads', data: adsData, backgroundColor: '#001f60', stack: 'a' },
+            { label: 'Vine', data: vineData, backgroundColor: '#f4dfd0', stack: 'a' },
+            { label: 'Promos', data: promosData, backgroundColor: '#ccd3d5', stack: 'a' },
+          ]},
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+              label: ctx => `${ctx.dataset.label}: $${(ctx.parsed.y ?? 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`,
+              footer: items => `Total: $${items.reduce((s,i)=>s+(i.parsed.y||0),0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`,
+            }, footerFont: { weight: 'bold' } } },
+            scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v>=1000?(v/1000)+'K':v } } },
+          },
+        });
+        const legendEl = document.getElementById('mx-impressions-legend');
+        if (legendEl) legendEl.innerHTML = `
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--green);border-radius:2px;display:inline-block;"></span>${year}</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>${year-1}</span>`;
+        if (window._csMxImpressChart) window._csMxImpressChart.destroy();
+        window._csMxImpressChart = new Chart(document.getElementById('mx-chart-impressions'), {
+          type: 'line',
+          data: { labels: impLabels, datasets: [
+            { label: String(year), data: impCurr, borderColor: '#24e9a3', backgroundColor: 'rgba(36,233,163,0.1)', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: true, spanGaps: true },
+            { label: String(year-1), data: impPrev, borderColor: '#f4dfd0', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3, spanGaps: true },
+          ]},
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v===0?'0':(v/1000).toFixed(v%1000===0?0:1)+'K' } } } },
+        });
+
+        const rowCurr = findRow(year, month), rowPrev = findRow(prevYear, prevMonth);
+        const clicksCurr = rowCurr ? (parseInt(rowCurr.clicks,10)||0) : null, clicksPrev = rowPrev ? (parseInt(rowPrev.clicks,10)||0) : null;
+        const impressionsCurr = rowCurr ? (parseInt(rowCurr.impressions,10)||0) : null, impressionsPrev = rowPrev ? (parseInt(rowPrev.impressions,10)||0) : null;
+        const adUnitsCurr = rowCurr ? (parseInt(rowCurr.ad_units,10)||0) : 0, adUnitsPrev = rowPrev ? (parseInt(rowPrev.ad_units,10)||0) : 0;
+        const unitsCurr = rowCurr ? (parseInt(rowCurr.units,10)||0) : 0, unitsPrev = rowPrev ? (parseInt(rowPrev.units,10)||0) : 0;
+        const pctUnitsAdsCurr = unitsCurr > 0 ? Math.round((adUnitsCurr/unitsCurr)*100) : null;
+        const pctUnitsAdsPrev = unitsPrev > 0 ? Math.round((adUnitsPrev/unitsPrev)*100) : null;
+        const fmt = n => (n ?? 0).toLocaleString();
+        const fmtK = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n ?? 0);
+
+        if (clicksCurr != null) setKpiVal('mx-kpi-ad-clicks', fmt(clicksCurr));
+        setKpiMom('mx-kpi-ad-clicks', csPct(clicksCurr, clicksPrev));
+        if (impressionsCurr != null) setKpiVal('mx-kpi-ad-impressions', fmtK(impressionsCurr));
+        setKpiMom('mx-kpi-ad-impressions', csPct(impressionsCurr, impressionsPrev));
+        if (pctUnitsAdsCurr != null) setKpiVal('mx-kpi-pct-units-ads', pctUnitsAdsCurr+'%');
+        setKpiMom('mx-kpi-pct-units-ads', csPct(pctUnitsAdsCurr, pctUnitsAdsPrev));
+
+        const currInvestTotal = rowCurr ? (csParseAmt(rowCurr.ads_spend)+csParseAmt(rowCurr.vine_total)+csParseAmt(rowCurr.promos_total)) : 0;
+        const amzRevenueThisMonth = rowCurr ? csParseAmt(rowCurr.revenue) : 0;
+        if (amzRevenueThisMonth) setKpiVal('mx-kpi-pct-revenue-invested', Math.round((currInvestTotal/amzRevenueThisMonth)*100)+'%');
+
+        const ltdTotal = summaryRows.reduce((s,r) => s + csParseAmt(r.ads_spend) + csParseAmt(r.vine_total) + csParseAmt(r.promos_total), 0);
+        const ltdEl = document.getElementById('mx-ltd-total-investments');
+        if (ltdEl) ltdEl.textContent = '$' + Math.round(ltdTotal).toLocaleString();
+
+        // Ad Impressions Note — read-only, same report row.
+        if (typeof window.reportInsightsFetchRow === 'function') {
+          try {
+            const insightRow = await window.reportInsightsFetchRow(window.SHEET_CFG.BRAND_SLUG || 'cosmette', { year: String(year), month: String(month) });
+            const noteBar = document.getElementById('mx-adimp-insight-bar');
+            const noteText = document.getElementById('mx-adimp-insight-text');
+            const noteVal = insightRow && insightRow.ad_impressions_note;
+            if (noteVal) { if (noteText) noteText.innerHTML = String(noteVal).replace(/\n/g,'<br>'); if (noteBar) noteBar.style.display = ''; }
+            else if (noteBar) noteBar.style.display = 'none';
+          } catch (e) { console.warn('[StewardshipExternal] Ad Impressions Note fetch failed:', e.message); }
+        }
+      } catch (err) {
+        console.warn('[StewardshipExternal] failed:', err.message);
+      }
+    })();
+    return window._csStewardshipExtPromise;
+  };
+
+  // ── Subscribe & Save (live, not gated) ──────────────────────────────
+  window.initSubscriptionsExternal = function () {
+    if (window._csSubsExtPromise) return window._csSubsExtPromise;
+    window._csSubsExtPromise = (async function () {
+      const canvas = document.getElementById('mx-chart-sns');
+      if (!canvas) return;
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_STEWARDSHIP_SUMMARY || !cfg.SHEET_SUBSCRIPTIONS) { console.warn('[SubscriptionsExternal] Missing SHEET_CONFIG keys.'); return; }
+
+      function csvToRows(text) {
+        const records = csParseCsvRecords(text.trim() + '\n');
+        if (records.length < 2) return [];
+        const headers = records[0].map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+        return records.slice(1).map(cells => { const row = {}; headers.forEach((h,i) => { row[h] = (cells[i]||'').trim(); }); return row; });
+      }
+      function num(v) { if (v === undefined || v === null || v === '') return null; const n = parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n) ? null : n; }
+
+      const subsKpiEl = document.querySelector('#mx-kpi-active-subs .kpi-value');
+      const retentionKpiEl = document.querySelector('#mx-kpi-retention .kpi-value');
+
+      try {
+        const [totalsCsv, retentionCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_SUBSCRIPTIONS.fileId, cfg.SHEET_SUBSCRIPTIONS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        ]);
+
+        if (csIsCsv(totalsCsv)) {
+          const rows = csvToRows(totalsCsv);
+          const brandRows = rows.filter(csIsCosmetteRow);
+          const useRows = brandRows.length ? brandRows : rows;
+          const withDate = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          if (withDate.length && withDate.every(x => !isNaN(x.y) && !isNaN(x.m))) withDate.sort((a,b) => (a.y-b.y)||(a.m-b.m));
+          const labels = [], values = [], years = [];
+          withDate.forEach(x => {
+            const total = num(x.row.total_subscriptions ?? x.row.total_subs ?? x.row.subscriptions ?? x.row.active_subscriptions);
+            if (total === null || total === 0) return;
+            labels.push(`${csMonths12[x.m-1]} '${String(x.y).slice(2)}`);
+            values.push(total); years.push(x.y);
+          });
+          const trimmedLabels = labels.slice(-13), trimmedValues = values.slice(-13), trimmedYears = years.slice(-13);
+          if (values.length) {
+            const YEAR_COLORS = { 2025: '#f4dfd0', 2026: '#001f60' };
+            const distinctYears = [...new Set(trimmedYears)].sort((a,b)=>a-b);
+            const bg = trimmedYears.map(y => YEAR_COLORS[y] || (distinctYears.indexOf(y) <= 0 ? '#f4dfd0' : (distinctYears.indexOf(y) === distinctYears.length-1 ? '#001f60' : '#6b7ba2')));
+            if (window._csMxSnsChart) window._csMxSnsChart.destroy();
+            window._csMxSnsChart = new Chart(canvas, {
+              type: 'bar', data: { labels: trimmedLabels, datasets: [{ label: 'Active Subscriptions', data: trimmedValues, backgroundColor: bg }] },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } } },
+            });
+            if (subsKpiEl) subsKpiEl.textContent = Math.round(values[values.length-1]).toLocaleString();
+          }
+        }
+        if (csIsCsv(retentionCsv)) {
+          const rows = csvToRows(retentionCsv);
+          const target = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+          const useRows = rows.filter(r => (r.brand||'').toLowerCase().trim() === target);
+          function readRetention(r) { if (!r) return null; let v = num(r.retention_90_day ?? r.retention_90 ?? r.retention ?? r.retention_rate ?? r.subscribe_save_retention); if (v !== null && v > 0 && v <= 1) v *= 100; return v; }
+          const withDateR = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const hasHistory = withDateR.length > 1 && withDateR.every(x => !isNaN(x.y) && !isNaN(x.m));
+          if (hasHistory) withDateR.sort((a,b)=>(a.y-b.y)||(a.m-b.m));
+          let brandRow = null;
+          if (hasHistory) { for (let i=withDateR.length-1;i>=0;i--){ if (readRetention(withDateR[i].row) !== null) { brandRow = withDateR[i].row; break; } } }
+          if (!brandRow) brandRow = useRows[0] || null;
+          const retentionVal = readRetention(brandRow);
+          if (retentionVal !== null && retentionKpiEl) retentionKpiEl.textContent = Math.round(retentionVal) + '%';
+        }
+      } catch (err) {
+        console.warn('[SubscriptionsExternal] failed:', err.message);
+      }
+    })();
+    return window._csSubsExtPromise;
+  };
+
+  // ── Opportunities (approved-month gated, read-only) ─────────────────
+  window.initOpportunitiesExternal = function () {
+    if (window._csOppExtPromise) return window._csOppExtPromise;
+    window._csOppExtPromise = (async function () {
+      const key = await window.csResolveApprovedMonth();
+      const emptyEl = document.getElementById('mx-opp-empty');
+      if (!key || typeof window.reportInsightsFetchRow !== 'function') {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+      try {
+        const row = await window.reportInsightsFetchRow(window.SHEET_CFG.BRAND_SLUG || 'cosmette', { year: String(key.year), month: String(key.month) });
+        let anyShown = false;
+        [1,2,3,4].forEach(n => {
+          const title = row && row[`opp${n}_title`];
+          const card = document.getElementById(`mx-opp-card-${n}`);
+          if (!card) return;
+          if (title) {
+            anyShown = true;
+            card.style.display = '';
+            document.getElementById(`mx-opp${n}-title`).textContent = title;
+            const sub = row[`opp${n}_subtitle`] || '';
+            document.getElementById(`mx-opp${n}-subtitle`).textContent = sub;
+            document.getElementById(`mx-opp${n}-subtitle`).style.display = sub ? '' : 'none';
+            document.getElementById(`mx-opp${n}-body`).innerHTML = String(row[`opp${n}_body`] || '').replace(/\n/g,'<br>');
+          } else {
+            card.style.display = 'none';
+          }
+        });
+        if (emptyEl) emptyEl.style.display = anyShown ? 'none' : 'block';
+      } catch (e) {
+        console.warn('[OpportunitiesExternal] failed:', e.message);
+        if (emptyEl) emptyEl.style.display = 'block';
+      }
+    })();
+    return window._csOppExtPromise;
   };
 })();
 </script>
