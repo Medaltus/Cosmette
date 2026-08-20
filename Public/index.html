@@ -8,6 +8,17 @@
      env var and sets window.SHEET_CFG before any other inline script below
      runs — keeps raw sheet IDs out of client-visible source. See api/sheet-config.js. -->
 <script src="/api/sheet-config"></script>
+<script>
+  // Brand identity — per-project constants (this Vercel project only ever
+  // serves Cosmette), so hardcoded here rather than routed through the
+  // SHEET_CONFIG env var, which is scoped to sheet fileId/gid pairs only.
+  // SKU prefix confirmed directly by Jaclyn 2026-08-20 (Master SKU List tab,
+  // row 518, column D) — do not guess this for other brands.
+  window.SHEET_CFG = window.SHEET_CFG || {};
+  window.SHEET_CFG.BRAND_SLUG = 'cosmette';
+  window.SHEET_CFG.BRAND_SKU_PREFIX = 'COS';
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script async crossorigin="anonymous"
   data-clerk-publishable-key="pk_live_Y2xlcmsucmVwb3J0cy5tZWRhbHR1cy5jb20k"
   src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
@@ -101,6 +112,59 @@ nav{flex:1;padding:8px 8px 0;}
      DOM but hidden via .ch-tab-hidden for Cosmette (Amazon-only today). Flip a channel
      live by removing that class from its tab — no rebuild needed. ── */
 .channel-tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;overflow:hidden;align-self:flex-start;flex-wrap:wrap;}
+.channel-tabs-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+.channel-tabs-row .channel-tabs{margin-bottom:0;}
+.channel-page{display:none;}
+.channel-page.active{display:block;}
+
+/* ── KPI cards — copied verbatim from Skinuva's real stylesheet ── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px;}
+.kpi-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px 20px;height:116px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;}
+.kpi-card.kpi-card-tall{min-height:180px;height:auto;}
+.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;}
+.kpi-value{font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1;color:var(--navy);}
+.kpi-value.sm{font-size:30px;}
+.kpi-mom{font-size:14px;margin-top:5px;}
+.kpi-mom.up{color:#1db88a;}
+.kpi-mom.dn{color:var(--danger);}
+.kpi-mom.flat{color:var(--muted);}
+.kpi-yoy{font-size:12px;margin-top:2px;}
+.kpi-yoy.up{color:#1db88a;}
+.kpi-yoy.dn{color:var(--danger);}
+.kpi-yoy.flat{color:var(--muted);}
+.kpi-territory{font-size:10px;color:var(--muted);margin-top:4px;}
+
+/* ── Data table ── */
+table.data-table{width:100%;border-collapse:collapse;}
+table.data-table thead tr{background:var(--navy);}
+table.data-table thead th{padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--white);text-align:left;}
+table.data-table tbody tr{border-bottom:1px solid var(--border2);}
+table.data-table tbody tr:nth-child(odd){background:var(--bg);}
+table.data-table tbody tr:last-child{border-bottom:none;}
+table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font-weight:600;}
+.tp-cell{display:flex;align-items:baseline;gap:2px;flex-wrap:wrap;}
+.tp-units{font-weight:700;}
+.tp-mom-up{display:inline-flex;align-items:center;color:#1db88a;font-size:10px;font-weight:400;margin-left:6px;white-space:nowrap;}
+.tp-mom-dn{display:inline-flex;align-items:center;color:var(--danger);font-size:10px;font-weight:400;margin-left:6px;white-space:nowrap;}
+.tp-mom-flat{display:inline-flex;align-items:center;color:rgba(107,123,162,.4);font-size:10px;margin-left:6px;}
+
+/* ── Insight bar ── */
+.insight-bar{background:var(--sand);border:1px solid rgba(0,31,96,0.10);border-radius:var(--radius-sm);padding:12px 16px;margin-top:14px;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.insight-bar strong{font-size:12px;color:var(--navy);white-space:nowrap;}
+.insight-text{font-size:12.5px;color:var(--navy);flex:1;line-height:1.6;}
+
+/* ── Edit/save/cancel/approve buttons + inline editor (internal pages only) ── */
+.btn-edit{display:inline-flex;align-items:center;gap:4px;background:none;border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:11px;font-weight:600;color:var(--navy);cursor:pointer;font-family:var(--font);}
+.btn-cancel{background:none;border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--font);margin-right:8px;}
+.btn-save-stage{background:var(--navy);border:1px solid var(--navy);border-radius:999px;padding:6px 16px;font-size:11.5px;font-weight:600;color:#fff;cursor:pointer;font-family:var(--font);}
+.btn-approve{border:1px solid var(--border);border-radius:999px;padding:7px 16px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--font);}
+.btn-approve:disabled{opacity:.5;cursor:not-allowed;}
+.staging-note{font-size:11.5px;font-weight:600;color:var(--muted);}
+.insight-editor{display:none;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-top:10px;}
+.insight-editor textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid rgba(0,31,96,.2);border-radius:var(--radius-sm);font-family:var(--font);font-size:12px;color:var(--navy);resize:vertical;min-height:70px;}
+.editor-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;}
+.editor-note{font-size:10.5px;color:var(--muted);margin-right:auto;font-style:italic;}
+[data-placeholder]:empty::after{content:attr(data-placeholder);color:var(--muted);font-style:italic;}
 .ch-tab{border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--muted);padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .13s;}
 .ch-tab:hover{color:var(--navy);}
 .ch-tab.active{background:var(--navy);color:#fff;}
@@ -496,23 +560,80 @@ nav{flex:1;padding:8px 8px 0;}
 
   </div><!-- /#page-onboarding -->
 
-  <!-- ══ SALES (EXTERNAL) ══ -->
+  <!-- ══ SALES (EXTERNAL) ══
+       Locked to the latest APPROVED month only — see initSalesExternalPage()
+       in the script block below. Shows nothing live/draft; if no month has
+       ever been approved, shows an empty state instead of falling back to
+       current data. Mirrors Skinuva's real external Sales page. -->
   <div class="page" id="page-sales-external">
     <div class="page-hd">
-      <div><div class="page-title">Sales</div><div class="page-sub">Amazon · Last synced —</div></div>
+      <div><div class="page-title">Sales</div><div class="page-sub" id="x-sales-page-sub">Loading…</div></div>
     </div>
-    <!-- Amazon-only for now — Walmart/Website channel tabs kept in markup, hidden via
-         .ch-tab-hidden, so turning on a channel later is a class removal, not a rebuild. -->
-    <div class="channel-tabs">
-      <button class="ch-tab active" onclick="showChannel('sales-external','x-amazon',this)">Amazon</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales-external','x-walmart',this)">Walmart</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales-external','x-website',this)">Website</button>
+
+    <div class="channel-tabs-row">
+      <div class="channel-tabs">
+        <button class="ch-tab active" onclick="showChannel('sales-external','x-overview',this)">Overview</button>
+        <button class="ch-tab" onclick="showChannel('sales-external','x-amazon',this)">Amazon</button>
+        <!-- Walmart/Website kept in markup, hidden via .ch-tab-hidden — Cosmette is Amazon-only today. -->
+        <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales-external','x-walmart',this)">Walmart</button>
+        <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales-external','x-website',this)">Website</button>
+      </div>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📈</div>
-      <div class="ph-title">Sales Page</div>
-      <div class="ph-sub">Client-facing sales performance — mirrors the standard Medaltus external Sales layout once wired to Cosmette's Amazon SP-API sheet.</div>
+
+    <div class="channel-page active" id="x-overview">
+      <div style="background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:10px;padding:36px 40px;margin-bottom:22px;color:#fff;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px;">Monthly Overview</div>
+        <div style="font-family:Georgia,serif;font-size:34px;line-height:1.15;margin-bottom:14px;">Monthly<br>Partnership<br>Report</div>
+        <div style="width:40px;height:2px;background:var(--green);margin-bottom:18px;"></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;max-width:520px;">A brief overview of sales performance, ad investments, and upcoming growth opportunities.</div>
+        <div style="margin-top:18px;font-size:11px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.06em;">BRAND PERFORMANCE REPORT &nbsp;·&nbsp; <span id="x-overview-hero-date" style="color:rgba(255,255,255,.55);">Loading…</span></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Executive Summary</div>
+        </div>
+        <div style="font-size:17px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:18px;" id="x-exec-summary-headline">Loading…</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="x-exec-summary-left">Loading…</div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="x-exec-summary-right">Loading…</div>
+        </div>
+      </div>
     </div>
+
+    <div class="channel-page" id="x-amazon">
+      <div class="kpi-row">
+        <div class="kpi-card" id="x-kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="x-kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="x-kpi-avg-order"><div class="kpi-label">Average Order</div><div class="kpi-value sm">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="x-kpi-units-ads"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="x-kpi-units-organic"><div class="kpi-label">Units (Organic)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">Sales Revenue by Month</div>
+          <div id="legend-x-amazon" style="display:flex;align-items:center;"></div>
+        </div>
+        <div style="position:relative;height:320px;"><canvas id="x-chart-amazon"></canvas></div>
+      </div>
+      <div class="card" id="x-top-products-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
+          <span class="card-title" style="margin-bottom:0;">Top Selling Products <span style="font-size:11px;color:var(--muted);font-weight:400;">(by Units)</span></span>
+          <span id="x-amazon-products-source" style="font-size:10px;color:var(--muted);"></span>
+        </div>
+        <table class="data-table" id="x-amazon-top-sellers">
+          <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th></tr></thead>
+          <tbody id="x-tp-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="insight-bar" id="x-tp-insight-bar">
+        <strong>Key Insight:</strong>
+        <span class="insight-text" id="x-tp-insight-text"></span>
+      </div>
+    </div>
+
+    <!-- Walmart/Website channel-pages intentionally omitted for now (no tabs
+         point to them) — add back alongside the tab buttons above when those
+         channels activate. -->
   </div>
 
   <!-- ══ MARKETING (EXTERNAL) ══ -->
@@ -591,20 +712,104 @@ nav{flex:1;padding:8px 8px 0;}
     </div>
   </div>
 
-  <!-- ══ SALES (INTERNAL) ══ -->
+  <!-- ══ SALES (INTERNAL) ══
+       Live current-month KPIs (always current, unlike the external replica).
+       "Approved & Ready" here writes status=Approved to the SHEET_REPORT_INSIGHTS
+       'cosmette' tab via /api/write-report-insights — that's what the external
+       Sales page's empty-state check is waiting on. -->
   <div class="page" id="page-sales">
     <div class="page-hd">
-      <div><div class="page-title">Sales</div><div class="page-sub">Internal · Last synced —</div></div>
+      <div><div class="page-title">Sales</div><div class="page-sub" id="sales-page-sub">Loading…</div></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="staging-note" id="sales-report-status">◎ Draft</span>
+        <button class="btn-approve" id="sales-approve-btn" style="background:var(--green);border-color:var(--green);color:#fff;">✓ Approved &amp; Ready</button>
+      </div>
     </div>
-    <div class="channel-tabs">
-      <button class="ch-tab active" onclick="showChannel('sales','s-amazon',this)">Amazon</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
+
+    <div class="channel-tabs-row">
+      <div class="channel-tabs">
+        <button class="ch-tab active" onclick="showChannel('sales','s-overview',this)">Overview</button>
+        <button class="ch-tab" onclick="showChannel('sales','s-amazon',this)">Amazon</button>
+        <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
+        <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
+      </div>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📈</div>
-      <div class="ph-title">Sales Page</div>
-      <div class="ph-sub">Full internal sales detail — mirrors the standard Medaltus internal Sales layout.</div>
+
+    <div class="channel-page active" id="s-overview">
+      <div style="background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:10px;padding:36px 40px;margin-bottom:22px;color:#fff;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px;">Monthly Overview</div>
+        <div style="font-family:Georgia,serif;font-size:34px;line-height:1.15;margin-bottom:14px;">Monthly<br>Partnership<br>Report</div>
+        <div style="width:40px;height:2px;background:var(--green);margin-bottom:18px;"></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;max-width:520px;">A brief overview of sales performance, ad investments, and upcoming growth opportunities.</div>
+        <div style="margin-top:18px;font-size:11px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.06em;">BRAND PERFORMANCE REPORT &nbsp;·&nbsp; <span id="overview-hero-date" style="color:rgba(255,255,255,.55);">Loading…</span></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Executive Summary</div>
+          <button class="btn-edit" id="ov-exec-edit-btn">✏️ Edit</button>
+        </div>
+        <div style="font-size:17px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:18px;" id="exec-summary-headline" data-placeholder="No headline added yet — click Edit to add it.">Loading…</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="exec-summary-left" data-placeholder="No content added yet — click Edit to add it.">Loading…</div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="exec-summary-right" data-placeholder="No content added yet — click Edit to add it.">Loading…</div>
+        </div>
+      </div>
+
+      <div class="insight-editor" id="ov-exec-editor">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Edit the headline and summary text for this month's report. Month is resolved automatically (last full calendar month).</div>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Headline</div>
+        <textarea id="textarea-ov-exec-headline" style="height:52px;margin-bottom:10px;"></textarea>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Left column</div>
+        <textarea id="textarea-ov-exec-left" style="min-height:80px;margin-bottom:10px;"></textarea>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Right column</div>
+        <textarea id="textarea-ov-exec-right" style="min-height:80px;"></textarea>
+        <div class="editor-footer">
+          <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+          <button class="btn-cancel" id="ov-exec-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="ov-exec-save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="s-amazon">
+      <div class="kpi-row">
+        <div class="kpi-card kpi-card-tall" id="kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card kpi-card-tall" id="kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card kpi-card-tall" id="kpi-avg-order"><div class="kpi-label">Average Order</div><div class="kpi-value sm">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card kpi-card-tall" id="kpi-units-ads"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card kpi-card-tall" id="kpi-units-organic"><div class="kpi-label">Units (Organic)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">Sales Revenue by Month</div>
+          <div id="legend-amazon" style="display:flex;align-items:center;"></div>
+        </div>
+        <div style="position:relative;height:320px;"><canvas id="chart-amazon"></canvas></div>
+      </div>
+      <div class="card" id="top-products-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
+          <span class="card-title" style="margin-bottom:0;">Top Selling Products <span style="font-size:11px;color:var(--muted);font-weight:400;">(by Units)</span></span>
+          <span id="amazon-products-source" style="font-size:10px;color:var(--muted);"></span>
+        </div>
+        <table class="data-table" id="amazon-top-sellers">
+          <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th></tr></thead>
+          <tbody id="tp-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="insight-bar">
+        <strong>Key Insight:</strong>
+        <span class="insight-text" id="tp-insight-text" data-placeholder="No content added yet — click Edit to add it."></span>
+        <div style="margin-left:auto;"><button class="btn-edit" id="tp-insight-edit-btn">✏️ Edit</button></div>
+      </div>
+      <div class="insight-editor" id="tp-insight-editor">
+        <textarea id="tp-insight-textarea" style="min-height:70px;"></textarea>
+        <div class="editor-footer">
+          <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+          <button class="btn-cancel" id="tp-insight-cancel">Cancel</button>
+          <button class="btn-save-stage" id="tp-insight-save">Save</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -726,6 +931,10 @@ function showPage(id, btn) {
     todosLoaded = true;
     loadTodos();
   }
+  // Lazy-init: each of these is memoized internally (returns a cached
+  // promise on repeat calls), so re-visiting a page is cheap.
+  if (id === 'sales' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
+  if (id === 'sales-external' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -740,9 +949,13 @@ function showChannel(page, channelId, btn) {
   if (!scope) return;
   scope.querySelectorAll('.ch-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  // Channel content blocks (once built) should use the channelId as their
-  // element id within this page and be toggled here, matching the pattern
-  // already established on Skinuva's dashboard.
+  scope.querySelectorAll('.channel-page').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(channelId);
+  if (panel) panel.classList.add('active');
+
+  // Per-channel lazy inits — cheap to call repeatedly, each memoizes itself.
+  if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
+  if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
 }
 
 function setHomeDate() {
@@ -959,6 +1172,559 @@ window.addEventListener('load', async () => {
 // Home date and other page init no longer depend on Clerk resolving —
 // the page is public now, so this must run regardless of auth outcome.
 document.addEventListener('DOMContentLoaded', setHomeDate);
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// SALES DATA MODULE — internal (live) + external (approved-month replica)
+//
+// Adapted from Skinuva's real implementation (same fetch/parse/aggregate
+// logic, same element-id conventions) for Cosmette. Known differences from
+// the Skinuva original, on purpose:
+//   - Amazon-only. No Website/Walmart channel logic — Cosmette doesn't sell
+//     there yet (see .ch-tab-hidden tabs already in the markup for when it does).
+//   - v1 does NOT net out Amazon Returns from Total Units / Units (Organic) /
+//     Top Selling Products, unlike Skinuva. Returns netting requires knowing
+//     Cosmette's Returns sheet's exact column names (asin, return_date,
+//     quantity, etc.) — I haven't verified those, so rather than guess at an
+//     unverified schema and risk silently wrong units, this is deferred.
+//     SHEET_RETURNS is already in Cosmette's SHEET_CONFIG whenever that's
+//     ready to add.
+//   - No YoY comparison yet (needs SHEET_ORDERS_HISTORICAL to have a full
+//     prior year of Cosmette data — worth checking before enabling).
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Shared CSV helpers ───────────────────────────────────────────────────
+function csSheetCsvUrl(fileId, gid) {
+  return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&gid=${gid}`;
+}
+function csIsCsv(text) {
+  const t = (text || '').trim();
+  return t.length > 0 && !t.startsWith('<') && !t.startsWith('{');
+}
+function csParseCsvLine(line) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) { if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else inQ = false; } else cur += c; }
+    else { if (c === '"') inQ = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; }
+  }
+  out.push(cur);
+  return out;
+}
+function csParseCsv(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = csParseCsvLine(lines[0]).map(h => h.replace(/^"|"$/g,'').trim());
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = csParseCsvLine(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = (vals[idx] || '').replace(/^"|"$/g,'').trim(); });
+    rows.push(row);
+  }
+  return rows;
+}
+function csNormalizeDate(val) {
+  if (!val) return '';
+  if (/^\d{4}-\d{2}/.test(val)) return val.substring(0, 10);
+  const parts = val.split('/');
+  if (parts.length === 3) {
+    const m = parts[0].padStart(2, '0');
+    const d = parts[1].padStart(2, '0');
+    const y = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+    return `${y}-${m}-${d}`;
+  }
+  return val;
+}
+function csParseAmt(val) {
+  if (!val) return 0;
+  return parseFloat(String(val).replace(/[$,]/g, '')) || 0;
+}
+function csIsCosmetteRow(row) {
+  const brand = (row.brand || '').toLowerCase().trim();
+  const skus  = (row.sku || row.skus || '').toUpperCase();
+  const skuPrefix = (window.SHEET_CFG.BRAND_SKU_PREFIX || 'COS').toUpperCase();
+  const target = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+  const isBrandMatch = brand === target;
+  return isBrandMatch || skus.split(',').some(s => s.trim().startsWith(skuPrefix));
+}
+function csIsValidOrder(row) {
+  const status = (row.status || '').toLowerCase().trim();
+  if (status === 'cancelled' || status === 'pending') return false;
+  const promos = (row.promotion_ids || '').toLowerCase();
+  if (promos.includes('vine')) return false;
+  return true;
+}
+function csFilterRows(rows) {
+  return rows.filter(r => csIsCosmetteRow(r) && csIsValidOrder(r));
+}
+function csAggregateMonth(rows, year, month) {
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+  const filtered = rows.filter(r => csNormalizeDate(r.date).substring(0, 7) === prefix);
+  if (filtered.length === 0) return null;
+  const orderIds = new Set(filtered.map(r => r.order_id).filter(Boolean));
+  const totalOrders = orderIds.size;
+  const totalUnits = filtered.reduce((s, r) => s + (parseInt(r.unit_count, 10) || 0), 0);
+  const orderTotals = {};
+  filtered.forEach(r => {
+    if (!r.order_id) return;
+    orderTotals[r.order_id] = (orderTotals[r.order_id] || 0) + csParseAmt(r.item_price);
+  });
+  const totalRevenue = Object.values(orderTotals).reduce((s, v) => s + v, 0);
+  const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  return { totalUnits, totalOrders, avgOrder };
+}
+function csPct(current, previous) {
+  if (!previous) return null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+function csGetLastFullMonth() {
+  const now = new Date();
+  let year = now.getFullYear(), month = now.getMonth();
+  if (month === 0) { month = 12; year--; }
+  return { year, month };
+}
+
+// ── KPI / table rendering (prefix-parameterized so internal 'kpi-*' and
+//    external 'x-kpi-*' ids can share one implementation) ─────────────────
+function csSetKpiValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) { const v = el.querySelector('.kpi-value'); if (v) v.textContent = value; }
+}
+function csSetBadge(id, cls, pctVal, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const badge = el.querySelector('.' + cls);
+  if (!badge) return;
+  if (pctVal == null) { badge.className = cls + ' flat'; badge.textContent = label ? 'No prior data' : ''; return; }
+  const kind = pctVal === 0 ? 'flat' : (pctVal > 0 ? 'up' : 'dn');
+  badge.className = cls + ' ' + kind;
+  badge.textContent = `${pctVal > 0 ? '+' : ''}${pctVal}% ${label}`;
+}
+function csRenderKPIs(prefix, curr, prev, adUnits, prevAdUnits) {
+  const fmt = n => (n ?? 0).toLocaleString();
+  const fmt2 = n => parseFloat(n ?? 0).toFixed(2);
+  csSetKpiValue(`${prefix}kpi-total-units`, fmt(curr.totalUnits));
+  csSetBadge(`${prefix}kpi-total-units`, 'kpi-mom', prev ? csPct(curr.totalUnits, prev.totalUnits) : null, 'MOM');
+  csSetKpiValue(`${prefix}kpi-total-orders`, fmt(curr.totalOrders));
+  csSetBadge(`${prefix}kpi-total-orders`, 'kpi-mom', prev ? csPct(curr.totalOrders, prev.totalOrders) : null, 'MOM');
+  csSetKpiValue(`${prefix}kpi-avg-order`, '$' + fmt2(curr.avgOrder));
+  csSetBadge(`${prefix}kpi-avg-order`, 'kpi-mom', prev ? csPct(Math.round(curr.avgOrder*100), Math.round(prev.avgOrder*100)) : null, 'MOM');
+  csSetKpiValue(`${prefix}kpi-units-ads`, fmt(adUnits));
+  csSetBadge(`${prefix}kpi-units-ads`, 'kpi-mom', (prev && prevAdUnits != null) ? csPct(adUnits, prevAdUnits) : null, 'MOM');
+  const organic = curr.totalUnits - adUnits;
+  csSetKpiValue(`${prefix}kpi-units-organic`, fmt(organic));
+  const prevOrganic = prev ? prev.totalUnits - (prevAdUnits || 0) : null;
+  csSetBadge(`${prefix}kpi-units-organic`, 'kpi-mom', prevOrganic != null ? csPct(organic, prevOrganic) : null, 'MOM');
+}
+function csMomSpan(curr, prev) {
+  if (!prev) return '<span class="tp-mom-flat">—</span>';
+  const p = csPct(curr, prev);
+  if (p == null) return '<span class="tp-mom-flat">—</span>';
+  if (p === 0) return '<span class="tp-mom-flat">flat</span>';
+  return p > 0 ? `<span class="tp-mom-up">+${p}%</span>` : `<span class="tp-mom-dn">${p}%</span>`;
+}
+async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adOrderRows, prevYear, prevMonth, prevOrderRows, prevAdOrderRows) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const prefix2 = `${year}-${String(month).padStart(2,'0')}`;
+  const prevPrefix = `${prevYear}-${String(prevMonth).padStart(2,'0')}`;
+  const rowsThis = orderRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix2);
+  const rowsPrev = (prevOrderRows || orderRows).filter(r => csNormalizeDate(r.date).substring(0,7) === prevPrefix);
+
+  function unitsBySku(rows) {
+    const m = {};
+    rows.forEach(r => { const sku = (r.sku || '').trim(); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.unit_count,10) || 0); });
+    return m;
+  }
+  function adUnitsBySku(rows) {
+    const m = {};
+    rows.forEach(r => { const sku = (r.sku || '').trim(); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.ad_units,10) || 0); });
+    return m;
+  }
+  const skuUnits = unitsBySku(rowsThis);
+  const skuUnitsPrev = unitsBySku(rowsPrev);
+  const skuAdUnits = adUnitsBySku(adOrderRows || []);
+  const skuAdUnitsPrev = adUnitsBySku(prevAdOrderRows || []);
+  const skuNameMap = {};
+  rowsThis.concat(rowsPrev).forEach(r => { if (r.sku && r.product_name) skuNameMap[r.sku] = r.product_name; });
+
+  const sorted = Object.entries(skuUnits).filter(([,u]) => u > 0).sort((a,b) => b[1]-a[1]);
+  let totalAdUnits = 0;
+  tbody.innerHTML = '';
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No unit data for this month.</td></tr>';
+    return { totalAdUnits: 0 };
+  }
+  sorted.forEach(([sku, units], idx) => {
+    const name = skuNameMap[sku] || sku;
+    const prevUnits = skuUnitsPrev[sku] || 0;
+    const adUnits = Math.min(skuAdUnits[sku] || 0, units);
+    const adUnitsPrev = Math.min(skuAdUnitsPrev[sku] || 0, prevUnits);
+    const orgUnits = units - adUnits;
+    const prevOrgUnits = prevUnits - adUnitsPrev;
+    totalAdUnits += adUnits;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx+1}.</td>
+      <td>${name}</td>
+      <td><div class="tp-cell"><span class="tp-units">${units.toLocaleString()}</span>${csMomSpan(units, prevUnits)}</div></td>
+      <td><div class="tp-cell"><span class="tp-units">${adUnits.toLocaleString()}</span>${csMomSpan(adUnits, adUnitsPrev)}</div></td>
+      <td><div class="tp-cell"><span class="tp-units">${orgUnits.toLocaleString()}</span>${csMomSpan(orgUnits, prevOrgUnits)}</div></td>`;
+    tbody.appendChild(tr);
+  });
+  const srcEl = document.getElementById(sourceId);
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if (srcEl) srcEl.textContent = `Google Sheets cache · Cosmette · ${monthNames[month-1]} ${year}`;
+  return { totalAdUnits };
+}
+
+const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+async function csBuildRevenueChart(canvasId, currentYear) {
+  const cfg = window.SHEET_CFG.SHEET_REVENUE;
+  if (!cfg) return;
+  const revCsv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid)).then(r => r.ok ? r.text() : '').catch(() => '');
+  if (!csIsCsv(revCsv)) return;
+  const lines = revCsv.trim().split('\n');
+  const headers = csParseCsvLine(lines[0]).map(h => h.replace(/^"|"$/g,'').trim().toUpperCase());
+  const monthIdx = headers.indexOf('MONTH'), yearIdx = headers.indexOf('YEAR'), revIdx = headers.indexOf('REVENUE');
+  if (monthIdx < 0 || yearIdx < 0 || revIdx < 0) { console.warn('[CosmetteRevenue] Unexpected columns:', headers); return; }
+  const parsed = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = csParseCsvLine(lines[i]);
+    const yr = parseInt((cols[yearIdx]||'').replace(/^"|"$/g,''), 10);
+    const mo = parseInt((cols[monthIdx]||'').replace(/^"|"$/g,''), 10);
+    const rev = parseFloat((cols[revIdx]||'').replace(/^"|"$/g,'').replace(/[$,]/g,'')) || 0;
+    if (yr && mo >= 1 && mo <= 12 && yr >= 2015 && yr <= 2035) parsed.push({ year: yr, month: mo, revenue: rev });
+  }
+  const now = new Date(), stopYear = now.getFullYear(), stopMonth = now.getMonth();
+  const COLORS = {
+    0: { border:'#24e9a3', bg:'rgba(36,233,163,0.08)', fill:true },
+    1: { border:'#001f60', bg:'transparent', fill:false },
+    2: { border:'#f4dfd0', bg:'transparent', fill:false },
+    3: { border:'#ccd3d5', bg:'transparent', fill:false },
+  };
+  const datasets = [];
+  for (let offset = 0; offset <= 3; offset++) {
+    const yr = currentYear - offset, color = COLORS[offset];
+    const data = csMonths12.map((_, idx) => {
+      const mo = idx + 1;
+      if (yr === stopYear && mo > stopMonth) return null;
+      const row = parsed.find(r => r.year === yr && r.month === mo);
+      return row ? row.revenue : null;
+    });
+    if (data.every(v => v === null)) continue;
+    datasets.push({ label: String(yr), data, borderColor: color.border, backgroundColor: color.bg, fill: color.fill, pointRadius: 2, tension: 0.3, borderWidth: 2.5 });
+  }
+  if (!datasets.length) return;
+  const fmtDollar = v => v == null ? '' : '$' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0));
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (canvas._csChart) canvas._csChart.destroy();
+  canvas._csChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels: csMonths12, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtDollar(ctx.parsed.y)}` } } },
+      scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: fmtDollar } } },
+    },
+  });
+}
+
+// ── INTERNAL Amazon Sales (live current month) ──────────────────────────
+window.initAmazonSalesInternal = function () {
+  if (window._csInternalPromise) return window._csInternalPromise;
+  window._csInternalPromise = (async function () {
+    const cfg = window.SHEET_CFG;
+    const need = ['SHEET_ORDERS','SHEET_ORDERS_HISTORICAL','SHEET_ADVERTISING','SHEET_AD_ORDERS'];
+    const missing = need.filter(k => !cfg[k]);
+    if (missing.length) { console.warn('[CosmetteSalesInternal] Missing SHEET_CONFIG keys:', missing); return; }
+
+    const { year, month } = csGetLastFullMonth();
+    let prevMonth = month - 1, prevYear = year;
+    if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+    const monthNames = csMonths12;
+
+    const subEl = document.getElementById('sales-page-sub');
+    const lastDay = new Date(year, month, 0).getDate();
+    if (subEl) subEl.textContent = `${monthNames[month-1]} 1 – ${monthNames[month-1]} ${lastDay}, ${year} · Current`;
+    const heroEl = document.getElementById('overview-hero-date');
+    if (heroEl) heroEl.textContent = `${monthNames[month-1]} ${year}`;
+
+    try {
+      const [syncCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
+        fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+        fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+      ]);
+      const syncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
+      console.log('[CosmetteSalesInternal] order rows after COS filter:', syncRows.length);
+
+      const curr = csAggregateMonth(syncRows, year, month);
+      const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
+      if (!curr) {
+        console.warn(`[CosmetteSalesInternal] No Cosmette rows found for ${year}-${month}. Check SKU prefix / date column / sheet gid.`);
+        return;
+      }
+
+      let adUnitsKpi = 0, prevAdUnitsKpi = 0;
+      const adRows = csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [];
+      const adRow = adRows.find(r => parseInt(r.year,10) === year && parseInt(r.month,10) === month);
+      if (adRow) adUnitsKpi = parseInt(adRow.ad_units, 10) || 0;
+      const prevAdRow = adRows.find(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
+      if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units, 10) || 0;
+
+      csRenderKPIs('', curr, prev, adUnitsKpi, prevAdUnitsKpi);
+
+      const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===year && parseInt(r.month,10)===month) : [];
+      const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
+      await csBuildTopProducts('tp-tbody', 'amazon-products-source', syncRows, year, month, adOrderRows, prevYear, prevMonth, syncRows, prevAdOrderRows);
+      csBuildRevenueChart('chart-amazon', year).catch(e => console.warn('[CosmetteRevenue] failed:', e.message));
+
+    } catch (err) {
+      console.error('[CosmetteSalesInternal] error:', err);
+    }
+  })();
+  return window._csInternalPromise;
+};
+
+// ── Shared report-insights save/approve module ──────────────────────────
+// Requires /api/write-report-insights to exist in this Vercel project —
+// adapted from Skinuva's real file once uploaded. Until then, Save/Approve
+// will fail with a network/404 error surfaced via alert(), same as it would
+// on Skinuva's dashboard if that endpoint went down.
+(function () {
+  const REPORT_INSIGHTS_SHEET_ID = window.SHEET_CFG.SHEET_REPORT_INSIGHTS
+    ? window.SHEET_CFG.SHEET_REPORT_INSIGHTS.fileId
+    : '1Fz0bEArdx54vTSGMGj-m6TYec1kizKyPubJOZNWBaLg'; // same shared Report Insights file used across brands
+  const BRAND = window.SHEET_CFG.BRAND_SLUG || 'cosmette';
+
+  function gvizCsvUrl(tabName) {
+    return `https://docs.google.com/spreadsheets/d/${REPORT_INSIGHTS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}&_cb=${Date.now()}`;
+  }
+  async function fetchRow(tabName, matchFields) {
+    try {
+      const res = await fetch(gvizCsvUrl(tabName));
+      if (!res.ok) return null;
+      const csv = await res.text();
+      if (!csIsCsv(csv)) return null;
+      const rows = csParseCsv(csv);
+      const keys = Object.keys(matchFields);
+      return rows.find(r => keys.every(k => String(r[k]||'') === String(matchFields[k]))) || null;
+    } catch (e) { console.warn('[InsightBlock] fetchRow failed:', e.message); return null; }
+  }
+  async function saveFields({ year, month, fields, action }) {
+    const body = { brand: BRAND, scope: 'monthly', action, year, month, fields };
+    const res = await fetch('/api/write-report-insights', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    return json.row;
+  }
+
+  async function wireInsightBlock(cfg) {
+    const editBtn = document.getElementById(cfg.editBtnId);
+    const saveBtn = document.getElementById(cfg.saveBtnId);
+    const cancelBtn = document.getElementById(cfg.cancelBtnId);
+    const editorEl = document.getElementById(cfg.editorId);
+    if (!editBtn || !saveBtn || !editorEl) return;
+    const { year, month } = csGetLastFullMonth();
+    const matchFields = { year: String(year), month: String(month) };
+
+    async function load() {
+      const row = await fetchRow(BRAND, matchFields);
+      cfg.fields.forEach(f => {
+        const val = row ? (row[f.key] || '') : '';
+        const disp = document.getElementById(f.displayId);
+        if (disp) {
+          if (val) { disp.removeAttribute('data-placeholder'); disp.innerHTML = val.replace(/\n/g,'<br>'); }
+          else { disp.textContent = ''; disp.setAttribute('data-placeholder', f.placeholder || 'No content added yet — click Edit to add it.'); }
+        }
+        const ta = document.getElementById(f.textareaId);
+        if (ta) ta.value = val;
+      });
+      return row;
+    }
+    editBtn.addEventListener('click', () => {
+      editorEl.style.display = editorEl.style.display === 'none' ? 'block' : 'none';
+    });
+    if (cancelBtn) cancelBtn.addEventListener('click', () => { editorEl.style.display = 'none'; });
+    saveBtn.addEventListener('click', async () => {
+      const orig = saveBtn.textContent;
+      saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+      try {
+        const fieldsToSave = {};
+        cfg.fields.forEach(f => { const ta = document.getElementById(f.textareaId); if (ta) fieldsToSave[f.key] = ta.value.trim(); });
+        await saveFields({ year, month, fields: fieldsToSave, action: 'save' });
+        await load();
+        editorEl.style.display = 'none';
+      } catch (e) { alert('Save failed: ' + e.message); }
+      finally { saveBtn.disabled = false; saveBtn.textContent = orig; }
+    });
+    load();
+  }
+
+  function wireApproveButton(cfg) {
+    const btn = document.getElementById(cfg.btnId);
+    const statusEl = cfg.statusElId ? document.getElementById(cfg.statusElId) : null;
+    if (!btn) return;
+    async function refresh() {
+      const { year, month } = csGetLastFullMonth();
+      const row = await fetchRow(BRAND, { year: String(year), month: String(month) });
+      const status = row ? (row.status || 'Draft') : 'Draft';
+      if (statusEl) { statusEl.textContent = status === 'Approved' ? '● Approved & Live' : '◎ Draft'; statusEl.style.color = status === 'Approved' ? '#1a9b6f' : ''; }
+      return { year, month };
+    }
+    btn.addEventListener('click', async () => {
+      const { year, month } = await refresh();
+      const orig = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Approving…';
+      try { await saveFields({ year, month, action: 'approve' }); await refresh(); }
+      catch (e) { alert('Approve failed: ' + e.message); }
+      finally { btn.disabled = false; btn.textContent = orig; }
+    });
+    refresh();
+  }
+
+  window.wireInsightBlock = wireInsightBlock;
+  window.wireApproveButton = wireApproveButton;
+  window.reportInsightsFetchRow = fetchRow;
+
+  // Wire the Overview exec-summary block + the Approve button on the
+  // internal Sales page as soon as the DOM is ready.
+  document.addEventListener('DOMContentLoaded', () => {
+    wireInsightBlock({
+      editBtnId: 'ov-exec-edit-btn', saveBtnId: 'ov-exec-save-btn', cancelBtnId: 'ov-exec-cancel-btn', editorId: 'ov-exec-editor',
+      fields: [
+        { key: 'exec_summary_title', displayId: 'exec-summary-headline', textareaId: 'textarea-ov-exec-headline', placeholder: 'No headline added yet — click Edit to add it.' },
+        { key: 'exec_summary_left',  displayId: 'exec-summary-left',     textareaId: 'textarea-ov-exec-left' },
+        { key: 'exec_summary_right', displayId: 'exec-summary-right',    textareaId: 'textarea-ov-exec-right' },
+      ],
+    });
+    wireInsightBlock({
+      editBtnId: 'tp-insight-edit-btn', saveBtnId: 'tp-insight-save', cancelBtnId: 'tp-insight-cancel', editorId: 'tp-insight-editor',
+      fields: [ { key: 'amazon_key_insight', displayId: 'tp-insight-text', textareaId: 'tp-insight-textarea' } ],
+    });
+    wireApproveButton({ btnId: 'sales-approve-btn', statusElId: 'sales-report-status' });
+  });
+})();
+
+// ── EXTERNAL Sales replica — locked to the latest Approved month only ───
+(function () {
+  const REPORT_INSIGHTS_SHEET_ID = window.SHEET_CFG.SHEET_REPORT_INSIGHTS
+    ? window.SHEET_CFG.SHEET_REPORT_INSIGHTS.fileId
+    : '1Fz0bEArdx54vTSGMGj-m6TYec1kizKyPubJOZNWBaLg';
+  const BRAND = window.SHEET_CFG.BRAND_SLUG || 'cosmette';
+
+  function gvizCsvUrl(tabName) {
+    return `https://docs.google.com/spreadsheets/d/${REPORT_INSIGHTS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}&_cb=${Date.now()}`;
+  }
+  async function getLatestApprovedMonth() {
+    try {
+      const res = await fetch(gvizCsvUrl(BRAND));
+      if (!res.ok) return null;
+      const csv = await res.text();
+      if (!csIsCsv(csv)) return null;
+      const rows = csParseCsv(csv).filter(r => (r.status||'').trim() === 'Approved' && r.year && r.month);
+      if (!rows.length) return null;
+      rows.sort((a,b) => (parseInt(b.year,10)*12+parseInt(b.month,10)) - (parseInt(a.year,10)*12+parseInt(a.month,10)));
+      return { year: parseInt(rows[0].year,10), month: parseInt(rows[0].month,10) };
+    } catch (e) { console.warn('[SalesExternal] getLatestApprovedMonth failed:', e.message); return null; }
+  }
+  function setDisplay(id, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (val) { el.style.display = ''; el.innerHTML = String(val).replace(/\n/g,'<br>'); }
+    else { el.style.display = 'none'; }
+  }
+  function setInsightBar(barId, textId, val) {
+    const bar = document.getElementById(barId), span = document.getElementById(textId);
+    if (val) { if (span) span.innerHTML = String(val).replace(/\n/g,'<br>'); if (bar) bar.style.display = ''; }
+    else if (bar) bar.style.display = 'none';
+  }
+  function showEmptyState(msg) {
+    const subEl = document.getElementById('x-sales-page-sub');
+    if (subEl) subEl.textContent = msg;
+    const heroEl = document.getElementById('x-overview-hero-date');
+    if (heroEl) heroEl.textContent = '—';
+    ['x-exec-summary-headline','x-exec-summary-left','x-exec-summary-right'].forEach(id => setDisplay(id, null));
+    ['x-kpi-total-units','x-kpi-total-orders','x-kpi-avg-order','x-kpi-units-ads','x-kpi-units-organic'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const v = el.querySelector('.kpi-value'); if (v) v.textContent = '—';
+      const m = el.querySelector('.kpi-mom'); if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not yet approved'; }
+    });
+    const tbody = document.getElementById('x-tp-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No approved report yet.</td></tr>';
+  }
+
+  window.initSalesExternalPage = function () {
+    if (window._csExternalPromise) return window._csExternalPromise;
+    window._csExternalPromise = (async function () {
+      const key = await getLatestApprovedMonth();
+      if (!key) { showEmptyState('No approved report available yet.'); return; }
+      window.__csApprovedMonth = key;
+
+      const monthNames = csMonths12;
+      const lastDay = new Date(key.year, key.month, 0).getDate();
+      const subEl = document.getElementById('x-sales-page-sub');
+      if (subEl) subEl.textContent = `${monthNames[key.month-1]} 1 – ${monthNames[key.month-1]} ${lastDay}, ${key.year}`;
+      const heroEl = document.getElementById('x-overview-hero-date');
+      if (heroEl) heroEl.textContent = `${monthNames[key.month-1]} ${key.year}`;
+
+      if (typeof window.reportInsightsFetchRow === 'function') {
+        try {
+          const row = await window.reportInsightsFetchRow(BRAND, { year: String(key.year), month: String(key.month) });
+          setDisplay('x-exec-summary-headline', row && row.exec_summary_title);
+          setDisplay('x-exec-summary-left', row && row.exec_summary_left);
+          setDisplay('x-exec-summary-right', row && row.exec_summary_right);
+          setInsightBar('x-tp-insight-bar', 'x-tp-insight-text', row && row.amazon_key_insight);
+        } catch (e) { console.warn('[SalesExternal] exec summary fetch failed:', e.message); }
+      }
+
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_ORDERS || !cfg.SHEET_ADVERTISING || !cfg.SHEET_AD_ORDERS) {
+        console.warn('[SalesExternal] Missing SHEET_CONFIG keys for KPI data.');
+        return;
+      }
+      let prevMonth = key.month - 1, prevYear = key.year;
+      if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+
+      try {
+        const [syncCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        ]);
+        const syncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
+        const curr = csAggregateMonth(syncRows, key.year, key.month);
+        const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
+        if (!curr) { showEmptyState(`Approved for ${monthNames[key.month-1]} ${key.year}, but no order data found for that month — check the sync window covers it.`); return; }
+
+        let adUnitsKpi = 0, prevAdUnitsKpi = 0;
+        const adRows = csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [];
+        const adRow = adRows.find(r => parseInt(r.year,10)===key.year && parseInt(r.month,10)===key.month);
+        if (adRow) adUnitsKpi = parseInt(adRow.ad_units,10) || 0;
+        const prevAdRow = adRows.find(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth);
+        if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units,10) || 0;
+
+        csRenderKPIs('x-', curr, prev, adUnitsKpi, prevAdUnitsKpi);
+        const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===key.year && parseInt(r.month,10)===key.month) : [];
+        const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
+        await csBuildTopProducts('x-tp-tbody', 'x-amazon-products-source', syncRows, key.year, key.month, adOrderRows, prevYear, prevMonth, syncRows, prevAdOrderRows);
+        csBuildRevenueChart('x-chart-amazon', key.year).catch(e => console.warn('[SalesExternal] revenue chart failed:', e.message));
+      } catch (err) {
+        console.error('[SalesExternal] error:', err);
+        showEmptyState('Something went wrong loading the approved report.');
+      }
+    })();
+    return window._csExternalPromise;
+  };
+})();
 </script>
 </body>
 </html>
