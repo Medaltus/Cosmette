@@ -5533,8 +5533,14 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
 
+        // Master SKU List is shared across every Medaltus brand — must
+        // restrict to Cosmette's own SKUs (COS prefix) before deriving
+        // categories, or every other brand's categories leak in as tabs.
         const byCategory = {};
-        Object.entries(names.categoryBySku).forEach(([sku,cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
+        Object.entries(names.categoryBySku).forEach(([sku,cat]) => {
+          if (!sku.startsWith('COS')) return;
+          (byCategory[cat] = byCategory[cat] || []).push(sku);
+        });
         const categories = Object.keys(byCategory).sort();
         if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found.</div></div>'; return; }
 
@@ -6334,8 +6340,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!tabsEl || !panelsEl) return;
       try {
         const names = await csFetchProductNames();
+        // Master SKU List is shared across every Medaltus brand — must
+        // restrict to Cosmette's own SKUs (COS prefix) before deriving
+        // categories, or every other brand's categories leak in as tabs.
         const byCategory = {};
-        Object.entries(names.categoryBySku).forEach(([sku,cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
+        Object.entries(names.categoryBySku).forEach(([sku,cat]) => {
+          if (!sku.startsWith('COS')) return;
+          (byCategory[cat] = byCategory[cat] || []).push(sku);
+        });
         const categories = Object.keys(byCategory).sort();
         if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found.</div></div>'; return; }
 
