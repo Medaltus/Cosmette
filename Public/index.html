@@ -1931,69 +1931,20 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   </div>
 
   <!-- ══ ORGANIC (INTERNAL) ══
-       Adapted from Skinuva's real Organic page, flattened: Skinuva splits
-       Rank Tracker per product category (hardcoded ASIN lists per
-       category) — Cosmette's categories aren't finalized yet, so this
-       shows ALL tracked keywords in one flat table instead of category
-       tabs. Insights section needs SHEET_INSIGHTS (run-analysis.js
-       output) — stubbed. -->
+       Adapted from Skinuva's real Organic page — real two-level structure
+       now: category tabs (Cleansers/Serums/Moisturizer/Eyes/Masks, from
+       Master SKU List, built dynamically instead of Skinuva's hardcoded
+       7) → each with its own Insights / Rank Tracker sub-tabs, Rank
+       Tracker scoped to just that category's own ASINs — not one flat
+       brand-wide table. Insight cards show the same shared organic_json
+       content in every category (matches Skinuva's own "one shared
+       analysis, same content in every tab" convention). -->
   <div class="page" id="page-organic">
     <div class="page-hd">
       <div><div class="page-title">Organic</div><div class="page-sub">Keyword rank tracking · Fastest path to page 1</div></div>
     </div>
-
-    <!-- Summary/Win/Action/Opportunity cards need organic_json from
-         SHEET_INSIGHTS (run-analysis.js output). Tab exists for Cosmette
-         now but has zero rows yet — shows a real empty state, not a
-         hardcoded stub, so this fills in the moment analysis runs. -->
-    <div class="insight-grid" id="org-insight-cards">
-      <div class="ppc-opp-card summary-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge med">SUMMARY</div><div class="ppc-opp-title">This Week</div></div><div class="ppc-opp-body" id="org-insight-summary"><div style="color:var(--muted);font-size:12px;">No analysis run yet.</div></div></div>
-      <div class="ppc-opp-card win-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge win">✓ WIN</div></div><div class="ppc-opp-body" id="org-insight-win"><div style="color:var(--muted);font-size:12px;">No analysis run yet.</div></div></div>
-      <div class="ppc-opp-card action-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge urgent">⚡ ACTION</div></div><div class="ppc-opp-body" id="org-insight-action"><div style="color:var(--muted);font-size:12px;">No AI-generated action items yet — run analysis, or add manually.</div></div></div>
-      <div class="ppc-opp-card opportunity-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge high">💡 OPPORTUNITY</div></div><div class="ppc-opp-body" id="org-insight-opportunity"><div style="color:var(--muted);font-size:12px;">No AI-generated opportunities yet — run analysis, or add manually.</div></div></div>
-    </div>
-
-    <!-- Real, buildable now — purely derived from Keyword Tracker data
-         already fetched for Rank Tracker below (rank 49-100 band, sorted
-         by volume). No SHEET_INSIGHTS dependency despite Skinuva placing
-         it visually next to the Insights cards above. -->
-    <div class="org-section-title" style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">Fastest Path to Page 1</div>
-    <div class="p1-list" id="org-p1-list"><div style="color:var(--muted);font-size:12px;padding:14px 18px;">Loading…</div></div>
-
-    <div class="org-sqp-card">
-      <div class="org-sqp-alert" id="org-rt-banner" style="margin-bottom:14px;">
-        <span>📈</span>
-        <span id="org-rt-banner-text">Loading…</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-        <div class="org-sqp-title" style="margin-bottom:0;">Rank Changes <span class="org-sqp-badge" id="org-rt-daterange">Loading…</span></div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <label style="font-size:11px;color:var(--muted);">Compare to:</label>
-          <select id="org-rt-window" onchange="window.renderOrganicRankTracker()" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:var(--font);">
-            <option value="7">1 week ago</option>
-            <option value="28" selected>~4 weeks ago</option>
-            <option value="84">~12 weeks ago</option>
-            <option value="9999">Earliest available</option>
-          </select>
-        </div>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="data-table">
-          <thead><tr>
-            <th>Product</th><th>Keyword</th><th>Vol/mo</th>
-            <th id="org-rt-col-older">Earlier</th><th id="org-rt-col-newer">Latest</th><th>Change</th>
-            <th>Where in Listing</th><th>PPC (Spend · Sales · ACoS)</th><th>Recommended Action</th>
-          </tr></thead>
-          <tbody id="org-rt-tbody"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
-        </table>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
-        Rows are sorted with anything needing immediate attention first (🔴), then best-performing, down to lowest-performing — not alphabetical or by volume.<br>
-        <strong>Where in Listing</strong> and <strong>PPC</strong> are always live — recomputed from the listing-copy and ad-search-terms sheets on every page load. PPC is exact-match only (a keyword tracked as an exact phrase won't catch spend under a slightly different variant) — a wrong fuzzy match that looks confident is worse than an honest "No spend."<br>
-        <strong>Recommended Action</strong> shows the ✨ AI-written recommendation (factors in rank change, PPC performance, and listing placement together) whenever one exists for that keyword — generated by Run Analysis, not on every page load, so it's only as fresh as the last time someone clicked it. Keywords Run Analysis hasn't covered yet fall back to a simpler rank-only rule, shown without the ✨.<br>
-        <strong>Where in Listing</strong> reflects the live listing copy as of its last sync only — it can't show when a keyword was added, since the listings sheet doesn't keep dated history.
-      </div>
-    </div>
+    <div id="org-category-tabs" class="channel-tabs" style="flex-wrap:wrap;"></div>
+    <div id="org-category-panels"><div class="placeholder-block"><div class="ph-icon">🌿</div><div class="ph-title">Loading…</div></div></div>
   </div>
 
 </div><!-- /.main -->
@@ -2070,7 +2021,7 @@ function showPage(id, btn) {
     if (typeof window.ppcLoadSearchTermPanels === 'function') window.ppcLoadSearchTermPanels();
     if (typeof window.ppcLoadInsightsCards === 'function') window.ppcLoadInsightsCards();
   }
-  if (id === 'organic' && typeof window.initOrganicRankTracker === 'function') window.initOrganicRankTracker();
+  if (id === 'organic' && typeof window.initOrganicPage === 'function') window.initOrganicPage();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2080,6 +2031,18 @@ function showPage(id, btn) {
 // channel later: remove .ch-tab-hidden from its button and build out
 // the corresponding channel content block — no page rebuild needed.
 // ═══════════════════════════════════════════════════════════════════
+// Generic sub-tab switcher — scoped to parentId so it never affects
+// nested sub-tabs belonging to a different parent. Matches Skinuva's
+// real showSubTab() exactly.
+function showSubTab(parentId, tabId, btn) {
+  const parent = document.getElementById(parentId);
+  if (!parent) return;
+  parent.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+  parent.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
 function showChannel(page, channelId, btn) {
   const scope = document.getElementById('page-' + page);
   if (!scope) return;
@@ -5198,16 +5161,23 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 // ══════════════════════════════════════════════════════════════════════════
-// ORGANIC (INTERNAL) — flat Rank Tracker (no category split)
-// Adapted from Skinuva's real Rank Tracker, dropped the per-category ASIN
-// map — shows every tracked keyword across the whole brand in one table,
-// using the shared ASIN↔SKU↔name crosswalk instead of a hardcoded list.
+// ORGANIC (INTERNAL) — real two-level structure matching Skinuva exactly:
+// dynamic category tabs (Cleansers/Serums/Moisturizer/Eyes/Masks, from
+// Master SKU List, not Skinuva's hardcoded 7) → each with its own
+// Insights / Rank Tracker sub-tabs. Rank Tracker and Fastest Path to
+// Page 1 are both scoped to just that category's own ASINs, not one
+// flat brand-wide table. Insight cards show the same shared organic_json
+// content duplicated into every category (matches Skinuva's own "one
+// shared analysis, same content in every tab" convention).
 // ══════════════════════════════════════════════════════════════════════════
 (function () {
   'use strict';
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function slugify(s) {
+    return String(s || 'uncategorized').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'uncategorized';
   }
   function parseRank(v) {
     if (v === '' || v == null) return { ranked: false, numeric: null };
@@ -5251,7 +5221,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (spend >= 10) return { label: `🔴 $${spend.toFixed(2)} · 0 ord`, tier: 'urgent' };
     return { label: `$${spend.toFixed(2)} · 0 ord`, tier: 'warn' };
   }
-
   function rankPillClass(rank) {
     if (!rank || !rank.ranked) return 'rank-none';
     if (rank.numeric <= 20) return 'rank-top';
@@ -5274,22 +5243,68 @@ document.addEventListener('DOMContentLoaded', () => {
     return { text: '→ Holding steady', cls: '' };
   }
 
-  window.renderOrganicRankTracker = function () {
-    const cache = window._csOrgDataCache;
-    if (!cache) return;
-    const tbody = document.getElementById('org-rt-tbody');
-    const dateRangeEl = document.getElementById('org-rt-daterange');
-    const colOlderEl = document.getElementById('org-rt-col-older');
-    const colNewerEl = document.getElementById('org-rt-col-newer');
-    const bannerText = document.getElementById('org-rt-banner-text');
-    const banner = document.getElementById('org-rt-banner');
-    const windowSelect = document.getElementById('org-rt-window');
+  const P1_RANK_CUTOFF = 48, P1_CLOSE_MAX = 100;
+
+  function renderInsightCardsForCategory(catSlug, organic) {
+    const setCard = (suffix, val) => {
+      const el = document.getElementById(`org-${catSlug}-insight-${suffix}`);
+      if (el && val) el.innerHTML = escapeHtml(val);
+    };
+    if (!organic) return;
+    setCard('summary', organic.summary);
+    setCard('win', organic.wins && organic.wins[0]);
+    if (organic.actions && organic.actions[0]) setCard('action', organic.actions[0]);
+    if (organic.keywords_to_watch && organic.keywords_to_watch[0]) setCard('opportunity', organic.keywords_to_watch[0]);
+  }
+
+  function renderFastestPathForCategory(catSlug, kwRows, asinSet, nameByAsin) {
+    const container = document.getElementById(`org-${catSlug}-p1-list`);
+    if (!container) return;
+    const catRows = kwRows.filter(r => asinSet.has((r.asin||'').toUpperCase()));
+    if (!catRows.length) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:14px 18px;">No keyword tracker data for this category yet.</div>'; return; }
+    const latestByKey = new Map();
+    catRows.forEach(r => {
+      const key = r.asin + '||' + r.keyword;
+      const existing = latestByKey.get(key);
+      if (!existing || r.date > existing.date) latestByKey.set(key, r);
+    });
+    const candidates = [];
+    latestByKey.forEach(r => {
+      const rank = parseRank(r.organic_rank);
+      if (!rank || !rank.ranked) return;
+      if (rank.numeric <= P1_RANK_CUTOFF || rank.numeric > P1_CLOSE_MAX) return;
+      candidates.push({ keyword: r.keyword, rank: rank.numeric, volume: parseInt(r.search_volume,10)||0, productLabel: nameByAsin[(r.asin||'').toUpperCase()] || r.asin });
+    });
+    if (!candidates.length) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:14px 18px;">No keywords currently ranked 49-100 for this category — nothing close enough to page 1 to call a "fastest path" candidate right now.</div>'; return; }
+    candidates.sort((a,b) => b.volume - a.volume);
+    const top5 = candidates.slice(0,5);
+    const LABELS = ['Fastest Win','High Conviction','Quick Win','Push Target','Push Target'];
+    const LABEL_CLASS = ['','warn','','',''];
+    container.innerHTML = top5.map((c,i) => `<div class="p1-row">
+        <div class="p1-rank${i===0?' r1':''}">${i+1}</div>
+        <div class="p1-main"><div class="p1-kw">${escapeHtml(c.keyword)}</div><div class="p1-meta">${c.volume.toLocaleString()} vol/mo · Rank #${c.rank} · ${escapeHtml(c.productLabel)}</div></div>
+        <div class="p1-lbl${LABEL_CLASS[i]?' '+LABEL_CLASS[i]:''}">${LABELS[i]}</div>
+      </div>`).join('');
+  }
+
+  window.renderRankTrackerForCategory = function (catSlug) {
+    const shared = window._csOrgShared;
+    if (!shared) return;
+    const asinSet = shared.asinSetBySlug[catSlug];
+    if (!asinSet) return;
+    const tbody = document.getElementById(`org-${catSlug}-rt-tbody`);
+    const dateRangeEl = document.getElementById(`org-${catSlug}-rt-daterange`);
+    const colOlderEl = document.getElementById(`org-${catSlug}-rt-col-older`);
+    const colNewerEl = document.getElementById(`org-${catSlug}-rt-col-newer`);
+    const bannerText = document.getElementById(`org-${catSlug}-rt-banner-text`);
+    const banner = document.getElementById(`org-${catSlug}-rt-banner`);
+    const windowSelect = document.getElementById(`org-${catSlug}-rt-window`);
     const windowDays = windowSelect ? parseInt(windowSelect.value,10) : 28;
 
-    const rows = cache.kwRows;
+    const rows = shared.kwRows.filter(r => asinSet.has((r.asin||'').toUpperCase()));
     if (!rows.length) {
-      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);">No keyword tracker data found.</td></tr>';
-      if (bannerText) bannerText.textContent = 'No keyword tracker data found yet.';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);">No keyword tracker data for this category yet.</td></tr>';
+      if (bannerText) bannerText.textContent = 'No keyword tracker data for this category yet.';
       return;
     }
 
@@ -5308,7 +5323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (colOlderEl) colOlderEl.textContent = targetOlderDate;
     if (colNewerEl) colNewerEl.textContent = newestDate;
 
-    const ppcByTerm = aggregatePpcByTerm(cache.ppcRows);
+    const ppcByTerm = aggregatePpcByTerm(shared.ppcRows);
     const tableRows = [];
     let improved = 0, declined = 0, newlyRanking = 0, droppedOut = 0, notRanking = 0, steady = 0, urgentCount = 0;
 
@@ -5336,12 +5351,12 @@ document.addEventListener('DOMContentLoaded', () => {
         else steady++;
       }
 
-      const sku = cache.skuByAsin[asin] || '';
-      const whereInListing = computeWhereInListing(cache.listingRows, keyword, sku);
+      const sku = shared.skuByAsin[asin.toUpperCase()] || '';
+      const whereInListing = computeWhereInListing(shared.listingRows, keyword, sku);
       const ppcEntry = ppcByTerm.get(keyword.toLowerCase());
       const ppc = classifyPpc(ppcEntry);
       const action = suggestAction(olderRank, newerRank);
-      const aiRecommendation = cache.aiRecommendations ? cache.aiRecommendations.get(keyword.toLowerCase()) : null;
+      const aiRecommendation = shared.aiRecommendations ? shared.aiRecommendations.get(keyword.toLowerCase()) : null;
       const urgent = ppc.tier === 'urgent' || (action.cls === 'rank-low' && action.text.indexOf('Dropped') !== -1);
       if (urgent) urgentCount++;
 
@@ -5358,7 +5373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);">No data.</td></tr>';
       } else {
         tbody.innerHTML = tableRows.map(r => {
-          const product = cache.nameByAsin[r.asin] || r.sku || r.asin;
+          const product = shared.nameByAsin[r.asin.toUpperCase()] || r.sku || r.asin;
           let changeCell = '<span style="color:var(--muted);">—</span>';
           if (r.olderObs && r.olderRank && r.newerRank) {
             if (r.olderRank.ranked && r.newerRank.ranked) {
@@ -5390,8 +5405,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const total = tableRows.length;
       const skuCount = new Set(tableRows.map(r=>r.sku)).size;
       const urgentPrefix = urgentCount > 0 ? `<strong style="color:var(--danger);">🔴 ${urgentCount} need attention now</strong> — ` : '';
-      const aiFreshness = cache.aiRecommendations
-        ? ` <span style="color:var(--muted);">· ✨ AI recommendations as of ${escapeHtml(cache.aiRecommendations.__asOfDate || '—')} (Run Analysis)</span>`
+      const aiFreshness = shared.aiRecommendations
+        ? ` <span style="color:var(--muted);">· ✨ AI recommendations as of ${escapeHtml(shared.aiRecommendations.__asOfDate || '—')} (Run Analysis)</span>`
         : ` <span style="color:var(--muted);">· No AI recommendations yet — click Run Analysis on the Insights Log page</span>`;
       bannerText.innerHTML = urgentPrefix + `<strong>${total} tracked keywords</strong> across ${skuCount} SKU${skuCount===1?'':'s'}, comparing ${targetOlderDate} to ${newestDate}: ` +
         `<strong style="color:#1db88a;">${improved} improved</strong>, ` +
@@ -5403,60 +5418,89 @@ document.addEventListener('DOMContentLoaded', () => {
     if (banner) banner.style.borderColor = urgentCount > 0 ? 'rgba(219,55,45,.4)' : (declined+droppedOut > improved+newlyRanking ? 'rgba(219,55,45,.3)' : 'rgba(36,233,163,.3)');
   };
 
-  const P1_RANK_CUTOFF = 48, P1_CLOSE_MAX = 100;
-  function renderFastestPathToPage1() {
-    const cache = window._csOrgDataCache;
-    const container = document.getElementById('org-p1-list');
-    if (!cache || !container) return;
-    if (!cache.kwRows.length) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:14px 18px;">No keyword tracker data yet.</div>'; return; }
-    const latestByKey = new Map();
-    cache.kwRows.forEach(r => {
-      const key = r.asin + '||' + r.keyword;
-      const existing = latestByKey.get(key);
-      if (!existing || r.date > existing.date) latestByKey.set(key, r);
-    });
-    const candidates = [];
-    latestByKey.forEach(r => {
-      const rank = parseRank(r.organic_rank);
-      if (!rank || !rank.ranked) return;
-      if (rank.numeric <= P1_RANK_CUTOFF || rank.numeric > P1_CLOSE_MAX) return;
-      candidates.push({ keyword: r.keyword, rank: rank.numeric, volume: parseInt(r.search_volume,10)||0, productLabel: cache.nameByAsin[r.asin] || cache.skuByAsin[r.asin] || r.asin });
-    });
-    if (!candidates.length) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:14px 18px;">No keywords currently ranked 49-100 — nothing close enough to page 1 to call a "fastest path" candidate right now.</div>'; return; }
-    candidates.sort((a,b) => b.volume - a.volume);
-    const top5 = candidates.slice(0,5);
-    const LABELS = ['Fastest Win', 'High Conviction', 'Quick Win', 'Push Target', 'Push Target'];
-    const LABEL_CLASS = ['', 'warn', '', '', ''];
-    container.innerHTML = top5.map((c,i) => `<div class="p1-row">
-        <div class="p1-rank${i===0?' r1':''}">${i+1}</div>
-        <div class="p1-main"><div class="p1-kw">${escapeHtml(c.keyword)}</div><div class="p1-meta">${c.volume.toLocaleString()} vol/mo · Rank #${c.rank} · ${escapeHtml(c.productLabel)}</div></div>
-        <div class="p1-lbl${LABEL_CLASS[i]?' '+LABEL_CLASS[i]:''}">${LABELS[i]}</div>
-      </div>`).join('');
-  }
-  async function loadOrganicInsightCards() {
-    const cfg2 = window.SHEET_CFG.SHEET_INSIGHTS;
-    if (!cfg2) return;
-    try {
-      const csv = await fetch(csSheetCsvUrl(cfg2.fileId, cfg2.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
-      if (!rows.length) return;
-      const sorted = rows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
-      const organic = csSafeJson(sorted[0].organic_json);
-      if (!organic) return;
-      const setCard = (id, val) => { const el = document.getElementById(id); if (el && val) el.innerHTML = escapeHtml(val); };
-      setCard('org-insight-summary', organic.summary);
-      setCard('org-insight-win', organic.wins && organic.wins[0]);
-      if (organic.actions && organic.actions[0]) setCard('org-insight-action', organic.actions[0]);
-      if (organic.keywords_to_watch && organic.keywords_to_watch[0]) setCard('org-insight-opportunity', organic.keywords_to_watch[0]);
-    } catch (e) { console.warn('[CosmetteOrganic] insight cards failed:', e.message); }
+  window.initRankTrackerForCategory = function (catSlug) {
+    const cacheKey = '_csOrgRtPromise_' + catSlug;
+    if (window[cacheKey]) return window[cacheKey];
+    window[cacheKey] = Promise.resolve().then(() => window.renderRankTrackerForCategory(catSlug));
+    return window[cacheKey];
+  };
+
+  window.__csSelectOrganicCategory = function (catSlug, btn) {
+    document.querySelectorAll('#org-category-tabs .ch-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('#org-category-panels .channel-page').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`org-panel-${catSlug}`);
+    if (panel) panel.classList.add('active');
+  };
+
+  function insightCardHtml(catSlug) {
+    return `<div class="insight-grid">
+      <div class="ppc-opp-card summary-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge med">SUMMARY</div><div class="ppc-opp-title">This Week</div></div><div class="ppc-opp-body" id="org-${catSlug}-insight-summary"><div style="color:var(--muted);font-size:12px;">No analysis run yet.</div></div></div>
+      <div class="ppc-opp-card win-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge win">✓ WIN</div></div><div class="ppc-opp-body" id="org-${catSlug}-insight-win"><div style="color:var(--muted);font-size:12px;">No analysis run yet.</div></div></div>
+      <div class="ppc-opp-card action-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge urgent">⚡ ACTION</div></div><div class="ppc-opp-body" id="org-${catSlug}-insight-action"><div style="color:var(--muted);font-size:12px;">No AI-generated action items yet — run analysis, or add manually.</div></div></div>
+      <div class="ppc-opp-card opportunity-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge high">💡 OPPORTUNITY</div></div><div class="ppc-opp-body" id="org-${catSlug}-insight-opportunity"><div style="color:var(--muted);font-size:12px;">No AI-generated opportunities yet — run analysis, or add manually.</div></div></div>
+    </div>`;
   }
 
-  window.initOrganicRankTracker = function () {
-    if (window._csOrgPromise) return window._csOrgPromise;
-    window._csOrgPromise = (async function () {
+  function categoryPanelHtml(cat, catSlug, isActive) {
+    return `<div class="channel-page${isActive?' active':''}" id="org-panel-${catSlug}">
+      <div class="sub-tabs">
+        <button class="sub-tab active" onclick="showSubTab('org-panel-${catSlug}','org-${catSlug}-insights',this)">Insights</button>
+        <button class="sub-tab" onclick="showSubTab('org-panel-${catSlug}','org-${catSlug}-ranktracker',this); window.initRankTrackerForCategory('${catSlug}');">Rank Tracker</button>
+      </div>
+      <div class="sub-page active" id="org-${catSlug}-insights">
+        ${insightCardHtml(catSlug)}
+        <div class="org-section-title" style="font-size:13px;font-weight:600;color:var(--navy);margin:16px 0 10px;">Fastest Path to Page 1 — ${escapeHtml(cat)}</div>
+        <div class="p1-list" id="org-${catSlug}-p1-list"><div style="color:var(--muted);font-size:12px;padding:14px 18px;">Loading…</div></div>
+      </div>
+      <div class="sub-page" id="org-${catSlug}-ranktracker">
+        <div class="org-sqp-alert" id="org-${catSlug}-rt-banner">
+          <span>📈</span>
+          <span id="org-${catSlug}-rt-banner-text">Loading…</span>
+        </div>
+        <div class="org-sqp-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+            <div class="org-sqp-title" style="margin-bottom:0;">Rank Changes <span class="org-sqp-badge" id="org-${catSlug}-rt-daterange">Loading…</span></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <label style="font-size:11px;color:var(--muted);">Compare to:</label>
+              <select id="org-${catSlug}-rt-window" onchange="window.renderRankTrackerForCategory('${catSlug}')" style="font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:var(--font);">
+                <option value="7">1 week ago</option>
+                <option value="28" selected>~4 weeks ago</option>
+                <option value="84">~12 weeks ago</option>
+                <option value="9999">Earliest available</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr>
+                <th>Product</th><th>Keyword</th><th>Vol/mo</th>
+                <th id="org-${catSlug}-rt-col-older">Earlier</th><th id="org-${catSlug}-rt-col-newer">Latest</th><th>Change</th>
+                <th>Where in Listing</th><th>PPC (Spend · Sales · ACoS)</th><th>Recommended Action</th>
+              </tr></thead>
+              <tbody id="org-${catSlug}-rt-tbody"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+            </table>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6;">
+            Rows are sorted with anything needing immediate attention first (🔴), then best-performing, down to lowest-performing — not alphabetical or by volume.<br>
+            <strong>Where in Listing</strong> and <strong>PPC</strong> are always live — recomputed from the listing-copy and ad-search-terms sheets on every page load. PPC is exact-match only.<br>
+            <strong>Recommended Action</strong> shows the ✨ AI-written recommendation whenever one exists for that keyword — generated by Run Analysis, not on every page load. Keywords Run Analysis hasn't covered yet fall back to a simpler rank-only rule, shown without the ✨.
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.initOrganicPage = function () {
+    if (window._csOrgPagePromise) return window._csOrgPagePromise;
+    window._csOrgPagePromise = (async function () {
+      const tabsEl = document.getElementById('org-category-tabs');
+      const panelsEl = document.getElementById('org-category-panels');
+      if (!tabsEl || !panelsEl) return;
       const cfg = window.SHEET_CFG;
-      if (!cfg.SHEET_KEYWORD_TRACKER) { console.warn('[CosmetteOrganic] Missing SHEET_KEYWORD_TRACKER.'); return; }
+      if (!cfg.SHEET_KEYWORD_TRACKER) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">Missing SHEET_KEYWORD_TRACKER.</div></div>'; return; }
       try {
+        const names = await csFetchProductNames();
         const kwPromise = fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER.fileId, cfg.SHEET_KEYWORD_TRACKER.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
         const invPromise = cfg.SHEET_PRODUCT_INVENTORY
           ? fetch(csSheetCsvUrl(cfg.SHEET_PRODUCT_INVENTORY.fileId, cfg.SHEET_PRODUCT_INVENTORY.gid)).then(r => r.ok ? r.text() : '').catch(() => '')
@@ -5467,46 +5511,67 @@ document.addEventListener('DOMContentLoaded', () => {
         const insightsPromise = cfg.SHEET_INSIGHTS
           ? fetch(csSheetCsvUrl(cfg.SHEET_INSIGHTS.fileId, cfg.SHEET_INSIGHTS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '')
           : Promise.resolve('');
-        const namesPromise = csFetchProductNames();
-        const [kwCsv, listingCsv, ppcCsv, insightsCsv, names] = await Promise.all([kwPromise, invPromise, adPromise, insightsPromise, namesPromise]);
+        const [kwCsv, listingCsv, ppcCsv, insightsCsv] = await Promise.all([kwPromise, invPromise, adPromise, insightsPromise]);
+
         const kwRows = csIsCsv(kwCsv) ? csParseCsv(kwCsv).filter(r => r.date && r.asin && r.keyword) : [];
-        console.log('[CosmetteOrganic] keyword tracker rows loaded:', kwRows.length, '— columns:', kwRows.length ? Object.keys(kwRows[0]).join(' | ') : '(none)');
+        console.log('[CosmetteOrganic] keyword tracker rows loaded:', kwRows.length);
         const allListingRows = csIsCsv(listingCsv) ? csParseCsv(listingCsv) : [];
         const latestListingDate = allListingRows.reduce((max,r) => ((r.date||'') > max ? r.date : max), '');
+        const listingRows = latestListingDate ? allListingRows.filter(r => r.date === latestListingDate) : allListingRows;
+        const ppcRows = csIsCsv(ppcCsv) ? csParseCsv(ppcCsv) : [];
 
-        // AI recommendations — organic_json.rank_changes[].recommended_action,
-        // from the most recent SHEET_INSIGHTS row (Run Analysis output).
-        // Matches Skinuva's buildAiRecommendationMap() exactly.
-        let aiRecommendations = null;
+        let aiRecommendations = null, sharedOrganic = null;
         const insightRows = csIsCsv(insightsCsv) ? csParseCsv(insightsCsv) : [];
         if (insightRows.length) {
           const sorted = insightRows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
           const latest = sorted[0];
-          const organic = csSafeJson(latest.organic_json);
-          if (organic && organic.rank_changes && organic.rank_changes.length) {
+          sharedOrganic = csSafeJson(latest.organic_json);
+          if (sharedOrganic && sharedOrganic.rank_changes && sharedOrganic.rank_changes.length) {
             aiRecommendations = new Map();
-            organic.rank_changes.forEach(r => { if (r.keyword && r.recommended_action) aiRecommendations.set(r.keyword.toLowerCase(), r.recommended_action); });
+            sharedOrganic.rank_changes.forEach(r => { if (r.keyword && r.recommended_action) aiRecommendations.set(r.keyword.toLowerCase(), r.recommended_action); });
             aiRecommendations.__asOfDate = latest.date || '';
           }
         }
 
-        window._csOrgDataCache = {
-          kwRows,
-          listingRows: latestListingDate ? allListingRows.filter(r => r.date === latestListingDate) : allListingRows,
-          ppcRows: csIsCsv(ppcCsv) ? csParseCsv(ppcCsv) : [],
+        const byCategory = {};
+        Object.entries(names.categoryBySku).forEach(([sku,cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
+        const categories = Object.keys(byCategory).sort();
+        if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found.</div></div>'; return; }
+
+        const asinSetBySlug = {};
+        categories.forEach(cat => {
+          const skus = byCategory[cat];
+          const asinSet = new Set();
+          Object.entries(names.skuByAsin).forEach(([asin,sku]) => { if (skus.includes(sku)) asinSet.add(asin.toUpperCase()); });
+          asinSetBySlug[slugify(cat)] = asinSet;
+        });
+
+        window._csOrgShared = {
+          kwRows, listingRows, ppcRows,
           nameByAsin: names.nameByAsin, skuByAsin: names.skuByAsin,
-          aiRecommendations,
+          aiRecommendations, asinSetBySlug,
         };
-        window.renderOrganicRankTracker();
-        renderFastestPathToPage1();
-        loadOrganicInsightCards();
+
+        tabsEl.innerHTML = categories.map((cat,i) =>
+          `<button class="ch-tab${i===0?' active':''}" onclick="window.__csSelectOrganicCategory('${slugify(cat)}', this)">${escapeHtml(cat)}</button>`
+        ).join('');
+        panelsEl.innerHTML = categories.map((cat,i) => categoryPanelHtml(cat, slugify(cat), i===0)).join('');
+
+        // Insights sub-tab (cards + Fastest Path) populates immediately for
+        // every category — cheap, no extra fetch, same data already in hand.
+        // Rank Tracker is lazy — only rendered when that sub-tab is clicked
+        // (matches Skinuva's exact behavior).
+        categories.forEach(cat => {
+          const catSlug = slugify(cat);
+          renderInsightCardsForCategory(catSlug, sharedOrganic);
+          renderFastestPathForCategory(catSlug, kwRows, asinSetBySlug[catSlug], names.nameByAsin);
+        });
       } catch (err) {
         console.warn('[CosmetteOrganic] failed:', err.message);
-        const tbody = document.getElementById('org-rt-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--danger);">Failed to load.</td></tr>';
+        panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">Error loading — see console.</div></div>';
       }
     })();
-    return window._csOrgPromise;
+    return window._csOrgPagePromise;
   };
 })();
 // ══════════════════════════════════════════════════════════════════════════
