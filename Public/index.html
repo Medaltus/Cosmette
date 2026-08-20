@@ -822,19 +822,161 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   </div>
 
   <!-- ══ MARKETING (INTERNAL) ══ -->
+  <!-- ══ MARKETING (INTERNAL) ══
+       Structured to match Skinuva's real internal Marketing page: Brand
+       Stewardship + Opportunities. Fulfillment & Customer Service channel
+       intentionally omitted — Cosmette has no data behind it yet
+       (SHEET_CUSTOMER_SERVICE / SHEET_FULFILLMENT_STATES /
+       SHEET_FULFILLMENT_DAILY_SHIPMENTS all blank in SHEET_CONFIG). Add it
+       back if/when Cosmette moves to Medaltus 3PL. -->
   <div class="page" id="page-marketing">
     <div class="page-hd">
-      <div><div class="page-title">Marketing</div><div class="page-sub">Internal · Last synced —</div></div>
+      <div><div class="page-title">Marketing</div><div class="page-sub">Brand stewardship · Growth opportunities</div></div>
     </div>
     <div class="channel-tabs">
-      <button class="ch-tab active" onclick="showChannel('marketing','m-amazon',this)">Amazon</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing','m-walmart',this)">Walmart</button>
-      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing','m-website',this)">Website</button>
+      <button class="ch-tab active" onclick="showChannel('marketing','m-stewardship',this)">Brand Stewardship</button>
+      <button class="ch-tab" onclick="showChannel('marketing','m-opportunities',this)">Opportunities</button>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📣</div>
-      <div class="ph-title">Marketing Page</div>
-      <div class="ph-sub">Full internal PPC/ad detail — mirrors the standard Medaltus internal Marketing layout.</div>
+
+    <div class="channel-page active" id="m-stewardship">
+      <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Key Performance Metrics</div>
+      <div class="kpi-row">
+        <div class="kpi-card" id="kpi-pct-revenue-invested"><div class="kpi-label">% Revenue Invested</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+        <div class="kpi-card" id="kpi-amazon-fees"><div class="kpi-label">Amazon Fees</div><div class="kpi-value sm">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Pending Finances API sync</div></div>
+        <div class="kpi-card" id="kpi-pct-units-ads"><div class="kpi-label">% Units from Ads</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+        <div class="kpi-card" id="kpi-ad-clicks"><div class="kpi-label">Ad Clicks</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+        <div class="kpi-card" id="kpi-ad-impressions"><div class="kpi-label">Ad Impressions</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
+      </div>
+
+      <div class="two-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch;">
+        <div class="card" style="height:420px;margin-top:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">Investments</div>
+            <div style="display:flex;gap:18px;font-size:13px;color:var(--muted);">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--navy);border-radius:2px;display:inline-block;"></span>Ads</span>
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>Vine</span>
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--border);border-radius:2px;display:inline-block;"></span>Promos</span>
+            </div>
+          </div>
+          <div style="height:254px;flex-shrink:0;position:relative;"><canvas id="chart-invest"></canvas></div>
+          <div style="margin-top:12px;">
+            <div id="ltd-total-investments" style="font-size:20px;font-weight:700;color:var(--navy);">—</div>
+            <div style="font-size:10px;color:var(--muted);">Launch to date · Total Investments</div>
+          </div>
+        </div>
+        <div class="card" style="height:420px;margin-top:0;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div class="card-title" style="margin-bottom:0;">Ad Impressions</div>
+            <div style="display:flex;gap:18px;font-size:13px;color:var(--muted);" id="impressions-legend"></div>
+          </div>
+          <div style="flex:1;min-height:0;position:relative;"><canvas id="chart-impressions"></canvas></div>
+          <div class="insight-bar" style="margin-top:12px;flex-shrink:0;">
+            <strong>Note:</strong>
+            <span class="insight-text" id="adimp-insight-text" data-placeholder="No note added yet — click Edit to add it."></span>
+            <div style="margin-left:auto;"><button class="btn-edit" id="adimp-insight-edit-btn">✏️ Edit</button></div>
+          </div>
+          <div class="insight-editor" id="adimp-insight-editor">
+            <textarea id="adimp-insight-textarea" style="min-height:60px;"></textarea>
+            <div class="editor-footer">
+              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+              <button class="btn-cancel" id="adimp-insight-cancel">Cancel</button>
+              <button class="btn-save-stage" id="adimp-insight-save">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="m-opportunities">
+      <!-- 4 editable opportunity cards — opp1-4 title/subtitle/body,
+           already part of MONTHLY_HEADERS in write-report-insights.js.
+           No separate data sheet needed beyond Report Insights. -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="card" id="opp-card-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0;" id="opp1-title" data-placeholder="Opportunity 1 — click Edit to add a title">Loading…</div>
+            <button class="btn-edit" id="opp1-edit-btn">✏️ Edit</button>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp1-subtitle" data-placeholder=""></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp1-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="insight-editor" id="opp1-editor">
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+            <textarea id="opp1-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
+            <textarea id="opp1-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+            <textarea id="opp1-textarea-body" style="min-height:70px;"></textarea>
+            <div class="editor-footer">
+              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+              <button class="btn-cancel" id="opp1-cancel">Cancel</button>
+              <button class="btn-save-stage" id="opp1-save">Save</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" id="opp-card-2">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0;" id="opp2-title" data-placeholder="Opportunity 2 — click Edit to add a title">Loading…</div>
+            <button class="btn-edit" id="opp2-edit-btn">✏️ Edit</button>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp2-subtitle" data-placeholder=""></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp2-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="insight-editor" id="opp2-editor">
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+            <textarea id="opp2-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
+            <textarea id="opp2-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+            <textarea id="opp2-textarea-body" style="min-height:70px;"></textarea>
+            <div class="editor-footer">
+              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+              <button class="btn-cancel" id="opp2-cancel">Cancel</button>
+              <button class="btn-save-stage" id="opp2-save">Save</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" id="opp-card-3">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0;" id="opp3-title" data-placeholder="Opportunity 3 — click Edit to add a title">Loading…</div>
+            <button class="btn-edit" id="opp3-edit-btn">✏️ Edit</button>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp3-subtitle" data-placeholder=""></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp3-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="insight-editor" id="opp3-editor">
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+            <textarea id="opp3-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
+            <textarea id="opp3-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+            <textarea id="opp3-textarea-body" style="min-height:70px;"></textarea>
+            <div class="editor-footer">
+              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+              <button class="btn-cancel" id="opp3-cancel">Cancel</button>
+              <button class="btn-save-stage" id="opp3-save">Save</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" id="opp-card-4">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="card-title" style="margin-bottom:0;" id="opp4-title" data-placeholder="Opportunity 4 — click Edit to add a title">Loading…</div>
+            <button class="btn-edit" id="opp4-edit-btn">✏️ Edit</button>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp4-subtitle" data-placeholder=""></div>
+          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp4-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="insight-editor" id="opp4-editor">
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+            <textarea id="opp4-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
+            <textarea id="opp4-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
+            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+            <textarea id="opp4-textarea-body" style="min-height:70px;"></textarea>
+            <div class="editor-footer">
+              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+              <button class="btn-cancel" id="opp4-cancel">Cancel</button>
+              <button class="btn-save-stage" id="opp4-save">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -943,6 +1085,7 @@ function showPage(id, btn) {
   // promise on repeat calls), so re-visiting a page is cheap.
   if (id === 'sales' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (id === 'sales-external' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
+  if (id === 'marketing' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1341,6 +1484,26 @@ function csMomSpan(curr, prev) {
   if (p === 0) return '<span class="tp-mom-flat">flat</span>';
   return p > 0 ? `<span class="tp-mom-up">+${p}%</span>` : `<span class="tp-mom-dn">${p}%</span>`;
 }
+// SKU normalization — every product has a separate FBA SKU and
+// seller-fulfilled SKU (base "-SF" suffix, e.g. COS0008 vs COS0008-SF).
+// Both represent the SAME physical product, so units/ad-units/name lookups
+// must all key off the base SKU, or FBA and SF sales silently split into
+// two separate rows and the -SF row shows up with no product name (falls
+// through to the raw SKU string). Per the build prompt's own warning:
+// "Always match by ASIN, never by SKU alone... SKU-only matching silently
+// drops all seller-fulfilled orders" — this is that exact class of bug,
+// just surfacing in the product-name lookup instead of order matching.
+function csBaseSku(s) {
+  return (s || '').trim().toUpperCase().replace(/-SF$/i, '');
+}
+// Broader fallback, same idea as Skinuva's rootSku() — strips ANY trailing
+// suffix beyond letters+digits, in case other suffix variants turn up
+// later (e.g. "-STICKER") that aren't just "-SF".
+function csRootSku(s) {
+  const m = csBaseSku(s).match(/^[A-Z]+\d+/);
+  return m ? m[0] : csBaseSku(s);
+}
+
 async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adOrderRows, prevYear, prevMonth, prevOrderRows, prevAdOrderRows) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
@@ -1351,20 +1514,28 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
 
   function unitsBySku(rows) {
     const m = {};
-    rows.forEach(r => { const sku = (r.sku || '').trim(); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.unit_count,10) || 0); });
+    rows.forEach(r => { const sku = csBaseSku(r.sku); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.unit_count,10) || 0); });
     return m;
   }
   function adUnitsBySku(rows) {
     const m = {};
-    rows.forEach(r => { const sku = (r.sku || '').trim(); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.ad_units,10) || 0); });
+    rows.forEach(r => { const sku = csBaseSku(r.sku); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.ad_units,10) || 0); });
     return m;
   }
   const skuUnits = unitsBySku(rowsThis);
   const skuUnitsPrev = unitsBySku(rowsPrev);
   const skuAdUnits = adUnitsBySku(adOrderRows || []);
   const skuAdUnitsPrev = adUnitsBySku(prevAdOrderRows || []);
+  // Index by both base SKU and root SKU (letters+digits only) — a row
+  // carrying the -SF variant may have a blank product_name while its FBA
+  // counterpart has it, or vice versa; root indexing catches either.
   const skuNameMap = {};
-  rowsThis.concat(rowsPrev).forEach(r => { if (r.sku && r.product_name) skuNameMap[r.sku] = r.product_name; });
+  rowsThis.concat(rowsPrev).forEach(r => {
+    if (!r.sku || !r.product_name) return;
+    const base = csBaseSku(r.sku), root = csRootSku(r.sku);
+    if (base) skuNameMap[base] = r.product_name;
+    if (root && !skuNameMap[root]) skuNameMap[root] = r.product_name;
+  });
 
   const sorted = Object.entries(skuUnits).filter(([,u]) => u > 0).sort((a,b) => b[1]-a[1]);
   let totalAdUnits = 0;
@@ -1374,7 +1545,7 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
     return { totalAdUnits: 0 };
   }
   sorted.forEach(([sku, units], idx) => {
-    const name = skuNameMap[sku] || sku;
+    const name = skuNameMap[sku] || skuNameMap[csRootSku(sku)] || sku;
     const prevUnits = skuUnitsPrev[sku] || 0;
     const adUnits = Math.min(skuAdUnits[sku] || 0, units);
     const adUnitsPrev = Math.min(skuAdUnitsPrev[sku] || 0, prevUnits);
@@ -1849,6 +2020,213 @@ window.initAmazonSalesInternal = function () {
     return window._csExternalPromise;
   };
 })();
+
+// ══════════════════════════════════════════════════════════════════════════
+// MARKETING — Brand Stewardship
+// Adapted from Skinuva's real initStewardshipLive(): reads ONE pre-computed
+// summary sheet (SHEET_STEWARDSHIP_SUMMARY, one row per month — year, month,
+// ads_spend, vine_total, promos_total, impressions, clicks, ad_units, units,
+// revenue) rather than aggregating raw orders/ads sheets client-side.
+//
+// Differences from Skinuva's version, on purpose:
+//   - % Revenue Invested uses Amazon-only revenue (rowCurr.revenue) as the
+//     denominator — Skinuva also pulls in Website/Walmart revenue for this,
+//     but Cosmette doesn't sell there yet, so there's nothing to add in.
+//   - Amazon Fees KPI is left as "—" / pending, same as Skinuva's, since
+//     that depends on a Finances API sync that doesn't exist for either
+//     brand yet. Do not fabricate a number here.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function trailingMonths(year, month, count) {
+    const out = [];
+    let y = year, m = month;
+    for (let i = 0; i < count; i++) {
+      out.unshift({ year: y, month: m });
+      m--; if (m === 0) { m = 12; y--; }
+    }
+    return out;
+  }
+  function setKpiVal(id, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = el.querySelector('.kpi-value');
+    if (v) v.textContent = text;
+  }
+  function setKpiMom(id, pctVal) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const badge = el.querySelector('.kpi-mom');
+    if (!badge) return;
+    if (pctVal == null) { badge.className = 'kpi-mom flat'; badge.textContent = ''; return; }
+    const cls = pctVal === 0 ? 'flat' : pctVal > 0 ? 'up' : 'dn';
+    const arrow = pctVal > 0 ? '▲ ' : pctVal < 0 ? '▼ ' : '';
+    badge.className = 'kpi-mom ' + cls;
+    badge.textContent = `${arrow}${Math.abs(pctVal)}% MOM`;
+  }
+
+  function renderStewardshipCharts(investData, impressData) {
+    const fmtUsd = n => '$' + (n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (window._csInvestChart) window._csInvestChart.destroy();
+    window._csInvestChart = new Chart(document.getElementById('chart-invest'), {
+      type: 'bar',
+      data: {
+        labels: investData.labels,
+        datasets: [
+          { label: 'Ads', data: investData.ads, backgroundColor: '#001f60', stack: 'a' },
+          { label: 'Vine', data: investData.vine, backgroundColor: '#f4dfd0', stack: 'a' },
+          { label: 'Promos', data: investData.promos, backgroundColor: '#ccd3d5', stack: 'a' },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${fmtUsd(ctx.parsed.y)}`,
+              footer: items => `Total: ${fmtUsd(items.reduce((s, i) => s + (i.parsed.y || 0), 0))}`,
+            },
+            footerFont: { weight: 'bold' },
+          },
+        },
+        scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v >= 1000 ? (v/1000)+'K' : v } } },
+      },
+    });
+    const legendEl = document.getElementById('impressions-legend');
+    if (legendEl) {
+      legendEl.innerHTML = `
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--green);border-radius:2px;display:inline-block;"></span>${impressData.currYearLabel}</span>
+        <span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>${impressData.prevYearLabel}</span>`;
+    }
+    if (window._csImpressChart) window._csImpressChart.destroy();
+    window._csImpressChart = new Chart(document.getElementById('chart-impressions'), {
+      type: 'line',
+      data: {
+        labels: impressData.labels,
+        datasets: [
+          { label: impressData.currYearLabel, data: impressData.curr, borderColor: '#24e9a3', backgroundColor: 'rgba(36,233,163,0.1)', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: true, spanGaps: true },
+          { label: impressData.prevYearLabel, data: impressData.prev, borderColor: '#f4dfd0', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 2, tension: 0.3, spanGaps: true },
+        ],
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v===0 ? '0' : (v/1000).toFixed(v%1000===0 ? 0 : 1)+'K' } } } },
+    });
+  }
+
+  window.initStewardshipInternal = function () {
+    if (window._csStewardshipPromise) return window._csStewardshipPromise;
+    window._csStewardshipPromise = (async function () {
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_STEWARDSHIP_SUMMARY) { console.warn('[CosmetteStewardship] Missing SHEET_STEWARDSHIP_SUMMARY in SHEET_CONFIG.'); return; }
+
+      const monthAbbr = csMonths12;
+      const { year, month } = csGetLastFullMonth();
+      let prevMonth = month - 1, prevYear = year;
+      if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+
+      try {
+        const summaryCsv = await fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv) : [];
+        if (!summaryRows.length) { console.warn('[CosmetteStewardship] Summary sheet returned no rows — check the cosmette tab exists and has data.'); return; }
+
+        const findRow = (y, m) => summaryRows.find(r => parseInt(r.year,10) === y && parseInt(r.month,10) === m);
+
+        // Investments chart — 13 trailing months
+        const invMonths = trailingMonths(year, month, 13);
+        const investLabels = [], adsData = [], vineData = [], promosData = [];
+        invMonths.forEach(({ year: y, month: m }) => {
+          investLabels.push(`${monthAbbr[m-1]} '${String(y).slice(2)}`);
+          const row = findRow(y, m);
+          adsData.push(row ? csParseAmt(row.ads_spend) : 0);
+          vineData.push(row ? csParseAmt(row.vine_total) : 0);
+          promosData.push(row ? csParseAmt(row.promos_total) : 0);
+        });
+
+        // Ad Impressions chart — Jan-Dec, this year vs last year
+        const impMonthNums = [1,2,3,4,5,6,7,8,9,10,11,12];
+        const impLabels = impMonthNums.map(m => monthAbbr[m-1]);
+        const impCurr = [], impPrev = [];
+        impMonthNums.forEach(m => {
+          if (m > month) { impCurr.push(null); }
+          else { const row = findRow(year, m); impCurr.push(row ? (parseInt(row.impressions,10) || 0) : null); }
+          const prevRow = findRow(year - 1, m);
+          impPrev.push(prevRow ? (parseInt(prevRow.impressions,10) || 0) : null);
+        });
+
+        renderStewardshipCharts(
+          { labels: investLabels, ads: adsData, vine: vineData, promos: promosData },
+          { labels: impLabels, curr: impCurr, prev: impPrev, currYearLabel: String(year), prevYearLabel: String(year-1) }
+        );
+
+        // KPIs
+        const rowCurr = findRow(year, month);
+        const rowPrev = findRow(prevYear, prevMonth);
+        const clicksCurr = rowCurr ? (parseInt(rowCurr.clicks,10) || 0) : null;
+        const clicksPrev = rowPrev ? (parseInt(rowPrev.clicks,10) || 0) : null;
+        const impressionsCurr = rowCurr ? (parseInt(rowCurr.impressions,10) || 0) : null;
+        const impressionsPrev = rowPrev ? (parseInt(rowPrev.impressions,10) || 0) : null;
+        const adUnitsCurr = rowCurr ? (parseInt(rowCurr.ad_units,10) || 0) : 0;
+        const adUnitsPrev = rowPrev ? (parseInt(rowPrev.ad_units,10) || 0) : 0;
+        const unitsCurr = rowCurr ? (parseInt(rowCurr.units,10) || 0) : 0;
+        const unitsPrev = rowPrev ? (parseInt(rowPrev.units,10) || 0) : 0;
+        const pctUnitsAdsCurr = unitsCurr > 0 ? Math.round((adUnitsCurr/unitsCurr)*100) : null;
+        const pctUnitsAdsPrev = unitsPrev > 0 ? Math.round((adUnitsPrev/unitsPrev)*100) : null;
+
+        const fmt = n => (n ?? 0).toLocaleString();
+        const fmtK = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n ?? 0);
+
+        if (clicksCurr != null) setKpiVal('kpi-ad-clicks', fmt(clicksCurr));
+        setKpiMom('kpi-ad-clicks', csPct(clicksCurr, clicksPrev));
+        if (impressionsCurr != null) setKpiVal('kpi-ad-impressions', fmtK(impressionsCurr));
+        setKpiMom('kpi-ad-impressions', csPct(impressionsCurr, impressionsPrev));
+        if (pctUnitsAdsCurr != null) setKpiVal('kpi-pct-units-ads', pctUnitsAdsCurr+'%');
+        setKpiMom('kpi-pct-units-ads', csPct(pctUnitsAdsCurr, pctUnitsAdsPrev));
+
+        // % Revenue Invested — Amazon-only revenue as denominator (see file header).
+        const currInvestTotal = rowCurr ? (csParseAmt(rowCurr.ads_spend) + csParseAmt(rowCurr.vine_total) + csParseAmt(rowCurr.promos_total)) : 0;
+        const amzRevenueThisMonth = rowCurr ? csParseAmt(rowCurr.revenue) : 0;
+        if (amzRevenueThisMonth) {
+          setKpiVal('kpi-pct-revenue-invested', Math.round((currInvestTotal/amzRevenueThisMonth)*100)+'%');
+        }
+
+        // Launch to Date
+        const ltdTotal = summaryRows.reduce((s,r) => s + csParseAmt(r.ads_spend) + csParseAmt(r.vine_total) + csParseAmt(r.promos_total), 0);
+        const ltdEl = document.getElementById('ltd-total-investments');
+        if (ltdEl) ltdEl.textContent = '$' + Math.round(ltdTotal).toLocaleString();
+
+        // Amazon Fees KPI intentionally left as "—" — pending Finances API sync.
+
+      } catch (err) {
+        console.warn('[CosmetteStewardship] failed:', err.message);
+      }
+    })();
+    return window._csStewardshipPromise;
+  };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// MARKETING — Opportunities (4 editable cards, opp1-4 title/subtitle/body)
+// Reuses wireInsightBlock() from the Sales module — same save mechanism,
+// same SHEET_REPORT_INSIGHTS 'cosmette' tab, different field keys.
+// ══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.wireInsightBlock !== 'function') { console.warn('[Opportunities] wireInsightBlock not available yet.'); return; }
+  [1, 2, 3, 4].forEach(n => {
+    window.wireInsightBlock({
+      editBtnId: `opp${n}-edit-btn`, saveBtnId: `opp${n}-save`, cancelBtnId: `opp${n}-cancel`, editorId: `opp${n}-editor`,
+      fields: [
+        { key: `opp${n}_title`,    displayId: `opp${n}-title`,    textareaId: `opp${n}-textarea-title`,    placeholder: `Opportunity ${n} — click Edit to add a title` },
+        { key: `opp${n}_subtitle`, displayId: `opp${n}-subtitle`, textareaId: `opp${n}-textarea-subtitle` },
+        { key: `opp${n}_body`,     displayId: `opp${n}-body`,     textareaId: `opp${n}-textarea-body`,     placeholder: 'No content added yet — click Edit to add it.' },
+      ],
+    });
+  });
+  window.wireInsightBlock({
+    editBtnId: 'adimp-insight-edit-btn', saveBtnId: 'adimp-insight-save', cancelBtnId: 'adimp-insight-cancel', editorId: 'adimp-insight-editor',
+    fields: [ { key: 'ad_impressions_note', displayId: 'adimp-insight-text', textareaId: 'adimp-insight-textarea' } ],
+  });
+});
 </script>
 </body>
 </html>
