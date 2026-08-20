@@ -1650,11 +1650,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
          renders live and will show real entries the moment it does;
          "No insights logged yet" is the correct/expected empty state. -->
     <div class="channel-page" id="ins-log">
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:14px;">
+        <span id="run-analysis-status" style="font-size:11px;color:var(--muted);"></span>
+        <button class="btn-approve" id="run-analysis-btn" onclick="window.__csRunAnalysis()">▶ Run Analysis</button>
+      </div>
       <div id="ai-log-entries"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
     </div>
   </div>
 
-  <!-- ══ LISTING AUDIT (INTERNAL) ══ -->
   <!-- ══ LISTING AUDIT (INTERNAL) ══
        Adapted from Skinuva's real Listing Audit page, but built DYNAMICALLY
        from SHEET_PRODUCT_INVENTORY instead of hand-written per-category,
@@ -1672,6 +1675,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div><div class="page-title">Listing Audit</div><div class="page-sub">Live listing copy · Title (≤75) · Item Highlights (≤125) · Bullets 1–5 · Description · Backend Keywords</div></div>
       <div style="display:flex;align-items:center;gap:10px;">
         <span id="la-sync-badge" style="font-size:10px;color:var(--muted);font-family:var(--mono);"></span>
+        <span id="run-listing-audit-status" style="font-size:11px;color:var(--muted);"></span>
+        <button class="btn-approve" id="run-listing-audit-btn" onclick="window.__csRunListingAudit()">▶ Run Audit</button>
         <button class="btn-edit" style="padding:6px 12px;font-size:11px;" onclick="window.initListingAudit(true)">↻ Refresh</button>
       </div>
     </div>
@@ -1720,10 +1725,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="ppc-strategy">
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:14px;">
+        <span id="run-ppc-analysis-status" style="font-size:11px;color:var(--muted);"></span>
+        <button class="btn-approve" id="run-ppc-analysis-btn" onclick="window.__csRunPpcAnalysis()">▶ Run PPC Analysis</button>
+      </div>
       <div class="placeholder-block">
         <div class="ph-icon">📈</div>
         <div class="ph-title">Strategy by Product</div>
-        <div class="ph-sub">Needs the ppc_strategy tab on SHEET_INSIGHTS — output of run-ppc-strategy-analysis.js, which hasn't run for Cosmette yet.</div>
+        <div class="ph-sub">Needs the ppc_strategy tab on SHEET_INSIGHTS — output of run-ppc-strategy-analysis.js. Click "Run PPC Analysis" above once the backend endpoint is deployed and env vars are confirmed.</div>
       </div>
     </div>
     <div class="channel-page" id="ppc-opportunities">
@@ -2140,6 +2149,25 @@ document.addEventListener('DOMContentLoaded', setHomeDate);
 // ── Shared CSV helpers ───────────────────────────────────────────────────
 function csSheetCsvUrl(fileId, gid) {
   return `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&gid=${gid}`;
+}
+// Same-origin `fetch` has no built-in timeout — a slow response just hangs
+// the promise forever with no error and nothing in console, which is
+// exactly what happened with the (large, shared, multi-brand) Reviews
+// sheet on 2026-08-20. Throws Error('timeout') on expiry, distinguished
+// from a real network/HTTP error so callers can show a different message.
+async function csFetchTextWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 20000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('timeout');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 function csIsCsv(text) {
   const t = (text || '').trim();
@@ -3595,7 +3623,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cfg) { root.innerHTML = '<div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">Reviews not yet connected</div></div>'; return; }
 
     try {
-      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      // This sheet is large (shared reviews across every Medaltus brand) and
+      // Google's CSV export is occasionally slow on it — confirmed directly
+      // 2026-08-20: one request hung 45+ seconds with zero error, leaving
+      // the page stuck on "Loading reviews…" forever with nothing in
+      // console, while a retry succeeded in under a second. A hard 20s
+      // timeout turns that silent hang into a visible, retryable message.
+      const csv = await csFetchTextWithTimeout(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`, 20000);
       const allReviews = csIsCsv(csv) ? csParseCsv(csv) : [];
       console.log('[CosmetteReviews:'+ns+'] total review rows loaded:', allReviews.length, '— columns:', allReviews.length ? Object.keys(allReviews[0]).join(' | ') : '(none)');
       if (!allReviews.length) {
@@ -3652,7 +3686,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (err) {
       console.warn('[CosmetteReviews:'+ns+'] failed:', err.message);
-      root.innerHTML = '<div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">Error loading reviews</div></div>';
+      const isTimeout = err.message === 'timeout';
+      root.innerHTML = `<div class="placeholder-block">
+        <div class="ph-icon">⭐</div>
+        <div class="ph-title">${isTimeout ? 'Reviews took too long to load' : 'Error loading reviews'}</div>
+        <div class="ph-sub">${isTimeout ? "Google's export was slow to respond — this sheet is large and shared across brands. Usually works on retry." : escapeHtml(err.message)}</div>
+        <button class="btn-edit" style="margin-top:10px;" onclick="window.__csRetryReviews('${rootId}','${ns}')">↻ Retry</button>
+      </div>`;
     }
   }
 
@@ -3665,6 +3705,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window._csInsReviewsPromise) return window._csInsReviewsPromise;
     window._csInsReviewsPromise = buildReviewsUI('ins-reviews-root', 'ins');
     return window._csInsReviewsPromise;
+  };
+  // Clears the memoized promise (a failed/timed-out attempt would
+  // otherwise permanently cache that failure) and re-triggers the fetch.
+  window.__csRetryReviews = function (rootId, ns) {
+    if (ns === 'ext') window._csExtReviewsPromise = null;
+    else window._csInsReviewsPromise = null;
+    (ns === 'ext' ? window.initExternalReviews : window.initInsightsReviews)();
   };
 
   // Scoped to the specific reviews root (rootId) so external and internal
@@ -5146,6 +5193,85 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })();
     return window._csInsightsLogPromise;
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// CRON TRIGGER BUTTONS — Run Analysis / Run Listing Audit / Run PPC Analysis
+// Structure only, per instruction: these POST to the real backend
+// endpoints, but success depends on deployment/env-var work that isn't
+// confirmed done yet (ANTHROPIC_API_KEY, config/sheets.js, config/brands.js
+// entries — see the checklist from earlier). Wiring the buttons now means
+// there's nothing left to build once that backend work lands — just click
+// and it works. A failure here (404, 500, timeout) is expected until then;
+// the status text will show exactly what came back rather than hiding it.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  // These crons call Claude per-SKU and can genuinely take a couple of
+  // minutes for a brand with many SKUs — timeout is generous on purpose,
+  // not a sign something's stuck.
+  const CRON_TIMEOUT_MS = 180000;
+
+  async function runCron(btnId, statusId, endpoint, onSuccess) {
+    const btn = document.getElementById(btnId);
+    const statusEl = document.getElementById(statusId);
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Running…';
+    if (statusEl) { statusEl.textContent = 'This can take a couple of minutes…'; statusEl.style.color = ''; }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CRON_TIMEOUT_MS);
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand: window.SHEET_CFG.BRAND_SLUG || 'cosmette' }),
+        signal: controller.signal,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      if (statusEl) { statusEl.textContent = '✓ Done — ' + new Date().toLocaleTimeString(); statusEl.style.color = '#1a9b6f'; }
+      if (onSuccess) onSuccess(json);
+    } catch (err) {
+      const msg = err.name === 'AbortError' ? 'Timed out after 3 minutes' : err.message;
+      console.warn(`[${btnId}] failed:`, msg);
+      if (statusEl) { statusEl.textContent = '✗ ' + msg; statusEl.style.color = 'var(--danger)'; }
+    } finally {
+      clearTimeout(timer);
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
+  window.__csRunAnalysis = function () {
+    runCron('run-analysis-btn', 'run-analysis-status', '/api/run-analysis', () => {
+      // Insights Log + Overview's Brand at a Glance/Priority Actions all
+      // read the same sheet — clear their memoized promises so the new
+      // row shows up without a manual page refresh.
+      window._csInsightsLogPromise = null;
+      window._csInsOverviewPromise = null;
+      if (typeof window.initInsightsLog === 'function') window.initInsightsLog();
+      if (typeof window.initInsightsOverview === 'function') window.initInsightsOverview();
+    });
+  };
+
+  window.__csRunListingAudit = function () {
+    runCron('run-listing-audit-btn', 'run-listing-audit-status', '/api/run-listing-audit', () => {
+      window._csListingAuditPromise = null;
+      if (typeof window.initListingAudit === 'function') window.initListingAudit(true);
+    });
+  };
+
+  window.__csRunPpcAnalysis = function () {
+    runCron('run-ppc-analysis-btn', 'run-ppc-analysis-status', '/api/run-ppc-strategy-analysis', () => {
+      // Strategy by Product / Opportunities tabs aren't wired to a live
+      // render function yet (no ppc_strategy display built) — this just
+      // confirms the cron ran; the tabs still need their own render pass
+      // once that's built.
+    });
   };
 })();
 </script>
