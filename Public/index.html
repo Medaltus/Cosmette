@@ -148,6 +148,58 @@ nav{flex:1;padding:8px 8px 0;}
 .prod-tab.active{background:var(--navy);color:#fff;}
 .prod-panel{display:none;}
 .prod-panel.active{display:block;}
+.ppc-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px;}
+.ppc-card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
+.ppc-note{font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--border2);line-height:1.65;}
+.inv-status-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;text-align:center;}
+.inv-status-card .kpi-value{font-size:26px;}
+.inv-status-card.oos{background:rgba(0,31,96,.07);border-color:rgba(0,31,96,.25);}
+.inv-status-card.oos .kpi-value{color:var(--navy);}
+.inv-status-card.critical{background:rgba(219,55,45,.06);border-color:rgba(219,55,45,.2);}
+.inv-status-card.critical .kpi-value{color:var(--danger);}
+.inv-status-card.low{background:rgba(200,125,47,.07);border-color:rgba(200,125,47,.2);}
+.inv-status-card.low .kpi-value{color:var(--warn);}
+.inv-status-card.stable{background:rgba(212,177,6,.08);border-color:rgba(212,177,6,.22);}
+.inv-status-card.stable .kpi-value{color:#a8890a;}
+.inv-status-card.healthy{background:var(--green-dim);border-color:rgba(36,233,163,.25);}
+.inv-status-card.healthy .kpi-value{color:#1db88a;}
+.inv-status-card.unscored{background:var(--bg);border-color:var(--border);}
+.inv-status-card.unscored .kpi-value{color:var(--muted);}
+.inv-filter-pill{border:1px solid var(--border);background:var(--white);padding:6px 14px;border-radius:20px;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer;font-family:var(--font);}
+.inv-filter-pill.active{background:var(--navy);color:var(--white);border-color:var(--navy);}
+.inv-status-pill{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;text-transform:uppercase;letter-spacing:.03em;}
+.inv-status-pill.oos{background:var(--navy);color:var(--white);}
+.inv-status-pill.critical{background:rgba(219,55,45,.12);color:var(--danger);}
+.inv-status-pill.low{background:rgba(200,125,47,.14);color:var(--warn);}
+.inv-status-pill.stable{background:rgba(212,177,6,.16);color:#a8890a;}
+.inv-status-pill.healthy{background:var(--green-dim);color:#1db88a;}
+.inv-status-pill.unscored{background:var(--bg);color:var(--muted);}
+.inv-legend-item{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.inv-legend-bar{width:3px;height:12px;border-radius:2px;display:inline-block;}
+.inv-legend-bar.oos{background:var(--navy);}
+.inv-legend-bar.critical{background:var(--danger);}
+.inv-legend-bar.low{background:var(--warn);}
+.inv-legend-bar.stable{background:#a8890a;}
+.inv-legend-bar.healthy{background:#1db88a;}
+.oos-sku-group{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;background:var(--white);}
+.oos-sku-group-hd{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;}
+.oos-sku-group-hd:hover{background:var(--bg);}
+.oos-sku-name{font-weight:700;font-size:13px;color:var(--navy);}
+.oos-sku-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.oos-sku-summary{display:flex;gap:18px;align-items:center;}
+.oos-sku-summary-stat{text-align:right;}
+.oos-sku-summary-stat .n{font-size:16px;font-weight:700;color:var(--navy);}
+.oos-sku-summary-stat .n.danger{color:var(--danger);}
+.oos-sku-summary-stat .l{font-size:9.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em;}
+.oos-sku-periods{border-top:1px solid var(--border2);padding:6px 18px 12px;background:var(--bg);display:none;}
+.oos-sku-group.expanded .oos-sku-periods{display:block;}
+.oos-period-row{display:flex;justify-content:space-between;padding:8px 4px;font-size:12px;border-bottom:1px solid var(--border2);color:var(--navy);}
+.oos-period-row:last-child{border-bottom:none;}
+.oos-pill{display:inline-block;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+.oos-pill.ongoing{background:rgba(219,55,45,.12);color:var(--danger);}
+.oos-pill.resolved{background:var(--bg);color:var(--muted);}
+.oos-chevron{transition:transform .15s;color:var(--muted);font-size:11px;}
+.oos-sku-group.expanded .oos-chevron{transform:rotate(90deg);}
 .channel-page{display:none;}
 .channel-page.active{display:block;}
 
@@ -775,14 +827,78 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   </div>
 
   <!-- ══ INVENTORY (INTERNAL) ══ -->
+  <!-- ══ INVENTORY (INTERNAL) ══
+       Adapted from Skinuva's real Inventory page (Amazon Products Cache-
+       based Snapshot + Out-of-Stock Log). WFS and Consignment columns
+       deliberately omitted for now — Cosmette doesn't need them at this
+       point; add back later if that changes. -->
   <div class="page" id="page-inventory">
     <div class="page-hd">
-      <div><div class="page-title">Inventory</div><div class="page-sub">ShipStation · Last synced —</div></div>
+      <div><div class="page-title">Inventory</div><div class="page-sub">Amazon Products Cache · Days of inventory = sellable units ÷ (90-day purchased units ÷ 90)</div></div>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📦</div>
-      <div class="ph-title">Inventory Page</div>
-      <div class="ph-sub">Mirrors the standard Medaltus internal Inventory layout.<br>Tabs: All SKUs · Reorder Alerts · Warehouse breakdown</div>
+
+    <div class="channel-tabs-row" style="margin-bottom:18px;">
+      <div class="channel-tabs">
+        <button class="ch-tab active" onclick="showChannel('inventory','inv-snapshot',this)">Snapshot</button>
+        <button class="ch-tab" onclick="showChannel('inventory','inv-oos-log',this)">Out-of-Stock Log</button>
+      </div>
+    </div>
+
+    <div class="channel-page active" id="inv-snapshot">
+      <div class="ppc-card-title">Warehouse Snapshot</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+        <div class="kpi-card"><div class="kpi-label">Total Units Available</div><div class="kpi-value" id="inv-kpi-available">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Units Allocated</div><div class="kpi-value" id="inv-kpi-allocated">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Units on Hand</div><div class="kpi-value" id="inv-kpi-onhand">—</div></div>
+      </div>
+
+      <div class="ppc-card-title">SKUs by Status</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px;">
+        <div class="inv-status-card oos"><div class="kpi-value" id="inv-count-oos">—</div><div class="kpi-label">OOS</div></div>
+        <div class="inv-status-card critical"><div class="kpi-value" id="inv-count-critical">—</div><div class="kpi-label">Critical</div></div>
+        <div class="inv-status-card low"><div class="kpi-value" id="inv-count-low">—</div><div class="kpi-label">Low</div></div>
+        <div class="inv-status-card stable"><div class="kpi-value" id="inv-count-stable">—</div><div class="kpi-label">Stable</div></div>
+        <div class="inv-status-card healthy"><div class="kpi-value" id="inv-count-healthy">—</div><div class="kpi-label">Healthy</div></div>
+        <div class="inv-status-card unscored"><div class="kpi-value" id="inv-count-unscored">—</div><div class="kpi-label">Unscored</div></div>
+      </div>
+
+      <div class="ppc-card">
+        <div style="display:flex;justify-content:flex-end;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+          <span class="inv-legend-item"><span class="inv-legend-bar oos"></span>OOS = 0 units available</span>
+          <span class="inv-legend-item"><span class="inv-legend-bar critical"></span>Critical ≤30 days</span>
+          <span class="inv-legend-item"><span class="inv-legend-bar low"></span>Low 31–60 days</span>
+          <span class="inv-legend-item"><span class="inv-legend-bar stable"></span>Stable 61–89 days</span>
+          <span class="inv-legend-item"><span class="inv-legend-bar healthy"></span>Healthy 90+ days</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+          <input type="text" id="inv-search" placeholder="Search SKU or product name…" style="flex:1;min-width:220px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12.5px;">
+          <div id="inv-filter-pills" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="inv-filter-pill active" data-filter="all">All</button>
+            <button class="inv-filter-pill" data-filter="oos">OOS</button>
+            <button class="inv-filter-pill" data-filter="critical">Critical</button>
+            <button class="inv-filter-pill" data-filter="low">Low</button>
+            <button class="inv-filter-pill" data-filter="stable">Stable</button>
+            <button class="inv-filter-pill" data-filter="healthy">Healthy</button>
+            <button class="inv-filter-pill" data-filter="unscored">Unscored</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr>
+              <th class="inv-sortable" data-sort="sku" style="cursor:pointer;">SKU <span class="inv-sort-arrow"></span></th>
+              <th class="inv-sortable" data-sort="name" style="cursor:pointer;">Product Name <span class="inv-sort-arrow"></span></th>
+              <th title="Fulfillable + Inbound Receiving">FBA</th><th>Qty at Medaltus (FBM)</th><th>Available</th><th>Days of Inventory</th><th>Status</th>
+            </tr></thead>
+            <tbody id="inv-table-body"><tr><td colspan="7" style="color:var(--muted);">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="ppc-note">ℹ SKUs with no purchases in the last 90 days aren't scored (no denominator to compute against) — shown as "Unscored," not miscounted into Critical or Healthy.</div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="inv-oos-log">
+      <div class="ppc-note" style="margin-bottom:16px;">ℹ A SKU counts as out of stock on any day Available (total_quantity) = 0. Consecutive OOS days group into one incident; a later recurrence is a new incident, not a merge. Missing daily-log rows are skipped over rather than treated as a break in the streak. This log is only as complete as the daily history that's actually been logged.</div>
+      <div id="oos-log-body"><div class="ppc-card" style="color:var(--muted);">Loading…</div></div>
     </div>
   </div>
 
@@ -1377,6 +1493,7 @@ function showPage(id, btn) {
   }
   if (id === 'inventory-external' && typeof window.initExternalReviews === 'function') window.initExternalReviews();
   if (id === 'overview' && typeof window.initOverviewInternal === 'function') window.initOverviewInternal();
+  if (id === 'inventory' && typeof window.initInventoryPage === 'function') window.initInventoryPage();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1407,6 +1524,7 @@ function showChannel(page, channelId, btn) {
   }
   if (channelId === 'm-stewardship' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
   if (channelId === 'm-opportunities' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
+  if (channelId === 'inv-oos-log' && typeof window.initOosLog === 'function') window.initOosLog();
 
   // Period selector only makes sense on Amazon (internal Sales page) — hidden
   // everywhere else, matching Skinuva's real behavior.
@@ -3294,6 +3412,289 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })();
     return window._csOverviewPromise;
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// INVENTORY (INTERNAL) — Snapshot + Out-of-Stock Log
+// Adapted from Skinuva's real Inventory page. WFS and Consignment columns
+// deliberately omitted per instruction — add back later if needed.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  let _invAllRows = [];
+  let _invSortKey = null, _invSortDir = 'asc';
+  let _invControlsWired = false, _invActiveFilter = 'all';
+  let _oosLogLoaded = false;
+
+  function invStatusFor(days) {
+    if (days === '' || days === null || isNaN(days)) return 'unscored';
+    if (days <= 30) return 'critical';
+    if (days <= 60) return 'low';
+    if (days <= 89) return 'stable';
+    return 'healthy';
+  }
+  const INV_STATUS_LABEL = { oos: 'OOS', critical: 'Critical', low: 'Low', stable: 'Stable', healthy: 'Healthy', unscored: 'Unscored' };
+
+  // Bundles ("COS0001+03") and VMP-style multi-packs have no inventory of
+  // their own — excluded from the catalog, same convention as Skinuva's.
+  function isCatalogSku(rawSku) {
+    const upper = (rawSku || '').trim().toUpperCase();
+    if (!upper) return false;
+    if (upper.includes('+')) return false;
+    if (upper.startsWith('VMP_')) return false;
+    if (/-CA$/.test(upper) || /-UK$/.test(upper)) return false;
+    return true;
+  }
+
+  async function loadInventoryPage() {
+    const tbody = document.getElementById('inv-table-body');
+    if (!tbody) return;
+    const cfg = window.SHEET_CFG;
+    if (!cfg.SHEET_PRODUCT_INVENTORY) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">SHEET_PRODUCT_INVENTORY missing from SHEET_CONFIG.</td></tr>'; return; }
+    try {
+      const [csv, statusCsv] = await Promise.all([
+        fetch(csSheetCsvUrl(cfg.SHEET_PRODUCT_INVENTORY.fileId, cfg.SHEET_PRODUCT_INVENTORY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        cfg.SHEET_MASTER_SKU_LIST
+          ? fetch(csSheetCsvUrl(cfg.SHEET_MASTER_SKU_LIST.fileId, cfg.SHEET_MASTER_SKU_LIST.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '')
+          : Promise.resolve(''),
+      ]);
+      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">No data</td></tr>'; return; }
+
+      const statusMap = {};
+      if (csIsCsv(statusCsv)) {
+        csParseCsv(statusCsv).forEach(r => {
+          const sku = csBaseSku(r.SKU || r.sku);
+          const status = (r.Status || r.status || '').trim().toUpperCase();
+          if (sku && status) statusMap[sku] = status;
+        });
+      }
+
+      const latestDate = rows.reduce((max, r) => ((r.date || '') > max ? r.date : max), '');
+      const latestRows = rows.filter(r => r.date === latestDate);
+      console.log('[CosmetteInventory] latestDate:', latestDate, '— rows at that date:', latestRows.length);
+
+      const perVariantRows = latestRows.filter(r => isCatalogSku(r.sku)).map(r => {
+        const inboundReceiving = parseInt(r.inbound_receiving, 10) || 0;
+        const qtyAtAmazon = (parseInt(r.fulfillable_quantity, 10) || 0) + inboundReceiving;
+        const qtyAtMedaltus = parseInt(r.seller_fulfilled_quantity, 10) || 0;
+        const allocated = parseInt(r.reserved_quantity, 10) || 0;
+        const onHand = parseFloat(r.qty_on_hand) || 0;
+        const daysRaw = r.days_of_inventory;
+        const days = (daysRaw === '' || daysRaw === null || daysRaw === undefined) ? '' : parseFloat(daysRaw);
+        const skuUpper = csBaseSku(r.sku);
+        return {
+          root: csRootSku(r.sku), name: r.name || r.sku || '',
+          qtyAtAmazon, qtyAtMedaltus, allocated, onHand, days,
+          discontinued: statusMap[skuUpper] === 'DELETED',
+        };
+      });
+
+      const byRoot = {};
+      perVariantRows.forEach(v => {
+        if (!byRoot[v.root]) byRoot[v.root] = { sku: v.root, name: v.name, qtyAtAmazon: 0, qtyAtMedaltus: 0, allocated: 0, onHand: 0, days: '', discontinued: true };
+        const acc = byRoot[v.root];
+        acc.qtyAtAmazon += v.qtyAtAmazon;
+        acc.qtyAtMedaltus += v.qtyAtMedaltus;
+        acc.allocated += v.allocated;
+        acc.onHand += v.onHand;
+        if (v.name && (!acc.name || acc.name === v.root)) acc.name = v.name;
+        if (v.days !== '') acc.days = (acc.days === '' ? v.days : Math.min(acc.days, v.days));
+        if (!v.discontinued) acc.discontinued = false;
+      });
+
+      _invAllRows = Object.values(byRoot).map(acc => {
+        const available = Math.max(0, acc.qtyAtAmazon + acc.qtyAtMedaltus - acc.allocated);
+        const status = available === 0 ? 'oos' : invStatusFor(acc.days);
+        return {
+          sku: acc.sku, name: acc.name,
+          qtyAtAmazon: acc.qtyAtAmazon, qtyAtMedaltus: acc.qtyAtMedaltus, available, allocated: acc.allocated, onHand: acc.onHand,
+          days: acc.days, status, discontinued: acc.discontinued,
+        };
+      }).filter(r => !(r.discontinued && r.onHand === 0));
+
+      renderInventoryKpis(_invAllRows);
+      renderInventoryTable(_invAllRows);
+      wireInventoryControls();
+    } catch (err) {
+      console.warn('[CosmetteInventory] load failed:', err.message);
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">Error loading</td></tr>';
+    }
+  }
+
+  function renderInventoryKpis(rows) {
+    const sum = f => rows.reduce((s, r) => s + (f(r) || 0), 0);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v.toLocaleString(); };
+    set('inv-kpi-available', sum(r => r.available));
+    set('inv-kpi-allocated', sum(r => r.allocated));
+    set('inv-kpi-onhand', sum(r => r.onHand));
+    const counts = { oos: 0, critical: 0, low: 0, stable: 0, healthy: 0, unscored: 0 };
+    rows.forEach(r => { if (!r.discontinued && counts[r.status] !== undefined) counts[r.status]++; });
+    set('inv-count-oos', counts.oos);
+    set('inv-count-critical', counts.critical);
+    set('inv-count-low', counts.low);
+    set('inv-count-stable', counts.stable);
+    set('inv-count-healthy', counts.healthy);
+    set('inv-count-unscored', counts.unscored);
+  }
+
+  function renderInventoryTable(rows) {
+    const tbody = document.getElementById('inv-table-body');
+    if (!tbody) return;
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);">No SKUs match</td></tr>'; return; }
+    let sorted;
+    if (_invSortKey === 'sku' || _invSortKey === 'name') {
+      const dir = _invSortDir === 'desc' ? -1 : 1;
+      sorted = [...rows].sort((a, b) => {
+        if (a.discontinued !== b.discontinued) return a.discontinued ? 1 : -1;
+        return dir * String(a[_invSortKey]).localeCompare(String(b[_invSortKey]), undefined, { numeric: true, sensitivity: 'base' });
+      });
+    } else {
+      sorted = [...rows].sort((a, b) => {
+        if (a.discontinued !== b.discontinued) return a.discontinued ? 1 : -1;
+        const rank = { oos: -1, critical: 0, low: 1, unscored: 2, stable: 3, healthy: 4 };
+        return (rank[a.status] ?? 5) - (rank[b.status] ?? 5);
+      });
+    }
+    tbody.innerHTML = sorted.map(r => `
+      <tr${r.discontinued ? ' style="opacity:0.5;"' : ''}>
+        <td style="font-family:var(--mono);font-size:11px;">${r.sku}</td>
+        <td>${r.name}${r.discontinued ? ' <span style="font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:1px 6px;">Discontinued</span>' : ''}</td>
+        <td>${r.qtyAtAmazon.toLocaleString()}</td>
+        <td>${r.qtyAtMedaltus.toLocaleString()}</td>
+        <td>${r.available.toLocaleString()}</td>
+        <td>${r.days === '' ? '—' : Math.round(r.days).toLocaleString()}</td>
+        <td><span class="inv-status-pill ${r.status}">${INV_STATUS_LABEL[r.status]}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function wireInventoryControls() {
+    if (_invControlsWired) { applyInventoryFilters(); return; }
+    _invControlsWired = true;
+    const searchEl = document.getElementById('inv-search');
+    if (searchEl) searchEl.addEventListener('input', applyInventoryFilters);
+    document.querySelectorAll('.inv-filter-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.inv-filter-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        _invActiveFilter = btn.dataset.filter;
+        applyInventoryFilters();
+      });
+    });
+    document.querySelectorAll('.inv-sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort;
+        if (_invSortKey === key) { _invSortDir = _invSortDir === 'asc' ? 'desc' : 'asc'; }
+        else { _invSortKey = key; _invSortDir = 'asc'; }
+        updateInventorySortArrows();
+        applyInventoryFilters();
+      });
+    });
+  }
+  function updateInventorySortArrows() {
+    document.querySelectorAll('.inv-sortable').forEach(th => {
+      const arrow = th.querySelector('.inv-sort-arrow');
+      if (!arrow) return;
+      arrow.textContent = th.dataset.sort === _invSortKey ? (_invSortDir === 'asc' ? '▲' : '▼') : '';
+    });
+  }
+  function applyInventoryFilters() {
+    const q = (document.getElementById('inv-search')?.value || '').toLowerCase().trim();
+    let filtered = _invAllRows;
+    if (_invActiveFilter !== 'all') filtered = filtered.filter(r => r.status === _invActiveFilter);
+    if (q) filtered = filtered.filter(r => r.sku.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+    renderInventoryTable(filtered);
+  }
+
+  window.initInventoryPage = async function () {
+    await loadInventoryPage();
+  };
+
+  // ── Out-of-Stock Log ──────────────────────────────────────────────────
+  function isCatalogSkuForOos(rawSku) {
+    const upper = (rawSku || '').trim().toUpperCase();
+    if (!upper) return false;
+    if (upper.includes('+')) return false;
+    if (upper.startsWith('VMP_')) return false;
+    return true;
+  }
+
+  async function loadOosLog() {
+    const body = document.getElementById('oos-log-body');
+    if (!body) return;
+    const cfg = window.SHEET_CFG.SHEET_PRODUCT_INVENTORY;
+    if (!cfg) { body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">SHEET_PRODUCT_INVENTORY missing from SHEET_CONFIG.</div>'; return; }
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      if (!rows.length) { body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">No data</div>'; return; }
+
+      const todayStr = rows.reduce((max, r) => ((r.date || '') > max ? r.date : max), '');
+      const bySku = {};
+      rows.filter(r => isCatalogSkuForOos(r.sku)).forEach(r => {
+        const sku = (r.sku || '').trim();
+        if (!sku) return;
+        if (!bySku[sku]) bySku[sku] = { name: r.name || sku, rows: [] };
+        bySku[sku].rows.push(r);
+        if (r.name) bySku[sku].name = r.name;
+      });
+
+      const skuLogs = [];
+      Object.entries(bySku).forEach(([sku, data]) => {
+        const sorted = [...data.rows].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+        const periods = [];
+        let streakStart = null, streakLastDate = null;
+        sorted.forEach(r => {
+          const avail = r.total_quantity === '' || r.total_quantity === null || r.total_quantity === undefined ? NaN : parseFloat(r.total_quantity);
+          const isOos = avail === 0;
+          if (isOos) { if (!streakStart) streakStart = r.date; streakLastDate = r.date; }
+          else if (streakStart) { periods.push({ start: streakStart, end: streakLastDate, ongoing: false }); streakStart = null; streakLastDate = null; }
+        });
+        if (streakStart) periods.push({ start: streakStart, end: streakLastDate, ongoing: streakLastDate === todayStr });
+        if (!periods.length) return;
+        const dayCount = (start, end) => Math.round((new Date(end) - new Date(start)) / 86400000) + 1;
+        periods.forEach(p => { p.days = dayCount(p.start, p.ongoing ? todayStr : p.end); });
+        const totalDays = periods.reduce((s, p) => s + p.days, 0);
+        const isOngoing = periods.some(p => p.ongoing);
+        skuLogs.push({ sku, name: data.name, periods: periods.reverse(), totalDays, isOngoing });
+      });
+
+      skuLogs.sort((a, b) => { if (a.isOngoing !== b.isOngoing) return a.isOngoing ? -1 : 1; return b.totalDays - a.totalDays; });
+
+      if (!skuLogs.length) { body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">No out-of-stock incidents logged.</div>'; return; }
+
+      body.innerHTML = skuLogs.map((log, idx) => `
+        <div class="oos-sku-group" id="oos-group-${idx}">
+          <div class="oos-sku-group-hd" onclick="document.getElementById('oos-group-${idx}').classList.toggle('expanded')">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="oos-chevron">▶</span>
+              <div>
+                <div class="oos-sku-name">${log.sku} · ${log.name}</div>
+                <div class="oos-sku-sub">${log.periods.length} incident${log.periods.length === 1 ? '' : 's'}${log.isOngoing ? ' · ongoing' : ''}</div>
+              </div>
+            </div>
+            <div class="oos-sku-summary">
+              <div class="oos-sku-summary-stat"><div class="n ${log.isOngoing ? 'danger' : ''}">${log.totalDays}</div><div class="l">Total Days OOS</div></div>
+              <div>${log.isOngoing ? '<span class="oos-pill ongoing">Ongoing</span>' : '<span class="oos-pill resolved">Resolved</span>'}</div>
+            </div>
+          </div>
+          <div class="oos-sku-periods">
+            ${log.periods.map(p => `<div class="oos-period-row"><span>${p.start} → ${p.ongoing ? 'today' : p.end}</span><span>${p.days} day${p.days === 1 ? '' : 's'}${p.ongoing ? ' <span class="oos-pill ongoing" style="margin-left:6px;">Ongoing</span>' : ''}</span></div>`).join('')}
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      console.warn('[CosmetteOosLog] load failed:', err.message);
+      body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">Error loading</div>';
+    }
+  }
+
+  window.initOosLog = async function () {
+    if (_oosLogLoaded) return;
+    _oosLogLoaded = true;
+    await loadOosLog();
   };
 })();
 </script>
