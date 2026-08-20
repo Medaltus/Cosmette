@@ -1849,11 +1849,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div class="kpi-card" id="ppc-kpi-adspend"><div class="kpi-label">Ad Spend</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-adsales"><div class="kpi-label">Ad Sales</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-acos"><div class="kpi-label">ACOS</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="ppc-kpi-totalsales"><div class="kpi-label">Total Sales</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-tacos"><div class="kpi-label">TACOS</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-impressions"><div class="kpi-label">Impressions</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-clicks"><div class="kpi-label">Clicks</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-ctr"><div class="kpi-label">CTR</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-cpc"><div class="kpi-label">CPC</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="ppc-kpi-orders"><div class="kpi-label">Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="ppc-kpi-aov"><div class="kpi-label">AOV</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
       </div>
       <div class="ppc-alert">
         <span class="ppc-alert-icon">📊</span>
@@ -5108,17 +5111,22 @@ document.addEventListener('DOMContentLoaded', () => {
       ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
       : csAggregateMonth(orderRows, cfg.year, cfg.month);
     const totalSales = totalAgg ? totalAgg.avgOrder * totalAgg.totalOrders : 0;
+    const totalOrders = totalAgg ? totalAgg.totalOrders : 0;
+    const aov = totalAgg ? totalAgg.avgOrder : 0;
     const tacos = totalSales > 0 ? (spend/totalSales)*100 : null;
 
     setKpiVal('ppc-kpi-adspend', '$' + spend.toLocaleString(undefined,{maximumFractionDigits:0}));
     setKpiVal('ppc-kpi-adsales', '$' + adSales.toLocaleString(undefined,{maximumFractionDigits:0}));
     setKpiVal('ppc-kpi-acos', acos != null ? acos.toFixed(1)+'%' : '—');
+    setKpiVal('ppc-kpi-totalsales', '$' + totalSales.toLocaleString(undefined,{maximumFractionDigits:0}));
     setKpiVal('ppc-kpi-tacos', tacos != null ? tacos.toFixed(1)+'%' : '—');
     setKpiVal('ppc-kpi-impressions', impressions.toLocaleString());
     setKpiVal('ppc-kpi-clicks', clicks.toLocaleString());
     setKpiVal('ppc-kpi-ctr', ctr != null ? ctr.toFixed(2)+'%' : '—');
     setKpiVal('ppc-kpi-cpc', cpc != null ? '$'+cpc.toFixed(2) : '—');
-    ['ppc-kpi-adspend','ppc-kpi-adsales','ppc-kpi-acos','ppc-kpi-tacos','ppc-kpi-impressions','ppc-kpi-clicks','ppc-kpi-ctr','ppc-kpi-cpc'].forEach(id => setKpiMomText(id, cfg.label, 'flat'));
+    setKpiVal('ppc-kpi-orders', totalOrders.toLocaleString());
+    setKpiVal('ppc-kpi-aov', aov ? '$'+aov.toFixed(2) : '—');
+    ['ppc-kpi-adspend','ppc-kpi-adsales','ppc-kpi-acos','ppc-kpi-totalsales','ppc-kpi-tacos','ppc-kpi-impressions','ppc-kpi-clicks','ppc-kpi-ctr','ppc-kpi-cpc','ppc-kpi-orders','ppc-kpi-aov'].forEach(id => setKpiMomText(id, cfg.label, 'flat'));
 
     const takeawayEl = document.getElementById('ppc-context-takeaway');
     if (takeawayEl) {
