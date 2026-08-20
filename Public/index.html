@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cosmette Skincare — Dashboard · Medaltus</title>
-<script>document.documentElement.style.visibility='hidden';</script>
+<!-- Resolves this brand's sheet file IDs/gids server-side from the SHEET_CONFIG
+     env var and sets window.SHEET_CFG before any other inline script below
+     runs — keeps raw sheet IDs out of client-visible source. See api/sheet-config.js. -->
+<script src="/api/sheet-config"></script>
 <script async crossorigin="anonymous"
   data-clerk-publishable-key="pk_live_Y2xlcmsucmVwb3J0cy5tZWRhbHR1cy5jb20k"
   src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
@@ -85,6 +88,23 @@ nav{flex:1;padding:8px 8px 0;}
 .nav-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;flex-shrink:0;}
 .nav-btn.soon{opacity:0.42;cursor:not-allowed;pointer-events:none;}
 .nav-soon-badge{margin-left:auto;background:rgba(36,233,163,0.18);color:var(--green);font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.03em;}
+.nav-badge{margin-left:auto;background:rgba(36,233,163,0.2);color:var(--green);font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.03em;}
+
+/* ── Internal-only nav section (hidden by default, revealed for @medaltus.com staff — see CLERK AUTH script) ── */
+.nav-internal-divider{height:1px;background:rgba(255,255,255,0.08);margin:14px 8px 4px;}
+.sb-internal-badge{display:inline-flex;align-items:center;gap:5px;margin:0 4px 8px;background:rgba(36,233,163,0.15);border:1px solid rgba(36,233,163,0.25);border-radius:20px;padding:3px 9px;font-size:10px;font-weight:600;color:var(--green);letter-spacing:.04em;text-transform:uppercase;}
+.sb-internal-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+#nav-internal-section .nav-btn:not(.active){color:var(--sand);}
+#nav-internal-section .nav-btn:not(.active):hover{background:rgba(244,223,208,0.10);color:var(--sand);}
+
+/* ── Channel tabs (Amazon / Walmart / Website) — Walmart+Website markup stays in the
+     DOM but hidden via .ch-tab-hidden for Cosmette (Amazon-only today). Flip a channel
+     live by removing that class from its tab — no rebuild needed. ── */
+.channel-tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;overflow:hidden;align-self:flex-start;flex-wrap:wrap;}
+.ch-tab{border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--muted);padding:7px 16px;border-radius:999px;cursor:pointer;transition:all .13s;}
+.ch-tab:hover{color:var(--navy);}
+.ch-tab.active{background:var(--navy);color:#fff;}
+.ch-tab-hidden{display:none !important;}
 
 /* ── Topbar ── */
 .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -241,7 +261,7 @@ nav{flex:1;padding:8px 8px 0;}
   </div>
 
   <nav>
-    <div class="nav-section">Dashboard</div>
+    <div class="nav-section">Home</div>
     <button class="nav-btn active" onclick="showPage('home',this)">
       <svg viewBox="0 0 16 16"><path d="M2 7l6-5 6 5v7a1 1 0 01-1 1H3a1 1 0 01-1-1V7z"/><path d="M6 15V9h4v6"/></svg>Home
     </button>
@@ -249,35 +269,64 @@ nav{flex:1;padding:8px 8px 0;}
       <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Launch Checklist
     </button>
 
-    <div class="nav-section">Overview</div>
-    <button class="nav-btn soon" disabled>
-      <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2"/></svg>Overview
-      <span class="nav-soon-badge">SOON</span>
+    <div class="nav-section">Performance</div>
+    <button class="nav-btn" onclick="showPage('sales-external',this)">
+      <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 8,9 12,4 15,6"/><line x1="1" y1="15" x2="15" y2="15"/></svg>Sales
+    </button>
+    <button class="nav-btn" onclick="showPage('marketing-external',this)">
+      <svg viewBox="0 0 16 16"><path d="M2 10V6l5-4h2v12H7l-5-4z"/><path d="M9 5.5c1.5.5 3 1.5 3 2.5s-1.5 2-3 2.5"/><path d="M9 3c2.5.8 5 2.5 5 5s-2.5 4.2-5 5"/></svg>Marketing
     </button>
 
     <div class="nav-section">Operations</div>
-    <button class="nav-btn soon" disabled>
-      <svg viewBox="0 0 16 16"><path d="M1 5l7-4 7 4v7l-7 4-7-4V5z"/><path d="M8 1v14M1 5l7 4 7-4"/></svg>Catalog
-      <span class="nav-soon-badge">SOON</span>
+    <button class="nav-btn" onclick="showPage('inventory-external',this)">
+      <svg viewBox="0 0 16 16"><path d="M1 5l7-4 7 4v7l-7 4-7-4V5z"/><path d="M8 1v14M1 5l7 4 7-4"/></svg>Inventory
     </button>
     <button class="nav-btn soon" disabled>
       <svg viewBox="0 0 16 16"><rect x="1" y="5" width="14" height="9" rx="1.2"/><path d="M1 8h14M5 5V3a1 1 0 011-1h4a1 1 0 011 1v2"/><circle cx="4.5" cy="14" r="1.2"/><circle cx="11.5" cy="14" r="1.2"/></svg>Fulfillment
       <span class="nav-soon-badge">SOON</span>
     </button>
 
-    <div class="nav-section">Performance</div>
-    <button class="nav-btn soon" disabled>
+    <!-- Internal-only section — hidden by default, revealed only for signed-in @medaltus.com staff.
+         See CLERK AUTH script at bottom of file. Never linked or referenced from any external page. -->
+    <div id="nav-internal-section" style="display:none;">
+    <div class="nav-internal-divider"></div>
+    <div class="sb-internal-badge" id="sb-internal-badge" style="display:none;">Internal</div>
+
+    <div class="nav-section">Overview</div>
+    <button class="nav-btn" onclick="showPage('overview',this)">
+      <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1.2"/><rect x="9" y="1" width="6" height="6" rx="1.2"/><rect x="1" y="9" width="6" height="6" rx="1.2"/><rect x="9" y="9" width="6" height="6" rx="1.2"/></svg>Overview
+    </button>
+
+    <div class="nav-section">Operations (Internal)</div>
+    <button class="nav-btn" onclick="showPage('inventory',this)">
+      <svg viewBox="0 0 16 16"><path d="M1 5l7-4 7 4v7l-7 4-7-4V5z"/><path d="M8 1v14M1 5l7 4 7-4"/></svg>Inventory
+    </button>
+
+    <div class="nav-section">Performance (Internal)</div>
+    <button class="nav-btn" onclick="showPage('sales',this)">
       <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 8,9 12,4 15,6"/><line x1="1" y1="15" x2="15" y2="15"/></svg>Sales
-      <span class="nav-soon-badge">SOON</span>
     </button>
-    <button class="nav-btn soon" disabled>
+    <button class="nav-btn" onclick="showPage('marketing',this)">
       <svg viewBox="0 0 16 16"><path d="M2 10V6l5-4h2v12H7l-5-4z"/><path d="M9 5.5c1.5.5 3 1.5 3 2.5s-1.5 2-3 2.5"/><path d="M9 3c2.5.8 5 2.5 5 5s-2.5 4.2-5 5"/></svg>Marketing
-      <span class="nav-soon-badge">SOON</span>
     </button>
-    <button class="nav-btn soon" disabled>
+    <button class="nav-btn" onclick="showPage('events',this)">
       <svg viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="12" rx="1.2"/><path d="M1 7h14M5 1v4M11 1v4"/></svg>Events
-      <span class="nav-soon-badge">SOON</span>
     </button>
+
+    <div class="nav-section">Opportunities (Internal)</div>
+    <button class="nav-btn" onclick="showPage('insights',this)">
+      <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 7v4M8 5.5v.5"/></svg>Insights
+    </button>
+    <button class="nav-btn" onclick="showPage('listing',this)">
+      <svg viewBox="0 0 16 16"><path d="M2 2h12v12H2z"/><path d="M5 6h6M5 9h4"/></svg>Listing Audit
+    </button>
+    <button class="nav-btn" onclick="showPage('ppc',this)">
+      <svg viewBox="0 0 16 16"><path d="M1 8h14M8 1v14"/><circle cx="8" cy="8" r="3.5"/></svg>PPC
+    </button>
+    <button class="nav-btn" onclick="showPage('organic',this)">
+      <svg viewBox="0 0 16 16"><path d="M8 14C8 8 3 5 3 5s1 5 5 9z"/><path d="M8 14C8 8 13 5 13 5s-1 5-5 9z"/><path d="M8 2v12"/></svg>Organic
+    </button>
+    </div>
   </nav>
 </aside>
 
@@ -447,15 +496,192 @@ nav{flex:1;padding:8px 8px 0;}
 
   </div><!-- /#page-onboarding -->
 
-  <!-- ══ INVENTORY ══ -->
+  <!-- ══ SALES (EXTERNAL) ══ -->
+  <div class="page" id="page-sales-external">
+    <div class="page-hd">
+      <div><div class="page-title">Sales</div><div class="page-sub">Amazon · Last synced —</div></div>
+    </div>
+    <!-- Amazon-only for now — Walmart/Website channel tabs kept in markup, hidden via
+         .ch-tab-hidden, so turning on a channel later is a class removal, not a rebuild. -->
+    <div class="channel-tabs">
+      <button class="ch-tab active" onclick="showChannel('sales-external','x-amazon',this)">Amazon</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales-external','x-walmart',this)">Walmart</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales-external','x-website',this)">Website</button>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📈</div>
+      <div class="ph-title">Sales Page</div>
+      <div class="ph-sub">Client-facing sales performance — mirrors the standard Medaltus external Sales layout once wired to Cosmette's Amazon SP-API sheet.</div>
+    </div>
+  </div>
+
+  <!-- ══ MARKETING (EXTERNAL) ══ -->
+  <div class="page" id="page-marketing-external">
+    <div class="page-hd">
+      <div><div class="page-title">Marketing</div><div class="page-sub">Amazon · Last synced —</div></div>
+    </div>
+    <div class="channel-tabs">
+      <button class="ch-tab active" onclick="showChannel('marketing-external','x-amazon',this)">Amazon</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing-external','x-walmart',this)">Walmart</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing-external','x-website',this)">Website</button>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📣</div>
+      <div class="ph-title">Marketing Page</div>
+      <div class="ph-sub">Client-facing PPC/ad performance summary — mirrors the standard Medaltus external Marketing layout once wired to Cosmette's ad data.</div>
+    </div>
+  </div>
+
+  <!-- ══ INVENTORY + REVIEWS + VOICE OF CUSTOMER (EXTERNAL) ══
+       New, Cosmette-specific page. Amazon-only inventory (no Walmart/Website logic —
+       nothing to connect to yet). The "Voice of Customer" block below is a placeholder:
+       per the build prompt's open item, the exact internal VoC feature this should
+       mirror hasn't been located/confirmed yet, and what's safe to surface externally
+       (raw review text likely fine; internal analysis/competitor notes likely not) needs
+       Jaclyn's sign-off before this is wired to real data. Do not treat this placeholder
+       as scope-approved. -->
+  <div class="page" id="page-inventory-external">
+    <div class="page-hd">
+      <div><div class="page-title">Inventory</div><div class="page-sub">Amazon · Last synced —</div></div>
+    </div>
+    <div class="two-col">
+      <div class="placeholder-block">
+        <div class="ph-icon">📦</div>
+        <div class="ph-title">Inventory</div>
+        <div class="ph-sub">Current Amazon FBA stock levels by SKU.</div>
+      </div>
+      <div class="placeholder-block">
+        <div class="ph-icon">⭐</div>
+        <div class="ph-title">Reviews</div>
+        <div class="ph-sub">Review volume and rating trend by SKU.</div>
+      </div>
+    </div>
+    <div class="placeholder-block" style="margin-top:14px;">
+      <div class="ph-icon">💬</div>
+      <div class="ph-title">Voice of the Customer</div>
+      <div class="ph-sub">Scope pending — awaiting confirmation of what the internal VoC feature covers and what's safe to show externally.</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ INTERNAL-ONLY PAGES BELOW ══════════════════
+       Reachable only via #nav-internal-section, which stays hidden unless the
+       signed-in user's email is @medaltus.com. See CLERK AUTH script. -->
+
+  <!-- ══ OVERVIEW (INTERNAL) ══ -->
+  <div class="page" id="page-overview">
+    <div class="page-hd">
+      <div><div class="page-title">Overview</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">🗂️</div>
+      <div class="ph-title">Overview Page</div>
+      <div class="ph-sub">Cross-channel snapshot — mirrors the standard Medaltus internal Overview layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ INVENTORY (INTERNAL) ══ -->
   <div class="page" id="page-inventory">
     <div class="page-hd">
-      <div><div class="page-title">Catalog</div><div class="page-sub">ShipStation · Last synced —</div></div>
+      <div><div class="page-title">Inventory</div><div class="page-sub">ShipStation · Last synced —</div></div>
     </div>
     <div class="placeholder-block">
       <div class="ph-icon">📦</div>
-      <div class="ph-title">Catalog Page</div>
-      <div class="ph-sub">Mirrors the standard Medaltus catalog page layout.<br>Tabs: All SKUs · Reorder Alerts · Warehouse breakdown</div>
+      <div class="ph-title">Inventory Page</div>
+      <div class="ph-sub">Mirrors the standard Medaltus internal Inventory layout.<br>Tabs: All SKUs · Reorder Alerts · Warehouse breakdown</div>
+    </div>
+  </div>
+
+  <!-- ══ SALES (INTERNAL) ══ -->
+  <div class="page" id="page-sales">
+    <div class="page-hd">
+      <div><div class="page-title">Sales</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="channel-tabs">
+      <button class="ch-tab active" onclick="showChannel('sales','s-amazon',this)">Amazon</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📈</div>
+      <div class="ph-title">Sales Page</div>
+      <div class="ph-sub">Full internal sales detail — mirrors the standard Medaltus internal Sales layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ MARKETING (INTERNAL) ══ -->
+  <div class="page" id="page-marketing">
+    <div class="page-hd">
+      <div><div class="page-title">Marketing</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="channel-tabs">
+      <button class="ch-tab active" onclick="showChannel('marketing','m-amazon',this)">Amazon</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing','m-walmart',this)">Walmart</button>
+      <button class="ch-tab ch-tab-hidden" onclick="showChannel('marketing','m-website',this)">Website</button>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📣</div>
+      <div class="ph-title">Marketing Page</div>
+      <div class="ph-sub">Full internal PPC/ad detail — mirrors the standard Medaltus internal Marketing layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ EVENTS (INTERNAL) ══ -->
+  <div class="page" id="page-events">
+    <div class="page-hd">
+      <div><div class="page-title">Events</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📅</div>
+      <div class="ph-title">Events Page</div>
+      <div class="ph-sub">Deals, promotions, and campaign calendar — mirrors the standard Medaltus internal Events layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ INSIGHTS (INTERNAL) ══ -->
+  <div class="page" id="page-insights">
+    <div class="page-hd">
+      <div><div class="page-title">Insights</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">💡</div>
+      <div class="ph-title">Insights Page</div>
+      <div class="ph-sub">AI-generated opportunity flags — mirrors the standard Medaltus internal Insights layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ LISTING AUDIT (INTERNAL) ══ -->
+  <div class="page" id="page-listing">
+    <div class="page-hd">
+      <div><div class="page-title">Listing Audit</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📋</div>
+      <div class="ph-title">Listing Audit Page</div>
+      <div class="ph-sub">Automated listing compliance scoring — mirrors the standard Medaltus internal Listing Audit layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ PPC (INTERNAL) ══ -->
+  <div class="page" id="page-ppc">
+    <div class="page-hd">
+      <div><div class="page-title">PPC</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">🎯</div>
+      <div class="ph-title">PPC Page</div>
+      <div class="ph-sub">Ad strategy and keyword opportunity detail — mirrors the standard Medaltus internal PPC layout.</div>
+    </div>
+  </div>
+
+  <!-- ══ ORGANIC (INTERNAL) ══ -->
+  <div class="page" id="page-organic">
+    <div class="page-hd">
+      <div><div class="page-title">Organic</div><div class="page-sub">Internal · Last synced —</div></div>
+    </div>
+    <div class="placeholder-block">
+      <div class="ph-icon">🌿</div>
+      <div class="ph-title">Organic Page</div>
+      <div class="ph-sub">Organic keyword rank tracking — mirrors the standard Medaltus internal Organic layout.</div>
     </div>
   </div>
 
@@ -469,9 +695,20 @@ nav{flex:1;padding:8px 8px 0;}
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 const PAGE_TITLES = {
-  home:       'Home — Cosmette Skincare',
-  onboarding: 'Launch Checklist — Cosmette Skincare',
-  inventory:  'Catalog — Cosmette Skincare',
+  home:               'Home — Cosmette Skincare',
+  onboarding:         'Launch Checklist — Cosmette Skincare',
+  'sales-external':   'Sales — Cosmette Skincare',
+  'marketing-external': 'Marketing — Cosmette Skincare',
+  'inventory-external': 'Inventory — Cosmette Skincare',
+  overview:           'Overview — Cosmette Skincare',
+  inventory:          'Inventory (Internal) — Cosmette Skincare',
+  sales:              'Sales (Internal) — Cosmette Skincare',
+  marketing:          'Marketing (Internal) — Cosmette Skincare',
+  events:             'Events — Cosmette Skincare',
+  insights:           'Insights — Cosmette Skincare',
+  listing:            'Listing Audit — Cosmette Skincare',
+  ppc:                'PPC — Cosmette Skincare',
+  organic:            'Organic — Cosmette Skincare',
 };
 
 let todosLoaded = false;
@@ -489,6 +726,23 @@ function showPage(id, btn) {
     todosLoaded = true;
     loadTodos();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CHANNEL TABS (Amazon / Walmart / Website)
+// Walmart and Website tabs exist in every page's markup but carry
+// .ch-tab-hidden since Cosmette is Amazon-only today. To activate a
+// channel later: remove .ch-tab-hidden from its button and build out
+// the corresponding channel content block — no page rebuild needed.
+// ═══════════════════════════════════════════════════════════════════
+function showChannel(page, channelId, btn) {
+  const scope = document.getElementById('page-' + page);
+  if (!scope) return;
+  scope.querySelectorAll('.ch-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Channel content blocks (once built) should use the channelId as their
+  // element id within this page and be toggled here, matching the pattern
+  // already established on Skinuva's dashboard.
 }
 
 function setHomeDate() {
@@ -610,35 +864,48 @@ function escHtml(str) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// CLERK AUTH
+// CLERK AUTH — internal-section gating only, NOT a page-wide gate.
+//
+// Changed 2026-08-19 (Jaclyn): Cosmette previously gated the ENTIRE page
+// behind sign-in + COSMETTE_ORG_ID membership (redirect to SIGN_IN_URL
+// otherwise). Per Jaclyn, this dashboard now follows the newer
+// Skinuva/évolis pattern instead: the page is public by default —
+// external pages (Home, Launch Checklist, Sales, Marketing, Inventory)
+// are visible to anyone — and only #nav-internal-section is gated.
+//
+// Gate check is by EMAIL DOMAIN, not org membership: per Jaclyn,
+// clients don't have @medaltus.com addresses, so
+// "signed in AND email ends with @medaltus.com" is what actually
+// distinguishes Medaltus staff from the client. This is deliberately
+// NOT an org-membership check (org membership doesn't reliably separate
+// staff from client — see open question raised 2026-08-19).
+//
+// If Clerk fails to load, isn't signed in, or the email check fails,
+// the safe fallback is simply "internal section stays hidden" — never
+// a broken or blank page.
 // ═══════════════════════════════════════════════════════════════════
-const COSMETTE_ORG_ID   = 'org_3FualqI4Gv7MUt1ZERzdNp2pWmt';
-const SIGN_IN_URL       = 'https://reports.medaltus.com';
+const STAFF_EMAIL_DOMAIN = '@medaltus.com';
+const SIGN_IN_URL        = 'https://reports.medaltus.com';
 
 window.addEventListener('load', async () => {
   try {
+    if (!window.Clerk) return; // Clerk script failed to load — stay on safe default
     await window.Clerk.load();
     const user = window.Clerk.user;
+    if (!user) return; // not signed in — safe default (internal section hidden)
 
-    if (!user) {
-      // Not signed in — redirect to central login
-      window.location.href = SIGN_IN_URL + '?redirect_url=' + encodeURIComponent(window.location.href);
-      return;
+    const email = user.primaryEmailAddress?.emailAddress || '';
+    const isStaff = email.toLowerCase().endsWith(STAFF_EMAIL_DOMAIN);
+
+    if (isStaff) {
+      const internalNav   = document.getElementById('nav-internal-section');
+      const internalBadge = document.getElementById('sb-internal-badge');
+      if (internalNav)   internalNav.style.display = '';
+      if (internalBadge) internalBadge.style.display = '';
     }
 
-    // Check org membership
-    const memberships = await window.Clerk.user.getOrganizationMemberships();
-    const hasAccess = memberships.data.some(m => m.organization.id === COSMETTE_ORG_ID);
-
-    if (!hasAccess) {
-      // Signed in but wrong org — redirect to login with message
-      window.location.href = SIGN_IN_URL + '?redirect_url=' + encodeURIComponent(window.location.href);
-      return;
-    }
-
-    // Auth passed — show dashboard and render user button
-    document.documentElement.style.visibility = 'visible';
-
+    // Render the user button (sign-out) regardless of staff/client status —
+    // anyone signed in should be able to see who they are and sign out.
     const userEl = document.getElementById('clerk-user');
     if (userEl) {
       // Build a simple user button with sign-out
@@ -684,14 +951,14 @@ window.addEventListener('load', async () => {
       userEl.querySelector('.topbar-user-btn').setAttribute('onclick', '');
     }
 
-    // Initialize the rest of the dashboard
-    setHomeDate();
-
   } catch (err) {
-    console.error('[Clerk] Auth error:', err);
-    window.location.href = 'https://reports.medaltus.com/sign-in';
+    console.warn('[Clerk] Auth check failed, internal section stays hidden:', err);
   }
 });
+
+// Home date and other page init no longer depend on Clerk resolving —
+// the page is public now, so this must run regardless of auth outcome.
+document.addEventListener('DOMContentLoaded', setHomeDate);
 </script>
 </body>
 </html>
