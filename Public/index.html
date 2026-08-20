@@ -68,11 +68,15 @@
   --border:rgba(0,31,96,0.10); --border2:rgba(0,31,96,0.06);
   --text:#001F60; --muted:#6B7BA2; --success:#24e9a3; --warn:#C87D2F; --danger:#db372d;
   --sidebar-w:224px;
-  --font:'GT Walsheim Pro',system-ui,sans-serif; --mono:'DM Mono','Fira Mono',monospace;
-  --font-serif:'Plantin MT Pro','Georgia',serif;
+  --font:'GT Walsheim Pro','DM Sans',system-ui,sans-serif; --mono:'DM Mono','Fira Mono',monospace;
+  --font-header:'GT Walsheim Pro Medium','DM Sans',system-ui,sans-serif;
+  --font-bold:'GT Walsheim Pro Bold','DM Sans',system-ui,sans-serif;
+  --font-subheader:'Plantin MT Pro Italic',Georgia,'Times New Roman',serif;
+  --font-body-light:'GT Walsheim Pro','DM Sans',system-ui,sans-serif;
   --radius:10px; --radius-sm:6px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
+strong,b{font-family:var(--font-bold);font-weight:700;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.55;}
 
 /* ── Layout ── */
@@ -207,7 +211,7 @@ nav{flex:1;padding:8px 8px 0;}
 .metric-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
 .metric-strip-card{background:var(--white);padding:14px 16px;}
 .ms-label{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;}
-.ms-value{font-size:22px;font-weight:700;color:var(--navy);line-height:1;}
+.ms-value{font-size:22px;font-weight:700;color:var(--navy);line-height:1;font-family:var(--font-subheader);}
 .ms-sub{font-size:10px;color:var(--muted);margin-top:4px;}
 .chart-section{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;}
 .chart-section .card-title{margin-bottom:14px;}
@@ -237,15 +241,17 @@ table.perf-compare td{padding:12px 14px;border-bottom:1px solid var(--border2);f
 table.perf-compare td:first-child{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
 table.perf-compare tr:last-child td{border-bottom:none;}
 .prodcol-oos-pill{display:inline-block;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:8px;background:var(--danger);color:#fff;text-transform:uppercase;}
+.pcard-oos-overlay{position:absolute;inset:0;background:rgba(230,230,235,.72);border-radius:0 0 var(--radius) var(--radius);z-index:5;display:flex;align-items:flex-start;justify-content:flex-end;padding:14px;pointer-events:none;}
+.pcard-oos-overlay .prodcol-oos-pill{pointer-events:none;}
 .bsr-trend{font-size:10px;font-weight:700;white-space:nowrap;}
 .bsr-trend-improved{color:#1db88a;}
 .bsr-trend-worsened{color:var(--danger);}
-.prodcol-name{font-size:14px;font-weight:700;color:var(--navy);}
+.prodcol-name{font-size:14px;font-weight:700;color:var(--navy);font-family:var(--font-subheader);}
 .prodcol-sku{font-size:10px;color:var(--muted);font-weight:400;}
 .pcard-exec{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
 .pcard-exec:last-child{margin-bottom:0;}
 .pcard-exec-hd{padding:16px 22px;background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
-.pcard-exec-hd b{font-size:16px;font-weight:700;color:#fff;}
+.pcard-exec-hd b{font-size:16px;font-weight:700;color:#fff;font-family:var(--font-subheader);}
 .pcard-exec-hd .meta{font-size:11px;color:rgba(255,255,255,.65);margin-left:8px;}
 .pcard-itemtype{font-size:11px;font-weight:400;color:#fff;margin-top:2px;}
 .pcard-exec-body{padding:18px 20px;display:grid;grid-template-columns:1.2fr 1fr;gap:24px;position:relative;}
@@ -327,7 +333,7 @@ details.inci-toggle[open] summary::before{content:'▾ ';}
 .org-callout.info{background:rgba(0,31,96,.05);border:1px solid rgba(0,31,96,.12);color:var(--navy);}
 .org-callout-icon{font-size:20px;flex-shrink:0;margin-top:1px;}
 .upload-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:24px 26px;margin-bottom:20px;}
-.upload-panel-title{font-size:19px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+.upload-panel-title{font-size:19px;font-weight:700;color:var(--navy);margin-bottom:16px;font-family:var(--font-subheader);}
 .upload-run-btn{display:flex;align-items:center;gap:9px;background:var(--green);color:var(--navy);border:none;border-radius:999px;padding:13px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;box-shadow:0 2px 8px rgba(36,233,163,.35);}
 .upload-run-btn:hover{box-shadow:0 4px 14px rgba(36,233,163,.5);transform:translateY(-1px);}
 .upload-run-btn:disabled{background:var(--muted);color:#fff;cursor:not-allowed;box-shadow:none;transform:none;}
@@ -359,7 +365,7 @@ details.inci-toggle[open] summary::before{content:'▾ ';}
 .kpi-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px 20px;height:116px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;}
 .kpi-card.kpi-card-tall{min-height:180px;height:auto;}
 .kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px;}
-.kpi-value{font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1;color:var(--navy);}
+.kpi-value{font-size:30px;font-weight:600;letter-spacing:-1px;line-height:1;color:var(--navy);font-family:var(--font-subheader);}
 .kpi-value.sm{font-size:30px;}
 .kpi-mom{font-size:14px;margin-top:5px;}
 .kpi-mom.up{color:#1db88a;}
@@ -380,7 +386,7 @@ table.data-table tbody tr:nth-child(odd){background:var(--bg);}
 table.data-table tbody tr:last-child{border-bottom:none;}
 table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font-weight:600;}
 .tp-cell{display:flex;align-items:baseline;gap:2px;flex-wrap:wrap;}
-.tp-units{font-weight:700;}
+.tp-units{font-weight:700;font-family:var(--font-bold);}
 .tp-mom-up{display:inline-flex;align-items:center;color:#1db88a;font-size:10px;font-weight:400;margin-left:6px;white-space:nowrap;}
 .tp-mom-dn{display:inline-flex;align-items:center;color:var(--danger);font-size:10px;font-weight:400;margin-left:6px;white-space:nowrap;}
 .tp-mom-flat{display:inline-flex;align-items:center;color:rgba(107,123,162,.4);font-size:10px;margin-left:6px;}
@@ -416,13 +422,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .page{display:none;flex:1;padding:28px;}
 .page.active{display:block;}
 .page-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap;}
-.page-title{font-size:20px;font-weight:600;letter-spacing:-.5px;color:var(--navy);}
+.page-title{font-size:20px;font-weight:600;letter-spacing:-.5px;color:var(--navy);font-family:var(--font-subheader);}
 .page-sub{font-size:12px;color:var(--muted);margin-top:3px;}
 
 /* ── Cards ── */
 .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
 .card+.card{margin-top:14px;}
-.card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;font-family:var(--font-subheader);}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 
 /* ── Placeholder ── */
@@ -439,7 +445,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .onboarding-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:24px 32px;margin-bottom:20px;display:flex;flex-direction:column;gap:16px;}
 .ob-hero-left{}
 .ob-hero-title{display:block;}
-.ob-hero-stats{font-size:14px;font-weight:400;font-style:italic;font-family:var(--font-serif);color:rgba(255,255,255,.85);margin-top:6px;}
+.ob-hero-stats{font-size:14px;font-weight:400;font-style:italic;font-family:var(--font-subheader);color:rgba(255,255,255,.85);margin-top:6px;}
 .ob-hero-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px;}
 
 /* ── Progress bar (full width under hero text) ── */
@@ -508,18 +514,18 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .home-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(36,233,163,0.16);border:1px solid rgba(36,233,163,0.35);color:var(--green);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:20px;}
 .home-badge svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;}
 .home-badge-channel{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;}
-.home-hero-title{font-size:24px;font-weight:400;font-style:italic;font-family:var(--font-serif);color:#fff;letter-spacing:-.2px;margin-top:18px;}
+.home-hero-title{font-size:24px;font-weight:400;font-style:italic;font-family:var(--font-subheader);color:#fff;letter-spacing:-.2px;margin-top:18px;}
 .home-hero-sub{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.6;margin-top:8px;max-width:560px;}
 .home-hero-date{font-size:11px;color:rgba(255,255,255,.35);margin-top:14px;}
 
 .home-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
 .home-kpi-card{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--green);border-radius:var(--radius);padding:18px 20px;}
 .home-kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
-.home-kpi-value{font-size:28px;font-weight:700;color:var(--navy);letter-spacing:-1px;line-height:1;}
+.home-kpi-value{font-size:28px;font-weight:700;color:var(--navy);letter-spacing:-1px;line-height:1;font-family:var(--font-subheader);}
 .home-kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;}
 
 .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.home-card-title{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+.home-card-title{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:4px;font-family:var(--font-subheader);}
 .home-card-sub{font-size:11.5px;color:var(--muted);margin-bottom:16px;}
 
 .home-team-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);}
@@ -5613,40 +5619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return { categorySummary, competitors, variationsByAsin };
   }
 
-  function categorySummaryHtml(s) {
-    return `<div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Category Snapshot</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:14px;">
-        <div class="exec-fact"><b>Size</b>${escapeHtml(s.size) || '—'}</div>
-        <div class="exec-fact"><b>Use</b>${escapeHtml(s.use) || '—'}</div>
-        <div class="exec-fact"><b>Benefits</b>${escapeHtml(s.benefits) || '—'}</div>
-        <div class="exec-fact"><b>Clean Statements</b>${escapeHtml(s.cleanStatements) || '—'}</div>
-      </div>
-      ${s.keyDifferentiation ? `<div class="exec-fact"><b>Key Differentiation</b>${escapeHtml(s.keyDifferentiation)}</div>` : ''}
-    </div>`;
-  }
-  function competitiveLandscapeHtml(competitors) {
-    if (!competitors.length) return `<div class="card" style="margin-bottom:16px;"><div class="card-title">Competitive Landscape</div><div style="color:var(--muted);font-size:12px;">No competitor rows found on this category's research sheet yet.</div></div>`;
-    const rowsHtml = competitors.map(c => `<tr>
-      <td>${escapeHtml(c.brand)}</td>
-      <td>${escapeHtml(c.name)}</td>
-      <td>${c.price ? '$'+c.price.toFixed(2) : '—'}</td>
-      <td>${escapeHtml(c.size)}</td>
-      <td>${escapeHtml(c.rating)}</td>
-      <td>${escapeHtml(c.reviews)}</td>
-      <td style="font-size:11px;">${escapeHtml(c.keyBenefits)}</td>
-    </tr>`).join('');
-    return `<div class="card" style="margin-bottom:16px;">
-      <div class="card-title">Competitive Landscape</div>
-      <div style="overflow-x:auto;">
-        <table class="data-table">
-          <thead><tr><th>Brand</th><th>Product</th><th>Price</th><th>Size</th><th>Rating</th><th># Reviews</th><th>Key Benefits</th></tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
-    </div>`;
-  }
-  function productPortfolioCardHtml(sku, entry, categorySummary, variation, competitors) {
+  function productPortfolioCardHtml(sku, entry, categorySummary, variation, competitors, isOos) {
     const name = entry.name, asin = entry.asin || '—', price = entry.price || 0, size = (variation && variation.size) || categorySummary.size;
     const benefits = (variation && variation.benefits) || categorySummary.benefits;
     const ingredients = (variation && variation.ingredients) || '';
@@ -5664,13 +5637,11 @@ document.addEventListener('DOMContentLoaded', () => {
           ${categorySummary.cleanStatements ? `<div style="margin-top:8px;">${pillsHtml(categorySummary.cleanStatements, 'free-from-tag')}</div>` : ''}
         </div>
         <div>${renderPriceContext(name, price, competitors)}</div>
+        ${isOos ? `<div class="pcard-oos-overlay"><span class="prodcol-oos-pill">Out of Stock</span></div>` : ''}
       </div>
     </div>`;
   }
 
-  // Rating/review count come from SHEET_AMAZON_REVIEWS (Cosmette has no
-  // dedicated rating/review_count column anywhere else) — same star-count
-  // logic as the external Reviews page's distribution card.
   // BSR / Subcategory BSR / Rating now come from the real
   // SHEET_KEYWORD_TRACKER_SUMMARY tab (gid 579593778, confirmed 2026-08-20:
   // date,brand,asin,sku,total_tracked_keywords,top50_organic_count,
@@ -5765,16 +5736,31 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const { year, month } = csGetLastFullMonth();
         const cfg = window.SHEET_CFG;
-        const [names, bizCsv, summaryCsv] = await Promise.all([
+        const [names, bizCsv, summaryCsv, prodInvCsv] = await Promise.all([
           csFetchProductNames(),
           cfg.SHEET_BUSINESS_REPORT ? fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
           cfg.SHEET_KEYWORD_TRACKER_SUMMARY ? fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER_SUMMARY.fileId, cfg.SHEET_KEYWORD_TRACKER_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
+          cfg.SHEET_PRODUCT_INVENTORY ? fetch(csSheetCsvUrl(cfg.SHEET_PRODUCT_INVENTORY.fileId, cfg.SHEET_PRODUCT_INVENTORY.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
         ]);
         const bizRows = csIsCsv(bizCsv) ? csParseCsv(bizCsv) : [];
         if (bizRows.length) console.log('[InsightsProducts] Business Report columns:', Object.keys(bizRows[0]));
         const brandSlug = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
         const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv).filter(r => (r.brand||'').trim().toLowerCase() === brandSlug) : [];
         console.log('[InsightsProducts] Keyword Tracker Summary rows for', brandSlug + ':', summaryRows.length);
+
+        // OOS status — same available===0 definition as Inventory Snapshot
+        // (available = total_quantity), latest-dated row per SKU.
+        const oosBySku = {};
+        if (csIsCsv(prodInvCsv)) {
+          const invRows = csParseCsv(prodInvCsv);
+          const latestBySku = {};
+          invRows.forEach(r => {
+            const sku = csBaseSku(r.sku);
+            if (!sku) return;
+            if (!latestBySku[sku] || (r.date||'') > (latestBySku[sku].date||'')) latestBySku[sku] = r;
+          });
+          Object.entries(latestBySku).forEach(([sku, r]) => { oosBySku[sku] = (parseInt(r.total_quantity,10)||0) === 0; });
+        }
 
         const byCategory = {};
         Object.entries(names.categoryBySku).forEach(([sku, cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
@@ -5803,13 +5789,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const asin = Object.keys(names.skuByAsin).find(a => names.skuByAsin[a] === sku) || '';
             const entry = { name: names.nameBySku[sku] || sku, asin, price: names.priceBySku[sku] || 0 };
             const variation = variationsByAsin[asin.toUpperCase()];
-            return productPortfolioCardHtml(sku, entry, categorySummary, variation, competitors);
+            return productPortfolioCardHtml(sku, entry, categorySummary, variation, competitors, !!oosBySku[sku]);
           }).join('');
 
           return `<div class="sub-page${i===0?' active':''}" id="ins-products-panel-${catSlug}">
             ${performanceTableHtml(byCategory[cat], names, bizRows, summaryRows, year, month)}
-            ${categorySummaryHtml(categorySummary)}
-            ${competitiveLandscapeHtml(competitors)}
             <div class="card-title" style="margin-bottom:10px;">Product Portfolio</div>
             ${portfolioCards || '<div style="color:var(--muted);font-size:12px;">No products found for this category.</div>'}
           </div>`;
