@@ -122,6 +122,32 @@ nav{flex:1;padding:8px 8px 0;}
 .pd-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted);}
 .pd-legend span{display:inline-flex;align-items:center;gap:5px;}
 .pd-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+.rev-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
+.rev-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.rev-name{font-weight:600;font-size:12px;color:var(--navy);}
+.rev-stars-5{color:#24e9a3;font-size:12px;}
+.rev-stars-4{color:#24e9a3;font-size:12px;}
+.rev-stars-3{color:var(--warn);font-size:12px;}
+.rev-stars-2{color:var(--danger);font-size:12px;}
+.rev-stars-1{color:var(--danger);font-size:12px;}
+.rev-title{font-weight:600;font-size:12.5px;color:var(--navy);margin-bottom:4px;}
+.rev-body{font-size:12px;color:var(--muted);line-height:1.65;}
+.rev-date{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.star-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11.5px;}
+.star-bar-lbl{width:36px;text-align:right;color:var(--muted);}
+.star-bar-track{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.star-bar-fill{height:100%;border-radius:4px;background:var(--green);}
+.star-bar-count{width:28px;font-weight:600;color:var(--navy);font-size:11px;}
+.cat-tabs{display:flex;gap:2px;margin-bottom:20px;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;overflow-x:auto;flex-wrap:wrap;}
+.cat-tab{border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--muted);padding:8px 16px;border-radius:999px;cursor:pointer;transition:all .13s;white-space:nowrap;}
+.cat-tab.active{background:var(--navy);color:#fff;}
+.cat-panel{display:none;}
+.cat-panel.active{display:block;}
+.prod-tabs{display:flex;gap:2px;margin-bottom:16px;background:var(--bg);border:1px solid var(--border2);border-radius:999px;padding:3px;overflow-x:auto;flex-wrap:wrap;}
+.prod-tab{border:none;background:none;font-family:var(--font);font-size:11.5px;font-weight:600;color:var(--muted);padding:6px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;}
+.prod-tab.active{background:var(--navy);color:#fff;}
+.prod-panel{display:none;}
+.prod-panel.active{display:block;}
 .channel-page{display:none;}
 .channel-page.active{display:block;}
 
@@ -673,18 +699,28 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <div class="page-hd">
       <div><div class="page-title">Inventory</div><div class="page-sub">Amazon · Last synced —</div></div>
     </div>
-    <div class="two-col">
-      <div class="placeholder-block">
-        <div class="ph-icon">📦</div>
-        <div class="ph-title">Inventory</div>
-        <div class="ph-sub">Current Amazon FBA stock levels by SKU.</div>
-      </div>
-      <div class="placeholder-block">
-        <div class="ph-icon">⭐</div>
-        <div class="ph-title">Reviews</div>
-        <div class="ph-sub">Review volume and rating trend by SKU.</div>
+    <div class="placeholder-block">
+      <div class="ph-icon">📦</div>
+      <div class="ph-title">Inventory</div>
+      <div class="ph-sub">Current Amazon FBA stock levels by SKU.</div>
+    </div>
+
+    <!-- ══ REVIEWS — built dynamically from SHEET_AMAZON_REVIEWS's own
+         product_category column (see initExternalReviews() below), rather
+         than a hardcoded SKU→category map. Categories are still being
+         finalized in the sheet itself, so whatever distinct category
+         values exist there is what renders here — no code change needed
+         once Jaclyn finalizes them. VOC Themes intentionally NOT built —
+         categorizing review text into themes is real analysis, not a
+         mechanical data pull (matches Skinuva's own documented reasoning
+         for leaving it out). -->
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">Reviews</div>
+      <div id="ext-reviews-root">
+        <div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">Loading reviews…</div></div>
       </div>
     </div>
+
     <div class="placeholder-block" style="margin-top:14px;">
       <div class="ph-icon">💬</div>
       <div class="ph-title">Voice of the Customer</div>
@@ -893,6 +929,25 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="m-opportunities">
+      <!-- ── Subscribe & Save — adapted from Skinuva's real initSns(): reads
+           SHEET_STEWARDSHIP_SUMMARY (total_subscriptions per month) and
+           SHEET_SUBSCRIPTIONS (90-day retention), both already in
+           SHEET_CONFIG for Cosmette. Same defensive column-name fallbacks
+           (total_subscriptions/total_subs/subscriptions/active_subscriptions,
+           retention_90_day/retention_90/retention/etc.) since exact header
+           casing on these specific tabs hasn't been independently confirmed. -->
+      <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Subscribe &amp; Save</div>
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="kpi-active-subs"><div class="kpi-label">Active Subscriptions</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="kpi-retention"><div class="kpi-label">Subscribe &amp; Save Retention (90 Days)</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">Active Subscriptions by Month</div>
+        </div>
+        <div style="position:relative;height:320px;"><canvas id="chart-sns"></canvas></div>
+      </div>
+
       <!-- 4 editable opportunity cards — opp1-4 title/subtitle/body,
            already part of MONTHLY_HEADERS in write-report-insights.js.
            No separate data sheet needed beyond Report Insights. -->
@@ -1284,11 +1339,13 @@ function showPage(id, btn) {
   if (id === 'sales' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (id === 'sales-external' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
   if (id === 'marketing' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
+  if (id === 'marketing' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
   if (id === 'events') {
     window._csActiveEventName = 'Big Spring Sale'; // matches the default-active ev-bss tab
     if (typeof window.initEventReport === 'function') window.initEventReport('ev-bss');
     if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
   }
+  if (id === 'inventory-external' && typeof window.initExternalReviews === 'function') window.initExternalReviews();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1317,6 +1374,8 @@ function showChannel(page, channelId, btn) {
     if (typeof window.initEventReport === 'function') window.initEventReport(channelId);
     if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
   }
+  if (channelId === 'm-stewardship' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
+  if (channelId === 'm-opportunities' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
 
   // Period selector only makes sense on Amazon (internal Sales page) — hidden
   // everywhere else, matching Skinuva's real behavior.
@@ -2729,6 +2788,305 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })();
     return promiseByChannel[channelId];
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// MARKETING — Subscribe & Save
+// Adapted from Skinuva's real initSns(): two sheets, defensive column-name
+// fallbacks since exact header casing on these specific tabs hasn't been
+// independently confirmed for Cosmette — every fetch logs actual columns
+// found, so a wrong guess is visible in console rather than silently blank.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function csvToRows(text) {
+    const lines = text.replace(/\r/g, '').split('\n').filter(l => l.length > 0);
+    if (lines.length < 2) return [];
+    const headers = csParseCsvLine(lines[0]).map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    return lines.slice(1).map(line => {
+      const cells = csParseCsvLine(line);
+      const row = {};
+      headers.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+      return row;
+    });
+  }
+  function num(v) {
+    if (v === undefined || v === null || v === '') return null;
+    const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+    return isNaN(n) ? null : n;
+  }
+
+  window.initSubscriptions = function () {
+    if (window._csSubsPromise) return window._csSubsPromise;
+    window._csSubsPromise = (async function () {
+      const canvas = document.getElementById('chart-sns');
+      if (!canvas) return;
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_STEWARDSHIP_SUMMARY || !cfg.SHEET_SUBSCRIPTIONS) { console.warn('[CosmetteSubscriptions] Missing SHEET_CONFIG keys.'); return; }
+
+      const subsKpiEl = document.querySelector('#kpi-active-subs .kpi-value');
+      const retentionKpiEl = document.querySelector('#kpi-retention .kpi-value');
+
+      try {
+        const [totalsCsv, retentionCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_SUBSCRIPTIONS.fileId, cfg.SHEET_SUBSCRIPTIONS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        ]);
+
+        // ── Active Subscriptions: bar chart + KPI ──────────────────────
+        if (csIsCsv(totalsCsv)) {
+          const rows = csvToRows(totalsCsv);
+          console.log('[CosmetteSubscriptions] totals sheet columns:', rows.length ? Object.keys(rows[0]) : '(no rows)');
+          const brandRows = rows.filter(csIsCosmetteRow);
+          const useRows = brandRows.length ? brandRows : rows;
+
+          const withDate = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const sortable = withDate.length > 0 && withDate.every(x => !isNaN(x.y) && !isNaN(x.m));
+          if (sortable) withDate.sort((a,b) => (a.y-b.y) || (a.m-b.m));
+
+          const monthAbbr = csMonths12;
+          const labels = [], values = [], years = [];
+          withDate.forEach(x => {
+            const r = x.row;
+            const total = num(r.total_subscriptions ?? r.total_subs ?? r.subscriptions ?? r.active_subscriptions);
+            if (total === null || total === 0) return;
+            labels.push((!isNaN(x.y) && !isNaN(x.m)) ? `${monthAbbr[x.m-1]} '${String(x.y).slice(2)}` : (r.month_label || r.month || r.date || ''));
+            values.push(total);
+            years.push(x.y);
+          });
+
+          const TRAILING_MONTHS = 13;
+          const trimmedLabels = labels.slice(-TRAILING_MONTHS);
+          const trimmedValues = values.slice(-TRAILING_MONTHS);
+          const trimmedYears = years.slice(-TRAILING_MONTHS);
+
+          if (values.length) {
+            const YEAR_COLORS = { 2025: '#f4dfd0', 2026: '#001f60' };
+            const distinctYears = [...new Set(trimmedYears)].sort((a,b) => a-b);
+            const bg = trimmedYears.map(y => {
+              if (YEAR_COLORS[y]) return YEAR_COLORS[y];
+              const idx = distinctYears.indexOf(y);
+              return idx <= 0 ? '#f4dfd0' : (idx === distinctYears.length-1 ? '#001f60' : '#6b7ba2');
+            });
+            if (window._csSnsChart) window._csSnsChart.destroy();
+            window._csSnsChart = new Chart(canvas, {
+              type: 'bar',
+              data: { labels: trimmedLabels, datasets: [{ label: 'Active Subscriptions', data: trimmedValues, backgroundColor: bg }] },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } } },
+            });
+            if (subsKpiEl) subsKpiEl.textContent = Math.round(values[values.length-1]).toLocaleString();
+            const subsMomEl = subsKpiEl ? subsKpiEl.nextElementSibling : null;
+            if (subsMomEl) {
+              if (values.length >= 2 && values[values.length-2]) {
+                const p = Math.round(((values[values.length-1] - values[values.length-2]) / values[values.length-2]) * 100);
+                const cls = p === 0 ? 'flat' : p > 0 ? 'up' : 'dn';
+                subsMomEl.className = 'kpi-mom ' + cls;
+                subsMomEl.textContent = `${p > 0 ? '▲ ' : p < 0 ? '▼ ' : ''}${Math.abs(p)}% MOM`;
+              } else { subsMomEl.className = 'kpi-mom flat'; subsMomEl.textContent = '—'; }
+            }
+          } else {
+            console.warn('[CosmetteSubscriptions] no total_subscriptions values matched — check column names. Available:', rows.length ? Object.keys(rows[0]) : '(none)');
+          }
+        } else {
+          console.warn('[CosmetteSubscriptions] totals sheet did not return CSV.');
+        }
+
+        // ── Retention KPI — STRICT brand match, no fallback (this sheet is
+        //    shared across brands; showing another brand's number if zero
+        //    match is worse than showing nothing). ──────────────────────
+        if (csIsCsv(retentionCsv)) {
+          const rows = csvToRows(retentionCsv);
+          console.log('[CosmetteSubscriptions] retention sheet — raw brand value per row:', JSON.stringify(rows.map(r => ({ year: r.year, month: r.month, brand: r.brand }))));
+          const target = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+          const useRows = rows.filter(r => (r.brand||'').toLowerCase().trim() === target);
+
+          function readRetention(r) {
+            if (!r) return null;
+            let v = num(r.retention_90_day ?? r.retention_90 ?? r.retention ?? r.retention_rate ?? r.subscribe_save_retention);
+            if (v !== null && v > 0 && v <= 1) v = v * 100;
+            return v;
+          }
+          const withDateR = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const hasHistory = withDateR.length > 1 && withDateR.every(x => !isNaN(x.y) && !isNaN(x.m));
+          if (hasHistory) withDateR.sort((a,b) => (a.y-b.y) || (a.m-b.m));
+
+          let brandRow = null, prevBrandRow = null;
+          if (hasHistory) {
+            for (let i = withDateR.length-1; i >= 0; i--) {
+              if (readRetention(withDateR[i].row) === null) continue;
+              brandRow = withDateR[i].row;
+              for (let j = i-1; j >= 0; j--) { if (readRetention(withDateR[j].row) !== null) { prevBrandRow = withDateR[j].row; break; } }
+              break;
+            }
+          }
+          if (!brandRow) brandRow = useRows[0] || null;
+
+          const retentionVal = readRetention(brandRow);
+          const retentionPrevVal = readRetention(prevBrandRow);
+          if (retentionVal !== null) {
+            if (retentionKpiEl) retentionKpiEl.textContent = Math.round(retentionVal) + '%';
+            const retMomEl = retentionKpiEl ? retentionKpiEl.nextElementSibling : null;
+            if (retMomEl) {
+              if (retentionPrevVal) {
+                const ppDiff = Math.round(retentionVal - retentionPrevVal);
+                const cls = ppDiff === 0 ? 'flat' : ppDiff > 0 ? 'up' : 'dn';
+                retMomEl.className = 'kpi-mom ' + cls;
+                retMomEl.textContent = `${ppDiff > 0 ? '▲ ' : ppDiff < 0 ? '▼ ' : ''}${Math.abs(ppDiff)}% MOM`;
+              } else { retMomEl.className = 'kpi-mom flat'; retMomEl.textContent = '—'; }
+            }
+          } else {
+            console.warn('[CosmetteSubscriptions] no retention value found after brand filter — rows matched:', useRows.length);
+            if (retentionKpiEl) retentionKpiEl.textContent = '—';
+          }
+        } else {
+          console.warn('[CosmetteSubscriptions] retention sheet did not return CSV.');
+        }
+      } catch (err) {
+        console.warn('[CosmetteSubscriptions] failed:', err.message);
+      }
+    })();
+    return window._csSubsPromise;
+  };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXTERNAL INVENTORY — Reviews, grouped by category
+// Categories come from SHEET_AMAZON_REVIEWS's own product_category column —
+// NOT a hardcoded SKU→category map (Skinuva's version hardcodes one, but
+// per Jaclyn those categories are still being finalized for Cosmette, so
+// this reads whatever distinct values exist in the sheet at render time).
+// Within each category: aggregated star-rating distribution + one sub-tab
+// per product showing its 5 most recent reviews. VOC Themes intentionally
+// NOT built — same reasoning as Skinuva's (real analysis, not a data pull).
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function renderStars(rating) {
+    const n = Math.max(0, Math.min(5, Math.round(parseFloat(rating) || 0)));
+    return `<span class="rev-stars-${n}">${'★'.repeat(n)}</span>`;
+  }
+  function renderReviewCard(r) {
+    const purchaseType = /vine/i.test(r.purchase_type || '') ? 'Amazon Vine' : 'Verified Purchase';
+    return `<div class="rev-card">
+      <div class="rev-hdr"><span class="rev-name">${escapeHtml(r.reviewer_name)}</span>${renderStars(r.star_rating)}<span class="rev-date">${escapeHtml(purchaseType)}</span></div>
+      <div class="rev-title">"${escapeHtml(r.review_title)}"</div>
+      <div class="rev-body">${escapeHtml(r.review_text)}</div>
+    </div>`;
+  }
+  function renderStarDistribution(reviews) {
+    if (!reviews.length) return '<div style="color:var(--muted);font-size:12px;">No reviews found for this category.</div>';
+    const counts = { 5:0, 4:0, 3:0, 2:0, 1:0 };
+    let sum = 0;
+    reviews.forEach(r => { const n = Math.max(1, Math.min(5, Math.round(parseFloat(r.star_rating) || 0))); counts[n]++; sum += parseFloat(r.star_rating) || 0; });
+    const total = reviews.length;
+    const avg = (sum / total).toFixed(1);
+    const barColors = { 5:null, 4:'#a8d9c8', 3:'var(--warn)', 2:'#e8a080', 1:'var(--danger)' };
+    const rows = [5,4,3,2,1].map(n => {
+      const pct = total ? Math.round((counts[n]/total)*100) : 0;
+      const colorStyle = barColors[n] ? `background:${barColors[n]};` : '';
+      return `<div class="star-bar-row"><div class="star-bar-lbl">${n} ★</div><div class="star-bar-track"><div class="star-bar-fill" style="width:${pct}%;${colorStyle}"></div></div><div class="star-bar-count">${counts[n]}</div></div>`;
+    }).join('');
+    return `<div style="font-size:26px;font-weight:700;color:var(--navy);margin-bottom:4px;">${avg} <span style="font-size:16px;color:var(--muted);font-weight:400;">/ 5</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${total.toLocaleString()} total reviews</div>
+      ${rows}`;
+  }
+  function slugify(s) {
+    return String(s || 'uncategorized').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'uncategorized';
+  }
+
+  window.initExternalReviews = function () {
+    if (window._csExtReviewsPromise) return window._csExtReviewsPromise;
+    window._csExtReviewsPromise = (async function () {
+      const root = document.getElementById('ext-reviews-root');
+      if (!root) return;
+      const cfg = window.SHEET_CFG.SHEET_AMAZON_REVIEWS;
+      if (!cfg) { root.innerHTML = '<div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">Reviews not yet connected</div></div>'; return; }
+
+      try {
+        const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const allReviews = csIsCsv(csv) ? csParseCsv(csv) : [];
+        console.log('[CosmetteReviews] total review rows loaded:', allReviews.length, '— columns:', allReviews.length ? Object.keys(allReviews[0]).join(' | ') : '(none)');
+        if (!allReviews.length) {
+          root.innerHTML = '<div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">No review data yet</div></div>';
+          return;
+        }
+
+        // Group by category (from the sheet's own column), then by product within each category.
+        const byCategory = {};
+        allReviews.forEach(r => {
+          const cat = (r.product_category || 'Uncategorized').trim() || 'Uncategorized';
+          (byCategory[cat] = byCategory[cat] || []).push(r);
+        });
+        const categories = Object.keys(byCategory).sort();
+
+        const catTabsHtml = categories.map((cat, i) =>
+          `<button class="cat-tab${i===0?' active':''}" onclick="window.__csSelectReviewCategory('${slugify(cat)}', this)">${escapeHtml(cat)}</button>`
+        ).join('');
+
+        const catPanelsHtml = categories.map((cat, i) => {
+          const catSlug = slugify(cat);
+          const catReviews = byCategory[cat];
+          const byProduct = {};
+          catReviews.forEach(r => {
+            const key = (r.sku || r.asin || r.product_name || 'unknown').trim();
+            (byProduct[key] = byProduct[key] || { label: r.product_name || key, reviews: [] }).reviews.push(r);
+          });
+          const productKeys = Object.keys(byProduct);
+          const prodTabsHtml = productKeys.map((key, j) =>
+            `<button class="prod-tab${j===0?' active':''}" onclick="window.__csSelectReviewProduct('${catSlug}','${slugify(key)}', this)">${escapeHtml(byProduct[key].label)}</button>`
+          ).join('');
+          const prodPanelsHtml = productKeys.map((key, j) => {
+            const sorted = byProduct[key].reviews.slice().sort((a,b) => (Date.parse(b.date)||0) - (Date.parse(a.date)||0));
+            const top5 = sorted.slice(0,5);
+            return `<div class="prod-panel${j===0?' active':''}" id="prodpanel-${catSlug}-${slugify(key)}">
+              ${top5.length ? top5.map(renderReviewCard).join('') : '<div style="color:var(--muted);font-size:12px;">No reviews found for this product.</div>'}
+            </div>`;
+          }).join('');
+
+          return `<div class="cat-panel${i===0?' active':''}" id="catpanel-${catSlug}">
+            <div class="two-col" style="margin-bottom:16px;">
+              <div class="card"><div class="card-title">Star Rating Distribution — ${escapeHtml(cat)}</div>${renderStarDistribution(catReviews)}</div>
+              <div class="card">
+                <div class="card-title">VOC Themes — ${escapeHtml(cat)}</div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.7;">📋 Not automated yet — categorizing review text into themes is a real analysis step, not a mechanical data pull. Coming later.</div>
+              </div>
+            </div>
+            <div class="prod-tabs">${prodTabsHtml}</div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;">Select Reviews — ${escapeHtml(cat)}</div>
+            ${prodPanelsHtml}
+          </div>`;
+        }).join('');
+
+        root.innerHTML = `<div class="cat-tabs">${catTabsHtml}</div>${catPanelsHtml}`;
+
+      } catch (err) {
+        console.warn('[CosmetteReviews] failed:', err.message);
+        root.innerHTML = '<div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">Error loading reviews</div></div>';
+      }
+    })();
+    return window._csExtReviewsPromise;
+  };
+
+  window.__csSelectReviewCategory = function (catSlug, btn) {
+    document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.cat-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`catpanel-${catSlug}`);
+    if (panel) panel.classList.add('active');
+  };
+  window.__csSelectReviewProduct = function (catSlug, prodSlug, btn) {
+    const scope = document.getElementById(`catpanel-${catSlug}`);
+    if (!scope) return;
+    scope.querySelectorAll('.prod-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    scope.querySelectorAll('.prod-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`prodpanel-${catSlug}-${prodSlug}`);
+    if (panel) panel.classList.add('active');
   };
 })();
 </script>
