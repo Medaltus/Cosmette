@@ -117,6 +117,11 @@ nav{flex:1;padding:8px 8px 0;}
 .period-pill{border:none;background:transparent;padding:7px 14px;border-radius:999px;font-size:12px;font-weight:600;color:var(--slate);cursor:pointer;transition:all .15s;white-space:nowrap;}
 .period-pill:hover{color:var(--navy);}
 .period-pill.active{background:var(--navy);color:#fff;}
+.pd-event-dates{font-size:13px;color:var(--muted);margin:-8px 0 18px;}
+.pd-top-sellers-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.pd-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted);}
+.pd-legend span{display:inline-flex;align-items:center;gap:5px;}
+.pd-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
 .channel-page{display:none;}
 .channel-page.active{display:block;}
 
@@ -981,14 +986,207 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   </div>
 
   <!-- ══ EVENTS (INTERNAL) ══ -->
+  <!-- ══ EVENTS (INTERNAL) ══
+       4 recurring Amazon sales events, each backed by its own pre-scoped
+       orders/ad-orders tab (SHEET_BBS_ORDERS, SHEET_PD_ORDERS,
+       SHEET_PBBD_ORDERS/SHEET_PBDD_AD_ORDERS, SHEET_BFCM_ORDERS — all
+       already in SHEET_CONFIG). Adapted from Skinuva's real makeInitFn()
+       factory: one generic init function parameterized per event rather
+       than 4 duplicated blocks. No separate "Strategy" tab (Skinuva has
+       one with hand-written playbook copy specific to their events/dates —
+       not something to fabricate as Cosmette's own content without
+       Jaclyn's input; add later if wanted). -->
   <div class="page" id="page-events">
     <div class="page-hd">
-      <div><div class="page-title">Events</div><div class="page-sub">Internal · Last synced —</div></div>
+      <div><div class="page-title">Events</div><div class="page-sub">Promotional event performance</div></div>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">📅</div>
-      <div class="ph-title">Events Page</div>
-      <div class="ph-sub">Deals, promotions, and campaign calendar — mirrors the standard Medaltus internal Events layout.</div>
+    <div class="channel-tabs-row">
+      <div class="channel-tabs">
+        <button class="ch-tab active" onclick="showChannel('events','ev-bss',this)">Big Spring Sale</button>
+        <button class="ch-tab" onclick="showChannel('events','ev-pd',this)">Prime Day</button>
+        <button class="ch-tab" onclick="showChannel('events','ev-pbdd',this)">Prime Big Deal Days</button>
+        <button class="ch-tab" onclick="showChannel('events','ev-bfcm',this)">BFCM</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="staging-note" id="events-report-status"></span>
+        <button class="btn-approve" id="events-approve-btn" style="background:var(--green);border-color:var(--green);color:#fff;">✓ Approved &amp; Ready</button>
+      </div>
+    </div>
+
+    <div class="channel-page active" id="ev-bss">
+      <div class="page-hd" style="margin-bottom:4px;">
+        <div><div class="page-title" style="font-size:18px;" id="bss-event-title">Big Spring Sale</div></div>
+      </div>
+      <div class="pd-event-dates" id="bss-event-dates">Loading event dates…</div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Executive Summary</div>
+          <button class="btn-edit" id="bss-exec-edit-btn">✏️ Edit</button>
+        </div>
+        <div style="font-size:17px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:10px;" id="bss-exec-summary-headline" data-placeholder="Add a title summarizing this event's performance."></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="bss-exec-summary-body" data-placeholder="Add the event recap."></div>
+      </div>
+      <div class="insight-editor" id="bss-exec-editor">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Edit the title and summary shown at the top of this event report.</div>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+        <textarea id="textarea-bss-exec-headline" style="height:52px;margin-bottom:10px;"></textarea>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+        <textarea id="textarea-bss-exec-body" style="min-height:100px;"></textarea>
+        <div class="editor-footer">
+          <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+          <button class="btn-cancel" id="bss-exec-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="bss-exec-save-btn">Save</button>
+        </div>
+      </div>
+
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="bss-kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bss-kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bss-kpi-avg-order"><div class="kpi-label">Average Order</div><div class="kpi-value sm">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bss-kpi-units-ads"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bss-kpi-units-organic"><div class="kpi-label">Units (Organic)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="pd-top-sellers-row">
+          <div class="card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div>
+          <div class="pd-legend" id="bss-legend"></div>
+        </div>
+        <div id="bss-top-sellers-empty" style="display:none;color:var(--muted);font-size:12px;padding:20px 0;">No unit sales found for either event year.</div>
+        <div style="position:relative;height:420px;"><canvas id="bss-chart-top-sellers"></canvas></div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="ev-pd">
+      <div class="page-hd" style="margin-bottom:4px;">
+        <div><div class="page-title" style="font-size:18px;" id="pd-event-title">Prime Day</div></div>
+      </div>
+      <div class="pd-event-dates" id="pd-event-dates">Loading event dates…</div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Executive Summary</div>
+          <button class="btn-edit" id="pd-exec-edit-btn">✏️ Edit</button>
+        </div>
+        <div style="font-size:17px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:10px;" id="pd-exec-summary-headline" data-placeholder="Add a title summarizing this event's performance."></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="pd-exec-summary-body" data-placeholder="Add the event recap."></div>
+      </div>
+      <div class="insight-editor" id="pd-exec-editor">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Edit the title and summary shown at the top of this event report.</div>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+        <textarea id="textarea-pd-exec-headline" style="height:52px;margin-bottom:10px;"></textarea>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+        <textarea id="textarea-pd-exec-body" style="min-height:100px;"></textarea>
+        <div class="editor-footer">
+          <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+          <button class="btn-cancel" id="pd-exec-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="pd-exec-save-btn">Save</button>
+        </div>
+      </div>
+
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="pd-kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pd-kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pd-kpi-avg-order"><div class="kpi-label">Average Order</div><div class="kpi-value sm">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pd-kpi-units-ads"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pd-kpi-units-organic"><div class="kpi-label">Units (Organic)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="pd-top-sellers-row">
+          <div class="card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div>
+          <div class="pd-legend" id="pd-legend"></div>
+        </div>
+        <div id="pd-top-sellers-empty" style="display:none;color:var(--muted);font-size:12px;padding:20px 0;">No unit sales found for either event year.</div>
+        <div style="position:relative;height:420px;"><canvas id="pd-chart-top-sellers"></canvas></div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="ev-pbdd">
+      <div class="page-hd" style="margin-bottom:4px;">
+        <div><div class="page-title" style="font-size:18px;" id="pbdd-event-title">Prime Big Deal Days</div></div>
+      </div>
+      <div class="pd-event-dates" id="pbdd-event-dates">Loading event dates…</div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Executive Summary</div>
+          <button class="btn-edit" id="pbdd-exec-edit-btn">✏️ Edit</button>
+        </div>
+        <div style="font-size:17px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:10px;" id="pbdd-exec-summary-headline" data-placeholder="Add a title summarizing this event's performance."></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="pbdd-exec-summary-body" data-placeholder="Add the event recap."></div>
+      </div>
+      <div class="insight-editor" id="pbdd-exec-editor">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Edit the title and summary shown at the top of this event report.</div>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+        <textarea id="textarea-pbdd-exec-headline" style="height:52px;margin-bottom:10px;"></textarea>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+        <textarea id="textarea-pbdd-exec-body" style="min-height:100px;"></textarea>
+        <div class="editor-footer">
+          <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+          <button class="btn-cancel" id="pbdd-exec-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="pbdd-exec-save-btn">Save</button>
+        </div>
+      </div>
+
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="pbdd-kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pbdd-kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pbdd-kpi-avg-order"><div class="kpi-label">Average Order</div><div class="kpi-value sm">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pbdd-kpi-units-ads"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="pbdd-kpi-units-organic"><div class="kpi-label">Units (Organic)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="pd-top-sellers-row">
+          <div class="card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div>
+          <div class="pd-legend" id="pbdd-legend"></div>
+        </div>
+        <div id="pbdd-top-sellers-empty" style="display:none;color:var(--muted);font-size:12px;padding:20px 0;">No unit sales found for either event year.</div>
+        <div style="position:relative;height:420px;"><canvas id="pbdd-chart-top-sellers"></canvas></div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="ev-bfcm">
+      <div class="page-hd" style="margin-bottom:4px;">
+        <div><div class="page-title" style="font-size:18px;" id="bfcm-event-title">BFCM</div></div>
+      </div>
+      <div class="pd-event-dates" id="bfcm-event-dates">Loading event dates…</div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Executive Summary</div>
+          <button class="btn-edit" id="bfcm-exec-edit-btn">✏️ Edit</button>
+        </div>
+        <div style="font-size:17px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:10px;" id="bfcm-exec-summary-headline" data-placeholder="Add a title summarizing this event's performance."></div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="bfcm-exec-summary-body" data-placeholder="Add the event recap."></div>
+      </div>
+      <div class="insight-editor" id="bfcm-exec-editor">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Edit the title and summary shown at the top of this event report.</div>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
+        <textarea id="textarea-bfcm-exec-headline" style="height:52px;margin-bottom:10px;"></textarea>
+        <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
+        <textarea id="textarea-bfcm-exec-body" style="min-height:100px;"></textarea>
+        <div class="editor-footer">
+          <span class="editor-note">Saves directly to the report sheet as a draft.</span>
+          <button class="btn-cancel" id="bfcm-exec-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="bfcm-exec-save-btn">Save</button>
+        </div>
+      </div>
+
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="bfcm-kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bfcm-kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bfcm-kpi-avg-order"><div class="kpi-label">Average Order</div><div class="kpi-value sm">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bfcm-kpi-units-ads"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="bfcm-kpi-units-organic"><div class="kpi-label">Units (Organic)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="pd-top-sellers-row">
+          <div class="card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div>
+          <div class="pd-legend" id="bfcm-legend"></div>
+        </div>
+        <div id="bfcm-top-sellers-empty" style="display:none;color:var(--muted);font-size:12px;padding:20px 0;">No unit sales found for either event year.</div>
+        <div style="position:relative;height:420px;"><canvas id="bfcm-chart-top-sellers"></canvas></div>
+      </div>
     </div>
   </div>
 
@@ -1086,6 +1284,11 @@ function showPage(id, btn) {
   if (id === 'sales' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (id === 'sales-external' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
   if (id === 'marketing' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
+  if (id === 'events') {
+    window._csActiveEventName = 'Big Spring Sale'; // matches the default-active ev-bss tab
+    if (typeof window.initEventReport === 'function') window.initEventReport('ev-bss');
+    if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1107,6 +1310,13 @@ function showChannel(page, channelId, btn) {
   // Per-channel lazy inits — cheap to call repeatedly, each memoizes itself.
   if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
+
+  const EVENT_NAME_BY_CHANNEL = { 'ev-bss': 'Big Spring Sale', 'ev-pd': 'Prime Day', 'ev-pbdd': 'Prime Big Deal Days', 'ev-bfcm': 'Black Friday & Cyber Monday' };
+  if (EVENT_NAME_BY_CHANNEL[channelId]) {
+    window._csActiveEventName = EVENT_NAME_BY_CHANNEL[channelId];
+    if (typeof window.initEventReport === 'function') window.initEventReport(channelId);
+    if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
+  }
 
   // Period selector only makes sense on Amazon (internal Sales page) — hidden
   // everywhere else, matching Skinuva's real behavior.
@@ -1811,8 +2021,10 @@ window.initAmazonSalesInternal = function () {
       return rows.find(r => keys.every(k => String(r[k]||'') === String(matchFields[k]))) || null;
     } catch (e) { console.warn('[InsightBlock] fetchRow failed:', e.message); return null; }
   }
-  async function saveFields({ year, month, fields, action }) {
-    const body = { brand: BRAND, scope: 'monthly', action, year, month, fields };
+  async function saveFields({ scope, year, month, eventName, eventYear, fields, action }) {
+    const body = { brand: BRAND, scope: scope || 'monthly', action, fields };
+    if ((scope || 'monthly') === 'monthly') { body.year = year; body.month = month; }
+    else { body.eventName = eventName; body.eventYear = eventYear; }
     const res = await fetch('/api/write-report-insights', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
@@ -1821,17 +2033,47 @@ window.initAmazonSalesInternal = function () {
     return json.row;
   }
 
+  // Same idea as Skinuva's own getLatestEventYear() — finds the Events-tab
+  // row with the most recent start_date for a given event name, used to
+  // key both event insight blocks and the events Approve button. Reads the
+  // shared, non-brand-specific Events tab (Master SKU List workbook).
+  async function getLatestEventYear(eventName) {
+    const EVENTS_SHEET_ID = '1NNRTRQxQl2r4XivAvH700CC39p49GD2xfZlyRNqahGA';
+    const EVENTS_GID = '347530381';
+    try {
+      const csv = await fetch(`https://docs.google.com/spreadsheets/d/${EVENTS_SHEET_ID}/export?format=csv&gid=${EVENTS_GID}&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      if (!csIsCsv(csv)) return null;
+      const rows = csParseCsv(csv).filter(r => (r['Event Name'] || '').trim() === eventName);
+      rows.sort((a,b) => (b.start_date || '').localeCompare(a.start_date || ''));
+      return rows[0] ? rows[0].start_date.slice(0,4) : null;
+    } catch (e) { console.warn('[InsightBlock] getLatestEventYear failed:', e.message); return null; }
+  }
+  window.getLatestEventYear = getLatestEventYear;
+
   async function wireInsightBlock(cfg) {
     const editBtn = document.getElementById(cfg.editBtnId);
     const saveBtn = document.getElementById(cfg.saveBtnId);
     const cancelBtn = document.getElementById(cfg.cancelBtnId);
     const editorEl = document.getElementById(cfg.editorId);
     if (!editBtn || !saveBtn || !editorEl) return;
-    const { year, month } = csGetLastFullMonth();
-    const matchFields = { year: String(year), month: String(month) };
+
+    const scope = cfg.scope || 'monthly';
+    let key, tabName, matchFields;
+    if (scope === 'monthly') {
+      const { year, month } = csGetLastFullMonth();
+      key = { year, month };
+      tabName = BRAND;
+      matchFields = { year: String(year), month: String(month) };
+    } else {
+      const eventYear = await getLatestEventYear(cfg.eventName);
+      if (!eventYear) { console.warn('[InsightBlock] no Events-tab row found for', cfg.eventName); return; }
+      key = { eventName: cfg.eventName, eventYear };
+      tabName = `${BRAND}_events`;
+      matchFields = { event_name: cfg.eventName, event_year: eventYear };
+    }
 
     async function load() {
-      const row = await fetchRow(BRAND, matchFields);
+      const row = await fetchRow(tabName, matchFields);
       cfg.fields.forEach(f => {
         const val = row ? (row[f.key] || '') : '';
         const disp = document.getElementById(f.displayId);
@@ -1854,7 +2096,7 @@ window.initAmazonSalesInternal = function () {
       try {
         const fieldsToSave = {};
         cfg.fields.forEach(f => { const ta = document.getElementById(f.textareaId); if (ta) fieldsToSave[f.key] = ta.value.trim(); });
-        await saveFields({ year, month, fields: fieldsToSave, action: 'save' });
+        await saveFields({ scope, year: key.year, month: key.month, eventName: key.eventName, eventYear: key.eventYear, fields: fieldsToSave, action: 'save' });
         await load();
         editorEl.style.display = 'none';
       } catch (e) { alert('Save failed: ' + e.message); }
@@ -1867,22 +2109,38 @@ window.initAmazonSalesInternal = function () {
     const btn = document.getElementById(cfg.btnId);
     const statusEl = cfg.statusElId ? document.getElementById(cfg.statusElId) : null;
     if (!btn) return;
+    const scope = cfg.scope || 'monthly';
     async function refresh() {
-      const { year, month } = csGetLastFullMonth();
-      const row = await fetchRow(BRAND, { year: String(year), month: String(month) });
+      const key = await cfg.resolveKey();
+      if (!key) {
+        btn.disabled = true;
+        if (statusEl) statusEl.textContent = '';
+        return null;
+      }
+      btn.disabled = false;
+      const tabName = scope === 'monthly' ? BRAND : `${BRAND}_events`;
+      const matchFields = scope === 'monthly'
+        ? { year: String(key.year), month: String(key.month) }
+        : { event_name: key.eventName, event_year: key.eventYear };
+      const row = await fetchRow(tabName, matchFields);
       const status = row ? (row.status || 'Draft') : 'Draft';
       if (statusEl) { statusEl.textContent = status === 'Approved' ? '● Approved & Live' : '◎ Draft'; statusEl.style.color = status === 'Approved' ? '#1a9b6f' : ''; }
-      return { year, month };
+      return key;
     }
     btn.addEventListener('click', async () => {
-      const { year, month } = await refresh();
+      const key = await cfg.resolveKey();
+      if (!key) return;
       const orig = btn.textContent;
       btn.disabled = true; btn.textContent = 'Approving…';
-      try { await saveFields({ year, month, action: 'approve' }); await refresh(); }
+      try {
+        await saveFields({ scope, year: key.year, month: key.month, eventName: key.eventName, eventYear: key.eventYear, action: 'approve' });
+        await refresh();
+      }
       catch (e) { alert('Approve failed: ' + e.message); }
       finally { btn.disabled = false; btn.textContent = orig; }
     });
     refresh();
+    return { refresh };
   }
 
   window.wireInsightBlock = wireInsightBlock;
@@ -1904,7 +2162,40 @@ window.initAmazonSalesInternal = function () {
       editBtnId: 'tp-insight-edit-btn', saveBtnId: 'tp-insight-save', cancelBtnId: 'tp-insight-cancel', editorId: 'tp-insight-editor',
       fields: [ { key: 'amazon_key_insight', displayId: 'tp-insight-text', textareaId: 'tp-insight-textarea' } ],
     });
-    wireApproveButton({ btnId: 'sales-approve-btn', statusElId: 'sales-report-status' });
+    wireApproveButton({
+      scope: 'monthly', btnId: 'sales-approve-btn', statusElId: 'sales-report-status',
+      resolveKey: async () => csGetLastFullMonth(),
+    });
+
+    // Events — one exec-summary block per event tab, plus a single
+    // section-level Approve button that approves whichever event tab is
+    // currently active (tracked via window._csActiveEventName, set in
+    // showChannel()/showPage()).
+    [
+      { eventName: 'Big Spring Sale', prefix: 'bss' },
+      { eventName: 'Prime Day', prefix: 'pd' },
+      { eventName: 'Prime Big Deal Days', prefix: 'pbdd' },
+      { eventName: 'Black Friday & Cyber Monday', prefix: 'bfcm' },
+    ].forEach(({ eventName, prefix }) => {
+      window.wireInsightBlock({
+        scope: 'event', eventName,
+        fields: [
+          { key: 'summary_title', displayId: `${prefix}-exec-summary-headline`, textareaId: `textarea-${prefix}-exec-headline`, placeholder: "Add a title summarizing this event's performance." },
+          { key: 'summary_body',  displayId: `${prefix}-exec-summary-body`,     textareaId: `textarea-${prefix}-exec-body`,     placeholder: 'Add the event recap.' },
+        ],
+        editBtnId: `${prefix}-exec-edit-btn`, saveBtnId: `${prefix}-exec-save-btn`, cancelBtnId: `${prefix}-exec-cancel-btn`, editorId: `${prefix}-exec-editor`,
+      });
+    });
+    const eventsApprove = window.wireApproveButton({
+      scope: 'event', btnId: 'events-approve-btn', statusElId: 'events-report-status',
+      resolveKey: async () => {
+        const eventName = window._csActiveEventName;
+        if (!eventName) return null;
+        const eventYear = await window.getLatestEventYear(eventName);
+        return eventYear ? { eventName, eventYear } : null;
+      },
+    });
+    window._refreshEventsApproveBtn = eventsApprove ? eventsApprove.refresh : null;
   });
 })();
 
@@ -2227,6 +2518,219 @@ document.addEventListener('DOMContentLoaded', () => {
     fields: [ { key: 'ad_impressions_note', displayId: 'adimp-insight-text', textareaId: 'adimp-insight-textarea' } ],
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════
+// EVENTS — 4 recurring Amazon sales events, one generic init function
+// parameterized per event (adapted from Skinuva's real makeInitFn()
+// factory). Each event's orders/ad-orders sheet is already scoped to just
+// that event's date window server-side (by the sync cron) — this only
+// reads and aggregates, filtered by COS + year.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  const EVENTS_SHEET_ID = '1NNRTRQxQl2r4XivAvH700CC39p49GD2xfZlyRNqahGA'; // shared, non-brand-specific Events tab
+  const EVENTS_GID = '347530381';
+  const TOP_SELLERS_COUNT = 7;
+
+  function getEventConfigs() {
+    const cfg = window.SHEET_CFG;
+    return {
+      'ev-bss':  { eventName: 'Big Spring Sale', prefix: 'bss', orders: cfg.SHEET_BBS_ORDERS, adOrders: cfg.SHEET_BBS_AD_ORDERS },
+      'ev-pd':   { eventName: 'Prime Day', prefix: 'pd', orders: cfg.SHEET_PD_ORDERS, adOrders: cfg.SHEET_PD_AD_ORDERS },
+      'ev-pbdd': { eventName: 'Prime Big Deal Days', prefix: 'pbdd', orders: cfg.SHEET_PBBD_ORDERS, adOrders: cfg.SHEET_PBDD_AD_ORDERS },
+      'ev-bfcm': { eventName: 'Black Friday & Cyber Monday', prefix: 'bfcm', orders: cfg.SHEET_BFCM_ORDERS, adOrders: cfg.SHEET_BFCM_AD_ORDERS },
+    };
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const [y,m,d] = iso.split('-').map(Number);
+    return `${csMonths12[m-1]} ${d}, ${y}`;
+  }
+  function eventDatesHtml(current, previous) {
+    if (!current) return '';
+    const currentHtml = `<span style="color:var(--navy);font-weight:700;">${fmtDate(current.start_date)} – ${fmtDate(current.end_date)}</span>`;
+    const prevHtml = previous ? ` <span style="color:var(--muted);font-weight:400;">· vs. ${fmtDate(previous.start_date)} – ${fmtDate(previous.end_date)} last year</span>` : '';
+    return currentHtml + prevHtml;
+  }
+  // Normalizes punctuation/case before comparing — "Black Friday & Cyber
+  // Monday" vs "...and..." could differ across sheets (same risk Skinuva
+  // flagged for the same event name).
+  function normEventName(s) {
+    return (s || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  async function getEventDates(eventName) {
+    const csv = await fetch(`https://docs.google.com/spreadsheets/d/${EVENTS_SHEET_ID}/export?format=csv&gid=${EVENTS_GID}&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+    if (!csIsCsv(csv)) return { current: null, previous: null };
+    const target = normEventName(eventName);
+    const rows = csParseCsv(csv).filter(r => normEventName(r['Event Name']) === target);
+    rows.sort((a,b) => (b.start_date || '').localeCompare(a.start_date || ''));
+    return { current: rows[0] || null, previous: rows[1] || null };
+  }
+
+  function aggregateYear(rows, year) {
+    const filtered = rows.filter(r => String(r.year).trim() === String(year) && csIsCosmetteRow(r));
+    const validRows = filtered.filter(r => {
+      const status = (r.status || '').trim().toLowerCase();
+      if (status === 'cancelled') return false;
+      if ((r.promotion_ids || '').toLowerCase().includes('vine')) return false;
+      return true;
+    });
+    const orderIds = new Set(validRows.map(r => r.order_id).filter(Boolean));
+    const totalOrders = orderIds.size;
+    const totalUnits = validRows.reduce((s, r) => s + (parseInt(r.unit_count, 10) || 0), 0);
+    const orderTotals = {};
+    validRows.forEach(r => { if (r.order_id) orderTotals[r.order_id] = (orderTotals[r.order_id] || 0) + csParseAmt(r.item_price); });
+    const totalRevenue = Object.values(orderTotals).reduce((s, v) => s + v, 0);
+    const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    return { totalUnits, totalOrders, avgOrder, rows: validRows };
+  }
+  function sumAdUnits(rows, year) {
+    return rows
+      .filter(r => String(r.Year || r.year).trim() === String(year) && csIsCosmetteRow(r))
+      .reduce((s, r) => s + (parseInt(String(r.ad_units || '').replace(/^'/, ''), 10) || 0), 0);
+  }
+  async function getProductNames() {
+    const map = {};
+    const cfg = window.SHEET_CFG.SHEET_MASTER_SKU_LIST;
+    if (!cfg) return map;
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid)).then(r => r.ok ? r.text() : '').catch(() => '');
+      if (!csIsCsv(csv)) return map;
+      const lines = csv.trim().split('\n');
+      for (let i = 1; i < lines.length; i++) {
+        const cols = csParseCsvLine(lines[i]);
+        const asin = (cols[0] || '').replace(/^"|"$/g,'').trim().toUpperCase();
+        const name = (cols[2] || '').replace(/^"|"$/g,'').trim();
+        if (asin && name) map[asin] = name;
+      }
+    } catch (e) { console.warn('[EventReport] name lookup failed:', e.message); }
+    return map;
+  }
+  function wrapBarLabel(label, maxLen) {
+    const words = String(label).split(' ');
+    const lines = []; let current = '';
+    words.forEach(w => {
+      const test = current ? current + ' ' + w : w;
+      if (test.length > maxLen && current) { lines.push(current); current = w; } else { current = test; }
+    });
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  function buildTopSellersChart(prefix, eventLabel, currYear, prevYear, currRows, prevRows, nameMap) {
+    const byAsin = {};
+    currRows.forEach(r => { const asin = (r.asin||'').trim().toUpperCase(); if (!asin) return; byAsin[asin] = byAsin[asin] || {curr:0,prev:0}; byAsin[asin].curr += parseInt(r.unit_count,10) || 0; });
+    prevRows.forEach(r => { const asin = (r.asin||'').trim().toUpperCase(); if (!asin) return; byAsin[asin] = byAsin[asin] || {curr:0,prev:0}; byAsin[asin].prev += parseInt(r.unit_count,10) || 0; });
+    const entries = Object.entries(byAsin)
+      .filter(([,v]) => v.curr > 0 || v.prev > 0)
+      .map(([asin,v]) => ({ asin, name: nameMap[asin] || asin, ...v }))
+      .sort((a,b) => b.curr - a.curr)
+      .slice(0, TOP_SELLERS_COUNT);
+
+    const emptyEl = document.getElementById(`${prefix}-top-sellers-empty`);
+    if (!entries.length) { if (emptyEl) emptyEl.style.display = 'block'; return; }
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    const legendEl = document.getElementById(`${prefix}-legend`);
+    if (legendEl) legendEl.innerHTML = `<span><i style="background:#8a94a6;"></i>${prevYear || '—'}</span><span><i style="background:#1b2559;"></i>${currYear}</span>`;
+
+    const canvas = document.getElementById(`${prefix}-chart-top-sellers`);
+    if (!canvas) return;
+    const chartRef = `_cs${prefix}TopSellersChart`;
+    if (window[chartRef]) window[chartRef].destroy();
+    window[chartRef] = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: entries.map(e => e.name),
+        datasets: [
+          { label: `${eventLabel} ${prevYear || ''}`, data: entries.map(e => e.prev), backgroundColor: '#8a94a6', borderRadius: 3 },
+          { label: `${eventLabel} ${currYear}`, data: entries.map(e => e.curr), backgroundColor: '#1b2559', borderRadius: 3 },
+        ],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        layout: { padding: { right: 64 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { afterBody: items => { const e = entries[items[0].dataIndex]; const p = csPct(e.curr, e.prev) ?? 0; return [`YOY: ${p > 0 ? '+' : ''}${p}%`]; } } },
+        },
+        scales: {
+          x: { display: false, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { callback: function (value) { return wrapBarLabel(this.getLabelForValue(value), 16); } } },
+        },
+      },
+    });
+  }
+
+  const promiseByChannel = {};
+  window.initEventReport = function (channelId) {
+    if (promiseByChannel[channelId]) return promiseByChannel[channelId];
+    const cfg = getEventConfigs()[channelId];
+    if (!cfg) return;
+    promiseByChannel[channelId] = (async function () {
+      console.log(`[CosmetteEvents] init${cfg.prefix}Report() called`);
+      const kpiIds = [`${cfg.prefix}-kpi-total-units`, `${cfg.prefix}-kpi-total-orders`, `${cfg.prefix}-kpi-avg-order`, `${cfg.prefix}-kpi-units-ads`, `${cfg.prefix}-kpi-units-organic`];
+      if (!cfg.orders || !cfg.adOrders) {
+        console.warn(`[CosmetteEvents:${cfg.prefix}] Missing SHEET_CONFIG keys for this event.`);
+        kpiIds.forEach(id => { csSetKpiValue(id, '—'); csSetBadge(id, 'kpi-mom', null); });
+        return;
+      }
+      try {
+        const [dates, ordersCsv, adOrdersCsv, nameMap] = await Promise.all([
+          getEventDates(cfg.eventName),
+          fetch(csSheetCsvUrl(cfg.orders.fileId, cfg.orders.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.adOrders.fileId, cfg.adOrders.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+          getProductNames(),
+        ]);
+
+        const dateEl = document.getElementById(`${cfg.prefix}-event-dates`);
+        if (dates.current) { if (dateEl) dateEl.innerHTML = eventDatesHtml(dates.current, dates.previous); }
+        else if (dateEl) { dateEl.textContent = 'Event dates not found on Events tab.'; }
+
+        if (!csIsCsv(ordersCsv) || !dates.current) {
+          kpiIds.forEach(id => { csSetKpiValue(id, '—'); csSetBadge(id, 'kpi-mom', null); });
+          return;
+        }
+
+        const allOrderRows = csParseCsv(ordersCsv);
+        const allAdRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv) : [];
+        const currYear = dates.current.start_date.slice(0,4);
+        const prevYear = dates.previous ? dates.previous.start_date.slice(0,4) : null;
+
+        const curr = aggregateYear(allOrderRows, currYear);
+        const prev = prevYear ? aggregateYear(allOrderRows, prevYear) : null;
+        const adUnits = sumAdUnits(allAdRows, currYear);
+        const prevAdUnits = prevYear ? sumAdUnits(allAdRows, prevYear) : 0;
+
+        const fmt = n => (n ?? 0).toLocaleString();
+        const fmt2 = n => parseFloat(n ?? 0).toFixed(2);
+
+        csSetKpiValue(`${cfg.prefix}-kpi-total-units`, fmt(curr.totalUnits));
+        csSetBadge(`${cfg.prefix}-kpi-total-units`, 'kpi-mom', prev ? csPct(curr.totalUnits, prev.totalUnits) : null, 'YOY');
+        csSetKpiValue(`${cfg.prefix}-kpi-total-orders`, fmt(curr.totalOrders));
+        csSetBadge(`${cfg.prefix}-kpi-total-orders`, 'kpi-mom', prev ? csPct(curr.totalOrders, prev.totalOrders) : null, 'YOY');
+        csSetKpiValue(`${cfg.prefix}-kpi-avg-order`, '$' + fmt2(curr.avgOrder));
+        csSetBadge(`${cfg.prefix}-kpi-avg-order`, 'kpi-mom', prev ? csPct(Math.round(curr.avgOrder*100), Math.round(prev.avgOrder*100)) : null, 'YOY');
+        csSetKpiValue(`${cfg.prefix}-kpi-units-ads`, fmt(adUnits));
+        csSetBadge(`${cfg.prefix}-kpi-units-ads`, 'kpi-mom', prev ? csPct(adUnits, prevAdUnits) : null, 'YOY');
+        const organicUnits = curr.totalUnits - adUnits;
+        const prevOrganic = prev ? prev.totalUnits - prevAdUnits : null;
+        csSetKpiValue(`${cfg.prefix}-kpi-units-organic`, fmt(organicUnits));
+        csSetBadge(`${cfg.prefix}-kpi-units-organic`, 'kpi-mom', prevOrganic != null ? csPct(organicUnits, prevOrganic) : null, 'YOY');
+
+        buildTopSellersChart(cfg.prefix, cfg.eventName, currYear, prevYear, curr.rows, prev ? prev.rows : [], nameMap);
+
+      } catch (err) {
+        console.error(`[CosmetteEvents:${cfg.prefix}]`, err.message);
+        const dateEl = document.getElementById(`${cfg.prefix}-event-dates`);
+        if (dateEl) dateEl.textContent = 'Error loading event data: ' + err.message;
+      }
+    })();
+    return promiseByChannel[channelId];
+  };
+})();
 </script>
 </body>
 </html>
