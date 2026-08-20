@@ -3742,9 +3742,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Grouped by the SAME categories used on Listing Audit and Insights
+      // Products (Cleansers/Serums/Moisturizer/Eyes/Masks — Master SKU
+      // List column K, "COS • " prefix stripped) rather than this sheet's
+      // own product_category column (a verbose, per-review Amazon
+      // taxonomy breadcrumb like "Beauty & Personal Care › Skin Care ›
+      // Face › Cleansers › Washes") — keeps categories consistent across
+      // every page instead of three different category schemes.
+      const names = await csFetchProductNames();
       const byCategory = {};
       allReviews.forEach(r => {
-        const cat = (r.product_category || 'Uncategorized').trim() || 'Uncategorized';
+        const sku = csBaseSku(r.sku);
+        const cat = names.categoryBySku[sku] || 'Uncategorized';
         (byCategory[cat] = byCategory[cat] || []).push(r);
       });
       const categories = Object.keys(byCategory).sort();
