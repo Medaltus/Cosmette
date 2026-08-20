@@ -1609,21 +1609,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div style="position:relative;height:200px;"><canvas id="chart-ins-units"></canvas></div>
       </div>
 
-      <!-- Brand at a Glance + Priority Actions both need SHEET_INSIGHTS
-           (Run Analysis cron output) — doesn't exist for Cosmette yet.
-           Stubbed rather than fabricated. -->
       <div class="glance-grid">
         <div class="card">
           <div class="card-title">Brand at a Glance</div>
-          <div class="placeholder-block" style="padding:24px;">
-            <div class="ph-sub">Needs SHEET_INSIGHTS — output of a "Run Analysis" backend cron that doesn't exist for Cosmette yet (same gap as the Insights Log tab).</div>
-          </div>
+          <div id="glance-list"><div class="glance-item"><div class="glance-dot"></div><div class="glance-text">Loading…</div></div></div>
         </div>
         <div class="card">
           <div class="card-title">This Month's Priority Actions</div>
-          <div class="placeholder-block" style="padding:24px;">
-            <div class="ph-sub">Same dependency — needs severity-flagged rows from the Run Analysis cron.</div>
-          </div>
+          <div id="ins-priority-list"><div class="priority-item"><div class="priority-num">1</div><div class="priority-text">Loading…</div></div></div>
         </div>
       </div>
     </div>
@@ -1652,13 +1645,12 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
     </div>
 
-    <!-- ── INSIGHTS LOG ── -->
+    <!-- ── INSIGHTS LOG ── (SHEET_INSIGHTS's cosmette tab exists now, but
+         has no rows yet — run-analysis.js hasn't run for Cosmette. This
+         renders live and will show real entries the moment it does;
+         "No insights logged yet" is the correct/expected empty state. -->
     <div class="channel-page" id="ins-log">
-      <div class="placeholder-block">
-        <div class="ph-icon">📝</div>
-        <div class="ph-title">Insights Log</div>
-        <div class="ph-sub">Needs SHEET_INSIGHTS populated with real rows — this is a backend automation (run-analysis.js) that has to exist and run for Cosmette specifically, same as write-report-insights.js did. Not just a missing sheet key.</div>
-      </div>
+      <div id="ai-log-entries"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
     </div>
   </div>
 
@@ -1756,11 +1748,23 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div><div class="page-title">Organic</div><div class="page-sub">Keyword rank tracking · Fastest path to page 1</div></div>
     </div>
 
-    <div class="placeholder-block" style="margin-bottom:20px;">
-      <div class="ph-icon">💡</div>
-      <div class="ph-title">Insights &amp; Fastest Path to Page 1</div>
-      <div class="ph-sub">Needs SHEET_INSIGHTS — run-analysis.js output (same dependency as the Insights page's Insights Log tab).</div>
+    <!-- Summary/Win/Action/Opportunity cards need organic_json from
+         SHEET_INSIGHTS (run-analysis.js output). Tab exists for Cosmette
+         now but has zero rows yet — shows a real empty state, not a
+         hardcoded stub, so this fills in the moment analysis runs. -->
+    <div class="insight-grid" id="org-insight-cards">
+      <div class="ppc-opp-card summary-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge med">SUMMARY</div><div class="ppc-opp-title">This Week</div></div><div class="ppc-opp-body" id="org-insight-summary"><div style="color:var(--muted);font-size:12px;">No analysis run yet.</div></div></div>
+      <div class="ppc-opp-card win-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge win">✓ WIN</div></div><div class="ppc-opp-body" id="org-insight-win"><div style="color:var(--muted);font-size:12px;">No analysis run yet.</div></div></div>
+      <div class="ppc-opp-card action-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge urgent">⚡ ACTION</div></div><div class="ppc-opp-body" id="org-insight-action"><div style="color:var(--muted);font-size:12px;">No AI-generated action items yet — run analysis, or add manually.</div></div></div>
+      <div class="ppc-opp-card opportunity-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge high">💡 OPPORTUNITY</div></div><div class="ppc-opp-body" id="org-insight-opportunity"><div style="color:var(--muted);font-size:12px;">No AI-generated opportunities yet — run analysis, or add manually.</div></div></div>
     </div>
+
+    <!-- Real, buildable now — purely derived from Keyword Tracker data
+         already fetched for Rank Tracker below (rank 49-100 band, sorted
+         by volume). No SHEET_INSIGHTS dependency despite Skinuva placing
+         it visually next to the Insights cards above. -->
+    <div class="org-section-title" style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;">Fastest Path to Page 1</div>
+    <div class="p1-list" id="org-p1-list"><div style="color:var(--muted);font-size:12px;padding:14px 18px;">Loading…</div></div>
 
     <div class="org-sqp-card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -1851,6 +1855,7 @@ function showPage(id, btn) {
     if (typeof window.initInsightsOverview === 'function') window.initInsightsOverview();
     if (typeof window.initSearchQueryPerformance === 'function') window.initSearchQueryPerformance();
     if (typeof window.initInsightsReviews === 'function') window.initInsightsReviews();
+    if (typeof window.initInsightsLog === 'function') window.initInsightsLog();
   }
   if (id === 'listing' && typeof window.initListingAudit === 'function') window.initListingAudit();
   if (id === 'ppc' && typeof window.initPpcContext === 'function') window.initPpcContext();
@@ -2205,6 +2210,16 @@ function csNormalizeDate(val) {
 function csParseAmt(val) {
   if (!val) return 0;
   return parseFloat(String(val).replace(/[$,]/g, '')) || 0;
+}
+// Parses organic_json/ppc_json/listing_json columns from SHEET_INSIGHTS.
+// Returns null for blank/empty/malformed values rather than throwing —
+// every consumer of this treats null as "no insight yet," not an error.
+function csSafeJson(s) {
+  if (!s || s === '[]' || s === '{}') return null;
+  try {
+    const p = JSON.parse(s);
+    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : null;
+  } catch (e) { return null; }
 }
 function csIsCosmetteRow(row) {
   const brand = (row.brand || '').toLowerCase().trim();
@@ -4474,6 +4489,54 @@ document.addEventListener('DOMContentLoaded', () => {
           if (convEl) convEl.querySelector('.ms-sub').textContent = 'Error loading';
         }
       }
+
+      // ── Brand at a Glance + Priority Actions — SHEET_INSIGHTS's
+      // cosmette tab now exists (gid 1414525577) but has zero rows yet
+      // (run-analysis.js hasn't run for Cosmette). This fetches live and
+      // shows "No insights logged yet" until it does — real empty state,
+      // not a hardcoded stub. ──────────────────────────────────────────
+      if (cfg.SHEET_INSIGHTS) {
+        try {
+          const csv = await fetch(csSheetCsvUrl(cfg.SHEET_INSIGHTS.fileId, cfg.SHEET_INSIGHTS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+          const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+          const sorted = rows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+          const glanceEl = document.getElementById('glance-list');
+          if (glanceEl) {
+            const bullets = [];
+            if (sorted.length) {
+              const latest = sorted[0];
+              const organic = csSafeJson(latest.organic_json), ppc = csSafeJson(latest.ppc_json), listing = csSafeJson(latest.listing_json);
+              if (organic && organic.wins && organic.wins[0]) bullets.push(organic.wins[0]);
+              if (ppc && ppc.wins && ppc.wins[0]) bullets.push(ppc.wins[0]);
+              if (organic && organic.wins && organic.wins[1]) bullets.push(organic.wins[1]);
+              if (listing && listing.summary) bullets.push(listing.summary);
+            }
+            glanceEl.innerHTML = bullets.length
+              ? bullets.slice(0,5).map(b => `<div class="glance-item"><div class="glance-dot"></div><div class="glance-text">${b}</div></div>`).join('')
+              : '<div class="glance-item"><div class="glance-dot"></div><div class="glance-text">No insights logged yet — run analysis to populate this.</div></div>';
+          }
+
+          const priorityEl = document.getElementById('ins-priority-list');
+          if (priorityEl) {
+            let sourceRow = sorted[0];
+            const prefix = `${year}-${String(month).padStart(2,'0')}`;
+            const monthRow = sorted.find(r => (r.date||'').substring(0,7) === prefix);
+            if (monthRow) sourceRow = monthRow;
+            if (!sourceRow) {
+              priorityEl.innerHTML = '<div class="priority-item"><div class="priority-text">No insights log data yet.</div></div>';
+            } else {
+              const organic = csSafeJson(sourceRow.organic_json) || {}, ppc = csSafeJson(sourceRow.ppc_json) || {}, listing = csSafeJson(sourceRow.listing_json) || {};
+              const actions = [...(organic.actions||[]), ...(ppc.actions||[]), ...(listing.actions||[])];
+              priorityEl.innerHTML = actions.length
+                ? actions.map((text,idx) => `<div class="priority-item"><div class="priority-num">${idx+1}</div><div class="priority-text">${text}</div></div>`).join('')
+                : '<div class="priority-item"><div class="priority-text">No priority actions logged for this period.</div></div>';
+            }
+          }
+        } catch (e) {
+          console.warn('[InsightsOverview] Brand at a Glance / Priority Actions failed:', e.message);
+        }
+      }
     })();
     return window._csInsOverviewPromise;
   };
@@ -4929,6 +4992,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const P1_RANK_CUTOFF = 48, P1_CLOSE_MAX = 100;
+  function renderFastestPathToPage1() {
+    const cache = window._csOrgDataCache;
+    const container = document.getElementById('org-p1-list');
+    if (!cache || !container) return;
+    if (!cache.kwRows.length) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:14px 18px;">No keyword tracker data yet.</div>'; return; }
+    const latestByKey = new Map();
+    cache.kwRows.forEach(r => {
+      const key = r.asin + '||' + r.keyword;
+      const existing = latestByKey.get(key);
+      if (!existing || r.date > existing.date) latestByKey.set(key, r);
+    });
+    const candidates = [];
+    latestByKey.forEach(r => {
+      const rank = parseRank(r.organic_rank);
+      if (!rank || !rank.ranked) return;
+      if (rank.numeric <= P1_RANK_CUTOFF || rank.numeric > P1_CLOSE_MAX) return;
+      candidates.push({ keyword: r.keyword, rank: rank.numeric, volume: parseInt(r.search_volume,10)||0, productLabel: cache.nameByAsin[r.asin] || cache.skuByAsin[r.asin] || r.asin });
+    });
+    if (!candidates.length) { container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:14px 18px;">No keywords currently ranked 49-100 — nothing close enough to page 1 to call a "fastest path" candidate right now.</div>'; return; }
+    candidates.sort((a,b) => b.volume - a.volume);
+    const top5 = candidates.slice(0,5);
+    const LABELS = ['Fastest Win', 'High Conviction', 'Quick Win', 'Push Target', 'Push Target'];
+    const LABEL_CLASS = ['', 'warn', '', '', ''];
+    container.innerHTML = top5.map((c,i) => `<div class="p1-row">
+        <div class="p1-rank${i===0?' r1':''}">${i+1}</div>
+        <div class="p1-main"><div class="p1-kw">${escapeHtml(c.keyword)}</div><div class="p1-meta">${c.volume.toLocaleString()} vol/mo · Rank #${c.rank} · ${escapeHtml(c.productLabel)}</div></div>
+        <div class="p1-lbl${LABEL_CLASS[i]?' '+LABEL_CLASS[i]:''}">${LABELS[i]}</div>
+      </div>`).join('');
+  }
+  async function loadOrganicInsightCards() {
+    const cfg2 = window.SHEET_CFG.SHEET_INSIGHTS;
+    if (!cfg2) return;
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg2.fileId, cfg2.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      if (!rows.length) return;
+      const sorted = rows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      const organic = csSafeJson(sorted[0].organic_json);
+      if (!organic) return;
+      const setCard = (id, val) => { const el = document.getElementById(id); if (el && val) el.innerHTML = escapeHtml(val); };
+      setCard('org-insight-summary', organic.summary);
+      setCard('org-insight-win', organic.wins && organic.wins[0]);
+      if (organic.actions && organic.actions[0]) setCard('org-insight-action', organic.actions[0]);
+      if (organic.keywords_to_watch && organic.keywords_to_watch[0]) setCard('org-insight-opportunity', organic.keywords_to_watch[0]);
+    } catch (e) { console.warn('[CosmetteOrganic] insight cards failed:', e.message); }
+  }
+
   window.initOrganicRankTracker = function () {
     if (window._csOrgPromise) return window._csOrgPromise;
     window._csOrgPromise = (async function () {
@@ -4952,6 +5063,8 @@ document.addEventListener('DOMContentLoaded', () => {
           nameByAsin: names.nameByAsin, skuByAsin: names.skuByAsin,
         };
         window.renderOrganicRankTracker();
+        renderFastestPathToPage1();
+        loadOrganicInsightCards();
       } catch (err) {
         console.warn('[CosmetteOrganic] failed:', err.message);
         const tbody = document.getElementById('org-rt-tbody');
@@ -4959,6 +5072,80 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     })();
     return window._csOrgPromise;
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// INSIGHTS — Insights Log tab
+// Adapted from Skinuva's loadInsightsFromSheet()/appendLogCard(). Reads
+// every row in SHEET_INSIGHTS's cosmette tab, newest first. The tab exists
+// now (gid 1414525577) but has zero rows — run-analysis.js hasn't run for
+// Cosmette — so this correctly shows "No insights logged yet" until it
+// does, rather than a hardcoded placeholder.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function cleanLogSummary(raw) {
+    if (!raw) return '';
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{')) {
+      const parsed = csSafeJson(trimmed);
+      if (parsed && parsed.summary) return parsed.summary;
+    }
+    return raw;
+  }
+  function logCardHtml(ins) {
+    const mini = (cardType, badgeHtml, text) =>
+      `<div class="ppc-opp-card ${cardType}"><div class="ppc-opp-hd">${badgeHtml}</div><div class="ppc-opp-body" style="font-size:12px;">${escapeHtml(text) || '—'}</div></div>`;
+    return `<div class="ppc-opp-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--bg);border-bottom:1px solid var(--border);">
+        <span style="font-size:11px;font-weight:700;color:var(--navy);">✦ AI Analysis — Organic · PPC · Listing</span>
+        <span style="font-size:10.5px;color:var(--muted);font-family:var(--mono);">${escapeHtml(ins.date)}</span>
+      </div>
+      <div style="padding:14px 18px;">
+        <p style="font-size:13px;color:var(--navy);margin:0 0 12px;">${escapeHtml(ins.log_summary)}</p>
+        <div class="insight-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
+          ${mini('win-type', '<div class="ppc-opp-badge" style="color:#1db88a;">ORGANIC</div>', ins.organic && ins.organic.summary)}
+          ${mini('opportunity-type', '<div class="ppc-opp-badge high">PPC</div>', ins.ppc && ins.ppc.summary)}
+          ${mini('summary-type', '<div class="ppc-opp-badge med">LISTING</div>', ins.listing && ins.listing.summary)}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.initInsightsLog = function () {
+    if (window._csInsightsLogPromise) return window._csInsightsLogPromise;
+    window._csInsightsLogPromise = (async function () {
+      const logEl = document.getElementById('ai-log-entries');
+      if (!logEl) return;
+      const cfg = window.SHEET_CFG.SHEET_INSIGHTS;
+      if (!cfg) { logEl.innerHTML = '<div style="color:var(--muted);font-size:12px;">SHEET_INSIGHTS missing from SHEET_CONFIG.</div>'; return; }
+      try {
+        const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+        const sorted = rows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        const cards = [];
+        sorted.forEach(row => {
+          const ins = {
+            date: row.date || '',
+            organic: csSafeJson(row.organic_json),
+            ppc: csSafeJson(row.ppc_json),
+            listing: csSafeJson(row.listing_json),
+            log_summary: cleanLogSummary(row.summary || ''),
+          };
+          if (!ins.log_summary) return;
+          cards.push(logCardHtml(ins));
+        });
+        logEl.innerHTML = cards.length ? cards.join('') : '<div style="color:var(--muted);font-size:12px;">No insights logged yet — run analysis to populate this.</div>';
+      } catch (err) {
+        console.warn('[CosmetteInsightsLog] failed:', err.message);
+        logEl.innerHTML = '<div style="color:var(--danger);font-size:12px;">Error loading — see console.</div>';
+      }
+    })();
+    return window._csInsightsLogPromise;
   };
 })();
 </script>
