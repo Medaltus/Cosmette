@@ -154,6 +154,40 @@ nav{flex:1;padding:8px 8px 0;}
 .prod-panel.active{display:block;}
 .ppc-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px;}
 .ppc-card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
+.ppc-metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2);font-size:12.5px;}
+.ppc-metric-row:last-child{border-bottom:none;}
+.ppc-metric-lbl{color:var(--muted);}
+.ppc-metric-val{font-weight:600;color:var(--navy);}
+.ppc-note{font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--border2);line-height:1.65;}
+.rank-pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;}
+.rank-top{background:rgba(36,233,163,.15);color:#1db88a;}
+.rank-mid{background:rgba(200,125,47,.1);color:var(--warn);}
+.rank-low{background:rgba(219,55,45,.1);color:var(--danger);}
+.rank-none{background:var(--bg);color:var(--muted);}
+.sc-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:10px;}
+.sc-badge.good{background:rgba(36,233,163,.13);color:#1db88a;}
+.sc-badge.warn{background:rgba(200,125,47,.1);color:var(--warn);}
+.sc-badge.danger{background:rgba(219,55,45,.1);color:var(--danger);}
+.ppc-strategy-hd .sc-badge{font-size:13px;font-weight:700;padding:6px 14px;border-radius:14px;}
+.ppc-strategy-hd .sc-badge.good{background:#1db88a;color:#fff;}
+.ppc-strategy-hd .sc-badge.warn{background:var(--warn);color:#fff;}
+.ppc-strategy-hd .sc-badge.danger{background:var(--danger);color:#fff;}
+.ppc-strategy-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
+.ppc-strategy-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);}
+.ppc-strategy-sku{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.65);margin-bottom:3px;}
+.ppc-strategy-name{font-size:15px;font-weight:700;color:#fff;}
+.ppc-strategy-body{padding:18px 20px;}
+.ppc-priority-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);}
+.ppc-priority-row:last-of-type{border-bottom:none;}
+.ppc-priority-badge{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:4px;flex-shrink:0;margin-top:2px;white-space:nowrap;}
+.ppc-priority-badge.high{background:rgba(219,55,45,.1);color:var(--danger);}
+.ppc-priority-badge.med{background:rgba(200,125,47,.1);color:var(--warn);}
+.ppc-priority-badge.low{background:rgba(0,31,96,.06);color:var(--muted);}
+.ppc-priority-text{font-size:12.5px;color:var(--navy);line-height:1.6;flex:1;}
+.ppc-kw-targets{margin-top:14px;padding-top:12px;border-top:1px solid var(--border2);display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.ppc-kw-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);width:100%;margin-bottom:4px;}
+.ppc-kw-targets .rank-pill{font-size:12.5px;font-weight:600;padding:5px 12px;white-space:normal;line-height:1.4;max-width:100%;}
+.ppc-card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
 .ppc-note{font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid var(--border2);line-height:1.65;}
 .inv-status-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;text-align:center;}
 .inv-status-card .kpi-value{font-size:26px;}
@@ -1786,9 +1820,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   <!-- ══ PPC (INTERNAL) ══
        Adapted from Skinuva's real PPC page. Amazon-only for Cosmette (no
        Channel Breakdown table needed with a single channel). Strategy by
-       Product and Opportunities tabs need SHEET_INSIGHTS's ppc_strategy
-       tab (run-ppc-strategy-analysis.js output) — doesn't exist for
-       Cosmette yet, stubbed rather than fabricated. -->
+       Product tabs are built dynamically from Master SKU List categories
+       (Cleansers/Serums/Moisturizer/Eyes/Masks — same as Listing Audit /
+       Insights Products), not Skinuva's hardcoded 7-category list, since
+       there's no fixed product list to hand-code for Cosmette. Keyword
+       Coverage (Blended Context) is intentionally omitted — it needs a
+       `keyword_sales` column that doesn't exist on Cosmette's Keyword
+       Tracker sheet (confirmed directly). -->
   <div class="page" id="page-ppc">
     <div class="page-hd">
       <div><div class="page-title">PPC</div><div class="page-sub">Sponsored Products · ACOS · Data-informed opportunities</div></div>
@@ -1801,7 +1839,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 
     <div class="channel-page active" id="ppc-context">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-        <div class="ppc-card-title" style="margin:0;font-size:13px;font-weight:600;color:var(--navy);">Amazon Performance</div>
+        <div class="ppc-card-title" style="margin:0;">Amazon Performance</div>
         <div class="period-selector" style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Period</span>
           <div class="period-pills" id="ppc-period-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
@@ -1821,25 +1859,66 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <span class="ppc-alert-icon">📊</span>
         <div id="ppc-context-takeaway">Loading…</div>
       </div>
+
+      <div class="ppc-card">
+        <div class="ppc-card-title">Product Performance — Last Full Month</div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Product</th><th>Sessions</th><th>Units</th><th>Revenue</th><th>Conv%</th></tr></thead>
+            <tbody id="ppc-product-tbody"><tr><td colspan="5" style="color:var(--muted);">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="ppc-note">ℹ Sessions/Units/Revenue/Conv% pulled live from the Business Report sheet, every product in the catalog.</div>
+      </div>
+
+      <div class="ppc-card">
+        <div class="ppc-card-title">What Good Looks Like — Benchmark Reference</div>
+        <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category ACoS Target</div><div class="ppc-metric-val">30%</div></div>
+        <div class="ppc-metric-row"><div class="ppc-metric-lbl">TACoS Target</div><div class="ppc-metric-val">10–15%</div></div>
+        <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category Conv% Benchmark</div><div class="ppc-metric-val">15–20%</div></div>
+      </div>
     </div>
 
+    <!-- ── STRATEGY BY PRODUCT ── (dynamic category tabs, not Skinuva's
+         hardcoded 7 — same categories as Listing Audit / Insights
+         Products). Reads the shared ppc_strategy tab on SHEET_INSIGHTS,
+         filtered to brand=cosmette. -->
     <div class="channel-page" id="ppc-strategy">
-      <div class="placeholder-block">
-        <div class="ph-icon">📈</div>
-        <div class="ph-title">Strategy by Product</div>
-        <div class="ph-sub">Needs the ppc_strategy tab on SHEET_INSIGHTS — output of run-ppc-strategy-analysis.js. Run it from the "Weekly Brand Analysis" card on the Insights → Insights Log tab.</div>
-      </div>
+      <div id="ppc-strategy-tabs" class="sub-tabs" style="margin-bottom:18px;"></div>
+      <div id="ppc-strategy-panels"><div class="placeholder-block"><div class="ph-icon">📈</div><div class="ph-title">Loading…</div></div></div>
     </div>
+
+    <!-- ── DATA-INFORMED OPPORTUNITIES ── -->
     <div class="channel-page" id="ppc-opportunities">
-      <div class="placeholder-block">
-        <div class="ph-icon">💡</div>
-        <div class="ph-title">Opportunities</div>
-        <div class="ph-sub">Same dependency — needs run-ppc-strategy-analysis.js output (wasted-spend flags, missing keyword targets).</div>
+      <div class="ppc-card-title" style="margin-bottom:2px;">Search Terms — Last Full Month</div>
+      <div class="ppc-note" style="margin-top:0;margin-bottom:14px;padding-top:0;border-top:none;">Pulled live from the Ad Search Terms sheet · up to 25 terms per panel, or fewer if fewer qualify</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
+        <div class="ppc-card" style="margin-bottom:0;padding:16px;">
+          <div class="ppc-card-title" style="margin-bottom:2px;font-size:12.5px;">🏆 Top Performing</div>
+          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">ACOS &lt; 40% · sorted by sales</div>
+          <div style="overflow-x:auto;"><table class="data-table" style="font-size:11px;"><thead><tr><th>Term</th><th>Sales</th><th>ACOS</th></tr></thead><tbody id="st-top-body"><tr><td colspan="3" style="color:var(--muted);">Loading…</td></tr></tbody></table></div>
+        </div>
+        <div class="ppc-card" style="margin-bottom:0;padding:16px;">
+          <div class="ppc-card-title" style="margin-bottom:2px;font-size:12.5px;">🔥 Wasted Spend</div>
+          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">No sales · sorted by spend</div>
+          <div style="overflow-x:auto;"><table class="data-table" style="font-size:11px;"><thead><tr><th>Term</th><th>Spend</th><th>Clicks</th></tr></thead><tbody id="st-waste-body"><tr><td colspan="3" style="color:var(--muted);">Loading…</td></tr></tbody></table></div>
+        </div>
+        <div class="ppc-card" style="margin-bottom:0;padding:16px;">
+          <div class="ppc-card-title" style="margin-bottom:2px;font-size:12.5px;">💡 Opportunities</div>
+          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">High conv, underinvested</div>
+          <div style="overflow-x:auto;"><table class="data-table" style="font-size:11px;"><thead><tr><th>Term</th><th>CVR</th><th>Spend</th></tr></thead><tbody id="st-opp-body"><tr><td colspan="3" style="color:var(--muted);">Loading…</td></tr></tbody></table></div>
+        </div>
+        <div class="ppc-card" style="margin-bottom:0;padding:16px;">
+          <div class="ppc-card-title" style="margin-bottom:2px;font-size:12.5px;">⚡ CPC Rising</div>
+          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">Biggest jump vs prior month</div>
+          <div style="overflow-x:auto;"><table class="data-table" style="font-size:11px;"><thead><tr><th>Term</th><th>Prior</th><th>Current</th></tr></thead><tbody id="st-cpc-body"><tr><td colspan="3" style="color:var(--muted);">Loading…</td></tr></tbody></table></div>
+        </div>
       </div>
+      <div class="ppc-card-title" style="margin-bottom:10px;">AI PPC Insights</div>
+      <div id="ppc-insights-cards"><div class="ppc-opp-card"><div class="ppc-opp-body" style="color:var(--muted);">Loading insights…</div></div></div>
     </div>
   </div>
 
-  <!-- ══ ORGANIC (INTERNAL) ══ -->
   <!-- ══ ORGANIC (INTERNAL) ══
        Adapted from Skinuva's real Organic page, flattened: Skinuva splits
        Rank Tracker per product category (hardcoded ASIN lists per
@@ -1963,7 +2042,13 @@ function showPage(id, btn) {
     if (typeof window.initInsightsLog === 'function') window.initInsightsLog();
   }
   if (id === 'listing' && typeof window.initListingAudit === 'function') window.initListingAudit();
-  if (id === 'ppc' && typeof window.initPpcContext === 'function') window.initPpcContext();
+  if (id === 'ppc') {
+    if (typeof window.initPpcContext === 'function') window.initPpcContext();
+    if (typeof window.ppcLoadProductPerformance === 'function') window.ppcLoadProductPerformance();
+    if (typeof window.initPpcStrategy === 'function') window.initPpcStrategy();
+    if (typeof window.ppcLoadSearchTermPanels === 'function') window.ppcLoadSearchTermPanels();
+    if (typeof window.ppcLoadInsightsCards === 'function') window.ppcLoadInsightsCards();
+  }
   if (id === 'organic' && typeof window.initOrganicRankTracker === 'function') window.initOrganicRankTracker();
 }
 
@@ -5803,8 +5888,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
           return `<div class="sub-page${i===0?' active':''}" id="ins-products-panel-${catSlug}">
             ${performanceTableHtml(byCategory[cat], names, bizRows, summaryRows, year, month)}
-            <div class="card-title" style="margin-bottom:10px;">Product Portfolio</div>
-            ${portfolioCards || '<div style="color:var(--muted);font-size:12px;">No products found for this category.</div>'}
+            <div class="card">
+              <div class="card-title">Product Portfolio</div>
+              ${portfolioCards || '<div style="color:var(--muted);font-size:12px;">No products found for this category.</div>'}
+            </div>
           </div>`;
         }));
 
@@ -5822,6 +5909,301 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) btn.classList.add('active');
     document.querySelectorAll('#ins-products-panels .sub-page').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById(`ins-products-panel-${catSlug}`);
+    if (panel) panel.classList.add('active');
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// PPC — Product Performance table + AI PPC Insights
+// Adapted from Skinuva's ppcLoadProductPerformance()/ppcBuildContextTakeaway(),
+// dropped to Amazon-only (no Walmart/Website merge needed for Cosmette).
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function buildContextTakeaway(monthRows, nameMap, year, month) {
+    if (!monthRows.length) return 'No data synced for this month yet.';
+    const rows = monthRows.map(r => ({
+      name: nameMap[(r.ASIN||r.asin||'').toUpperCase()] || (r.ASIN||r.asin||'').toUpperCase(),
+      sessions: parseInt(r.SESSIONS||r.sessions,10)||0,
+      units: parseInt(r.UNITS_ORDERED||r.units_ordered,10)||0,
+      conv: parseFloat(r.CONVERSION_RATE||r.conversion_rate)||0,
+    }));
+    const totalSessions = rows.reduce((s,r)=>s+r.sessions,0);
+    const top = [...rows].sort((a,b)=>b.sessions-a.sessions)[0];
+    const topShare = totalSessions > 0 ? Math.round((top.sessions/totalSessions)*100) : 0;
+    const withEnoughData = rows.filter(r=>r.sessions>=10);
+    const bestConv = withEnoughData.length ? [...withEnoughData].sort((a,b)=>b.conv-a.conv)[0] : null;
+    const lowVis = [...rows].sort((a,b)=>a.sessions-b.sessions)[0];
+    let s = `<strong>Blended Context — ${csMonths12[month-1]} ${year}.</strong> ${totalSessions.toLocaleString()} total sessions across ${rows.length} products. `;
+    s += `${escapeHtml(top.name)} drives ${topShare}% of traffic (${top.sessions.toLocaleString()} sessions) but converts at ${top.conv.toFixed(1)}%`;
+    s += (bestConv && bestConv.name !== top.name) ? ` — vs ${bestConv.conv.toFixed(1)}% for ${escapeHtml(bestConv.name)}.` : '.';
+    if (lowVis.sessions < 20 && lowVis.name !== top.name) s += ` ${escapeHtml(lowVis.name)} has near-zero visibility (${lowVis.sessions} sessions, ${lowVis.units} units).`;
+    return s;
+  }
+
+  window.ppcLoadProductPerformance = async function () {
+    const tbody = document.getElementById('ppc-product-tbody');
+    const takeawayEl = document.getElementById('ppc-context-takeaway');
+    if (!tbody) return;
+    try {
+      const cfg = window.SHEET_CFG;
+      const names = await csFetchProductNames();
+      const bizCsv = cfg.SHEET_BUSINESS_REPORT ? await fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : '';
+      const bizRows = csIsCsv(bizCsv) ? csParseCsv(bizCsv) : [];
+      if (!bizRows.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">No data</td></tr>'; if (takeawayEl) takeawayEl.textContent = 'No data synced yet.'; return; }
+
+      const { year, month } = csGetLastFullMonth();
+      const monthRows = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===month && parseInt(r.YEAR||r.year,10)===year);
+      if (takeawayEl) takeawayEl.innerHTML = buildContextTakeaway(monthRows, names.nameByAsin, year, month);
+      if (!monthRows.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">No data synced for this month yet</td></tr>'; return; }
+
+      const sorted = [...monthRows].sort((a,b) => (parseInt(b.SESSIONS||b.sessions,10)||0) - (parseInt(a.SESSIONS||a.sessions,10)||0));
+      tbody.innerHTML = sorted.map(r => {
+        const asin = (r.ASIN||r.asin||'').toUpperCase();
+        const name = names.nameByAsin[asin] || asin;
+        const sessions = parseInt(r.SESSIONS||r.sessions,10)||0;
+        const units = parseInt(r.UNITS_ORDERED||r.units_ordered,10)||0;
+        const revenue = csParseAmt(r.ORDERED_PRODUCT_SALES||r.ordered_product_sales);
+        const conv = parseFloat(r.CONVERSION_RATE||r.conversion_rate)||0;
+        const convClass = conv >= 15 ? 'rank-top' : (conv > 0 ? 'rank-low' : 'rank-none');
+        return `<tr>
+          <td><strong>${escapeHtml(name)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(names.skuByAsin[asin]||'')}</span></td>
+          <td>${sessions.toLocaleString()}</td><td>${units}</td><td>$${revenue.toFixed(2)}</td>
+          <td><span class="rank-pill ${convClass}">${conv.toFixed(2)}%</span></td>
+        </tr>`;
+      }).join('');
+    } catch (err) {
+      console.warn('[PPC] product performance failed:', err.message);
+      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">Error loading</td></tr>';
+      if (takeawayEl) takeawayEl.textContent = 'Error loading.';
+    }
+  };
+
+  // AI PPC Insights — same shared ppc_json field from SHEET_INSIGHTS used
+  // elsewhere (Insights Log, Listing Audit's insight-grid).
+  window.ppcLoadInsightsCards = async function () {
+    const container = document.getElementById('ppc-insights-cards');
+    if (!container) return;
+    const cfg = window.SHEET_CFG.SHEET_INSIGHTS;
+    if (!cfg) return;
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'');
+      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      if (!rows.length) return;
+      const sorted = rows.slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      const ppc = csSafeJson(sorted[0].ppc_json);
+      if (!ppc) return;
+      const list = arr => (arr && arr.length) ? '<ul style="margin:0;padding-left:18px;">' + arr.map(t=>`<li style="margin-bottom:6px;">${escapeHtml(t)}</li>`).join('') + '</ul>' : '<span style="color:var(--muted);">None this week.</span>';
+      const summaryBody = ppc.summary ? `<p style="margin:0;">${escapeHtml(ppc.summary)}</p>` : '<span style="color:var(--muted);">No summary yet.</span>';
+      container.innerHTML = `
+        <div class="ppc-opp-card summary-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge med">SUMMARY</div><div class="ppc-opp-title">This Week</div></div><div class="ppc-opp-body">${summaryBody}</div></div>
+        <div class="ppc-opp-card action-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge urgent">⚡ ACTION</div></div><div class="ppc-opp-body">${list(ppc.actions)}</div></div>
+        <div class="ppc-opp-card opportunity-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge high">💡 OPPORTUNITY</div></div><div class="ppc-opp-body">${list(ppc.opportunities)}</div></div>
+        <div class="ppc-opp-card win-type"><div class="ppc-opp-hd"><div class="ppc-opp-badge" style="color:#1db88a;">✓ WIN</div></div><div class="ppc-opp-body">${list(ppc.wins)}</div></div>
+      `;
+    } catch (e) { console.warn('[PPC] insights cards failed:', e.message); }
+  };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// PPC — Search Term Panels (Opportunities tab)
+// Adapted from Skinuva's ppcLoadSearchTermPanels() — same defensive
+// currency-formatted-cell parsing (ppcNum), same last-full-month vs prior-
+// month comparison for CPC Rising, same classification thresholds.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function ppcNum(val) {
+    if (val == null) return 0;
+    const n = parseFloat(String(val).replace(/[^0-9.\-]/g,''));
+    return isNaN(n) ? 0 : n;
+  }
+  function renderPanel(elId, items, rowFn) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = items.length ? items.map(rowFn).join('') : '<tr><td colspan="3" style="color:var(--muted);">None this month</td></tr>';
+  }
+
+  window.ppcLoadSearchTermPanels = async function () {
+    const panelIds = ['st-top-body','st-waste-body','st-opp-body','st-cpc-body'];
+    const cfg = window.SHEET_CFG.SHEET_AD_SEARCH_TERMS;
+    if (!cfg) { panelIds.forEach(id => renderPanel(id, [], () => '')); return; }
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'');
+      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      if (!rows.length) { panelIds.forEach(id => renderPanel(id, [], () => '')); return; }
+
+      const { year: latestY, month: latestM } = csGetLastFullMonth();
+      let prevY = latestY, prevM = latestM - 1; if (prevM === 0) { prevM = 12; prevY--; }
+
+      function groupByTerm(y, m) {
+        const groups = {};
+        rows.forEach(r => {
+          if (parseInt(r.year,10) !== y || parseInt(r.month,10) !== m) return;
+          const term = r.search_term || '';
+          if (!term) return;
+          if (!groups[term]) groups[term] = { clicks:0, cost:0, sales:0, purchases:0, impressions:0 };
+          const g = groups[term];
+          g.clicks += ppcNum(r.clicks); g.cost += ppcNum(r.cost); g.sales += ppcNum(r.sales);
+          g.purchases += ppcNum(r.purchases); g.impressions += ppcNum(r.impressions);
+        });
+        return groups;
+      }
+      const curr = groupByTerm(latestY, latestM), prev = groupByTerm(prevY, prevM);
+      const currList = Object.entries(curr).map(([term,g]) => ({
+        term, ...g,
+        acos: g.sales > 0 ? (g.cost/g.sales)*100 : null,
+        cvr: g.clicks > 0 ? (g.purchases/g.clicks)*100 : 0,
+        cpc: g.clicks > 0 ? g.cost/g.clicks : 0,
+      }));
+      const N = 25, money = v => '$'+v.toFixed(2), pct = v => v.toFixed(0)+'%';
+
+      const topPerforming = currList.filter(t => t.sales > 0 && t.acos !== null && t.acos < 40).sort((a,b)=>b.sales-a.sales).slice(0,N);
+      renderPanel('st-top-body', topPerforming, t => `<tr><td>${escapeHtml(t.term)}</td><td>${money(t.sales)}</td><td style="color:#1db88a;font-weight:600;">${pct(t.acos)}</td></tr>`);
+
+      const wastedSpend = currList.filter(t => t.sales === 0 && t.cost > 0).sort((a,b)=>b.cost-a.cost).slice(0,N);
+      renderPanel('st-waste-body', wastedSpend, t => `<tr><td>${escapeHtml(t.term)}</td><td>${money(t.cost)}</td><td>${t.clicks}</td></tr>`);
+
+      const opportunities = currList.filter(t => t.purchases > 0 && t.cvr >= 15).sort((a,b)=>b.cvr-a.cvr).slice(0,N);
+      renderPanel('st-opp-body', opportunities, t => `<tr><td>${escapeHtml(t.term)}</td><td style="color:#1db88a;font-weight:600;">${pct(t.cvr)}</td><td>${money(t.cost)}</td></tr>`);
+
+      const prevCpcByTerm = {};
+      Object.entries(prev).forEach(([term,g]) => { prevCpcByTerm[term] = g.clicks > 0 ? g.cost/g.clicks : null; });
+      const cpcRising = currList.filter(t => t.clicks > 0 && prevCpcByTerm[t.term] != null && prevCpcByTerm[t.term] > 0)
+        .map(t => ({ ...t, prevCpc: prevCpcByTerm[t.term], delta: t.cpc - prevCpcByTerm[t.term] }))
+        .filter(t => t.delta > 0).sort((a,b)=>b.delta-a.delta).slice(0,N);
+      renderPanel('st-cpc-body', cpcRising, t => `<tr><td>${escapeHtml(t.term)}</td><td>${money(t.prevCpc)}</td><td style="color:var(--danger);font-weight:600;">${money(t.cpc)}</td></tr>`);
+    } catch (err) {
+      console.warn('[PPC] search term panels failed:', err.message);
+      panelIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<tr><td colspan="3" style="color:var(--muted);">Error loading</td></tr>'; });
+    }
+  };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// PPC — Strategy by Product
+// Adapted from Skinuva's ppcRenderStrategyCard()/ppcLoadStrategyByProduct(),
+// but with dynamic category tabs (Master SKU List categories) instead of
+// Skinuva's hardcoded 7-category list. Reads the shared ppc_strategy tab
+// on SHEET_INSIGHTS (gid 1273080018), filtered to brand=cosmette.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+  const PPC_STRATEGY_GID = '1273080018'; // shared, non-brand-specific tab on SHEET_INSIGHTS
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  function slugify(s) {
+    return String(s || 'uncategorized').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'uncategorized';
+  }
+  function statusBadgeClass(label) {
+    const l = (label||'').toUpperCase();
+    if (l.includes('OUT OF STOCK') || l.includes('IMMEDIATE') || l.includes('LISTING FIX')) return 'danger';
+    if (l.includes('TRAFFIC')) return 'warn';
+    return 'good';
+  }
+  function coerceToText(entry) {
+    if (typeof entry === 'string') return entry;
+    if (entry && typeof entry === 'object') return entry.keyword || entry.term || entry.text || entry.name || '';
+    return '';
+  }
+  function renderStrategyCard(row, productLabel) {
+    let bullets = [], targets = [], wasted = [];
+    try { bullets = JSON.parse(row.recommended_bullets_json || '[]'); } catch(e) {}
+    try { targets = JSON.parse(row.suggested_exact_match_targets_json || '[]'); } catch(e) {}
+    try { wasted = JSON.parse(row.wasted_spend_terms_json || '[]'); } catch(e) {}
+
+    const badgeClass = statusBadgeClass(row.status_badge);
+    const bulletsHtml = bullets.map(b => {
+      const priority = (b && typeof b === 'object') ? (b.priority||'LOW') : 'LOW';
+      const text = (b && typeof b === 'object') ? (b.text||'') : coerceToText(b);
+      if (!text) return '';
+      return `<div class="ppc-priority-row"><span class="ppc-priority-badge ${String(priority).toLowerCase()}">${escapeHtml(priority)}</span><div class="ppc-priority-text">${escapeHtml(text)}</div></div>`;
+    }).join('');
+    const targetTexts = targets.map(coerceToText).filter(Boolean);
+    const targetsHtml = targetTexts.length ? `<div class="ppc-kw-targets"><div class="ppc-kw-lbl">Suggested Exact Match Targets</div>${targetTexts.map(t=>`<span class="rank-pill rank-mid">${escapeHtml(t)}</span>`).join('')}</div>` : '';
+    const wastedHtml = wasted.length ? `<div class="ppc-alert warn" style="margin-top:14px;"><span class="ppc-alert-icon">⚠️</span><div><strong>Wasted spend detected:</strong> ${wasted.map(w => {
+      const term = coerceToText(w && w.term !== undefined ? w.term : w);
+      const spend = (w && typeof w === 'object' && !isNaN(parseFloat(w.spend))) ? parseFloat(w.spend).toFixed(2) : '0.00';
+      const clicks = (w && typeof w === 'object') ? (w.clicks||0) : 0;
+      return `"${escapeHtml(term)}" ($${spend}, ${clicks} clicks, 0 orders)`;
+    }).join(' · ')}</div></div>` : '';
+
+    return `<div class="ppc-strategy-card">
+      <div class="ppc-strategy-hd">
+        <div><div class="ppc-strategy-sku">${escapeHtml(row.sku)} · ${escapeHtml(row.asin)}</div><div class="ppc-strategy-name">${escapeHtml(productLabel)}</div></div>
+        <span class="sc-badge ${badgeClass}">${escapeHtml(row.status_badge || '—')}</span>
+      </div>
+      <div class="ppc-strategy-body">
+        ${row.headline ? `<div class="ppc-alert" style="margin-bottom:16px;"><span class="ppc-alert-icon">📊</span><div>${escapeHtml(row.headline)}</div></div>` : ''}
+        ${bulletsHtml || '<div style="color:var(--muted);font-size:12px;">No recommendations generated for this product yet.</div>'}
+        ${targetsHtml}
+        ${wastedHtml}
+      </div>
+    </div>`;
+  }
+
+  window.initPpcStrategy = function () {
+    if (window._csPpcStrategyPromise) return window._csPpcStrategyPromise;
+    window._csPpcStrategyPromise = (async function () {
+      const tabsEl = document.getElementById('ppc-strategy-tabs');
+      const panelsEl = document.getElementById('ppc-strategy-panels');
+      if (!tabsEl || !panelsEl) return;
+      try {
+        const names = await csFetchProductNames();
+        const byCategory = {};
+        Object.entries(names.categoryBySku).forEach(([sku,cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
+        const categories = Object.keys(byCategory).sort();
+        if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found.</div></div>'; return; }
+
+        const cfg = window.SHEET_CFG.SHEET_INSIGHTS;
+        let bySku = {};
+        if (cfg) {
+          const csv = await fetch(csSheetCsvUrl(cfg.fileId, PPC_STRATEGY_GID) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'');
+          const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+          const brandSlug = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+          const brandRows = rows.filter(r => (r.brand||'').trim().toLowerCase() === brandSlug);
+          console.log('[PPCStrategy] ppc_strategy rows for', brandSlug + ':', brandRows.length, 'of', rows.length, 'total');
+          brandRows.forEach(r => {
+            const sku = (r.sku||'').trim().toUpperCase();
+            if (!sku) return;
+            if (!bySku[sku] || (r.date||'') > (bySku[sku].date||'')) bySku[sku] = r;
+          });
+        }
+
+        tabsEl.innerHTML = categories.map((cat,i) =>
+          `<button class="sub-tab${i===0?' active':''}" onclick="window.__csSelectPpcStrategyCategory('${slugify(cat)}', this)">${escapeHtml(cat)}</button>`
+        ).join('');
+
+        panelsEl.innerHTML = categories.map((cat,i) => {
+          const catSlug = slugify(cat);
+          const cardsHtml = byCategory[cat].map(sku => {
+            const asin = Object.keys(names.skuByAsin).find(a => names.skuByAsin[a] === sku) || '';
+            const label = names.nameBySku[sku] || sku;
+            const row = bySku[sku];
+            if (!row) return `<div class="ppc-strategy-card"><div class="ppc-strategy-hd"><div><div class="ppc-strategy-sku">${escapeHtml(sku)} · ${escapeHtml(asin)}</div><div class="ppc-strategy-name">${escapeHtml(label)}</div></div></div><div class="ppc-strategy-body"><div style="color:var(--muted);font-size:12px;">No PPC analysis run yet for this SKU — click "Run PPC Analysis" on the Insights Log page.</div></div></div>`;
+            return renderStrategyCard(row, label);
+          }).join('');
+          return `<div class="sub-page${i===0?' active':''}" id="ppc-strategy-panel-${catSlug}">${cardsHtml}</div>`;
+        }).join('');
+      } catch (err) {
+        console.warn('[PPCStrategy] failed:', err.message);
+        panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">Error loading</div></div>';
+      }
+    })();
+    return window._csPpcStrategyPromise;
+  };
+
+  window.__csSelectPpcStrategyCategory = function (catSlug, btn) {
+    document.querySelectorAll('#ppc-strategy-tabs .sub-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('#ppc-strategy-panels .sub-page').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById(`ppc-strategy-panel-${catSlug}`);
     if (panel) panel.classList.add('active');
   };
 })();
