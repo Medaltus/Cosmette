@@ -715,12 +715,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div class="placeholder-block"><div class="ph-icon">⭐</div><div class="ph-title">Loading reviews…</div></div>
       </div>
     </div>
-
-    <div class="placeholder-block" style="margin-top:14px;">
-      <div class="ph-icon">💬</div>
-      <div class="ph-title">Voice of the Customer</div>
-      <div class="ph-sub">Scope pending — awaiting confirmation of what the internal VoC feature covers and what's safe to show externally.</div>
-    </div>
   </div>
 
   <!-- ══════════════════ INTERNAL-ONLY PAGES BELOW ══════════════════
@@ -728,14 +722,55 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
        signed-in user's email is @medaltus.com. See CLERK AUTH script. -->
 
   <!-- ══ OVERVIEW (INTERNAL) ══ -->
+  <!-- ══ OVERVIEW (INTERNAL) ══
+       Adapted from Skinuva's real internal Overview page. Deliberate
+       simplifications for Cosmette, on purpose:
+         - Amazon-only — no Website/Walmart channel blending, no
+           multi-channel revenue donut (pointless with one channel).
+         - No returns netting yet — same v1 gap noted on Sales/Events.
+         - Ad Spend/ACOS come from SHEET_ADVERTISING's current-month row
+           directly (spend/acos columns), not prorated — matches how the
+           Sales page already treats this same month-bucketed sheet. -->
   <div class="page" id="page-overview">
     <div class="page-hd">
-      <div><div class="page-title">Overview</div><div class="page-sub">Internal · Last synced —</div></div>
+      <div><div class="page-title">Overview</div><div class="page-sub">Month to date</div></div>
     </div>
-    <div class="placeholder-block">
-      <div class="ph-icon">🗂️</div>
-      <div class="ph-title">Overview Page</div>
-      <div class="ph-sub">Cross-channel snapshot — mirrors the standard Medaltus internal Overview layout.</div>
+
+    <div class="home-hero" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+      <div>
+        <div style="font-size:22px;font-weight:600;color:#fff;letter-spacing:-.4px;">Cosmette Skincare</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">Amazon</div>
+      </div>
+      <div style="display:flex;gap:20px;">
+        <div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--green);line-height:1;" id="ov-hero-revenue">—</div><div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;">Month-to-Date Revenue</div></div>
+        <div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--green);line-height:1;" id="ov-hero-skus">—</div><div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;">Active SKUs (with Sales)</div></div>
+      </div>
+    </div>
+
+    <div class="kpi-row" style="margin-bottom:14px;">
+      <div class="kpi-card" id="ov-kpi-units"><div class="kpi-label">Total Units Sold</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      <div class="kpi-card" id="ov-kpi-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      <div class="kpi-card" id="ov-kpi-aov"><div class="kpi-label">AOV</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      <div class="kpi-card" id="ov-kpi-adspend"><div class="kpi-label">Ad Spend</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      <div class="kpi-card" id="ov-kpi-acos"><div class="kpi-label">ACOS</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+    </div>
+    <div class="kpi-row" style="margin-bottom:20px;">
+      <div class="kpi-card" id="ov-kpi-organic-units"><div class="kpi-label">MTD Organic Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      <div class="kpi-card" id="ov-kpi-ad-orders"><div class="kpi-label">MTD Ad-Driven Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">This month</div></div>
+      <div class="kpi-card" id="ov-kpi-pending"><div class="kpi-label">Pending Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Monthly Revenue Trend</div>
+      <div style="position:relative;height:260px;"><canvas id="chart-ov-trend"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Top Selling Products <span style="font-weight:400;color:var(--muted);">(by Units, Month to Date)</span></div>
+      <table class="data-table" id="ov-top-sellers">
+        <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th></tr></thead>
+        <tbody id="ov-products-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+      </table>
     </div>
   </div>
 
@@ -1341,6 +1376,7 @@ function showPage(id, btn) {
     if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
   }
   if (id === 'inventory-external' && typeof window.initExternalReviews === 'function') window.initExternalReviews();
+  if (id === 'overview' && typeof window.initOverviewInternal === 'function') window.initOverviewInternal();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3107,6 +3143,134 @@ document.addEventListener('DOMContentLoaded', () => {
     scope.querySelectorAll('.prod-panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById(`prodpanel-${catSlug}-${prodSlug}`);
     if (panel) panel.classList.add('active');
+  };
+})();
+// ══════════════════════════════════════════════════════════════════════════
+// OVERVIEW (INTERNAL) — Amazon-only MTD snapshot
+// Adapted from Skinuva's real initOverviewLive(), simplified: no multi-
+// channel blending, no returns netting (same v1 gap as Sales/Events).
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function fmtDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function pctChange(curr, prevVal) { if (!prevVal) return null; return Math.round(((curr - prevVal) / prevVal) * 100); }
+  function setKpi(cardId, value, pctVal) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const valEl = card.querySelector('.kpi-value');
+    const momEl = card.querySelector('.kpi-mom');
+    if (valEl) valEl.textContent = value;
+    if (momEl) {
+      if (pctVal == null) { momEl.className = 'kpi-mom flat'; momEl.textContent = '—'; return; }
+      const cls = pctVal === 0 ? 'flat' : pctVal > 0 ? 'up' : 'dn';
+      momEl.className = 'kpi-mom ' + cls;
+      momEl.textContent = `${pctVal > 0 ? '▲ ' : pctVal < 0 ? '▼ ' : ''}${Math.abs(pctVal)}% vs MTD last month`;
+    }
+  }
+  function setKpiPlain(cardId, value, label) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const valEl = card.querySelector('.kpi-value');
+    const momEl = card.querySelector('.kpi-mom');
+    if (valEl) valEl.textContent = value;
+    if (momEl) { momEl.className = 'kpi-mom flat'; momEl.textContent = label || ''; }
+  }
+
+  window.initOverviewInternal = function () {
+    if (window._csOverviewPromise) return window._csOverviewPromise;
+    window._csOverviewPromise = (async function () {
+      const cfg = window.SHEET_CFG;
+      const need = ['SHEET_ORDERS','SHEET_ADVERTISING','SHEET_AD_ORDERS','SHEET_REVENUE'];
+      const missing = need.filter(k => !cfg[k]);
+      if (missing.length) { console.warn('[CosmetteOverview] Missing SHEET_CONFIG keys:', missing); return; }
+
+      const now = new Date();
+      const daysElapsed = now.getDate();
+      const mtdYear = now.getFullYear(), mtdMonth = now.getMonth() + 1;
+      let prevYear = mtdYear, prevMonth = mtdMonth - 1;
+      if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+
+      try {
+        const [ordersCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        ]);
+
+        const allRows = csIsCsv(ordersCsv) ? csParseCsv(ordersCsv).filter(csIsCosmetteRow) : [];
+        const validRows = csIsCsv(ordersCsv) ? csFilterRows(csParseCsv(ordersCsv)) : [];
+
+        const mtd = csAggregateMonthThroughDay(validRows, mtdYear, mtdMonth, daysElapsed);
+        const prev = csAggregateMonthThroughDay(validRows, prevYear, prevMonth, daysElapsed);
+
+        if (!mtd) {
+          console.warn(`[CosmetteOverview] No Cosmette order rows found for ${mtdYear}-${mtdMonth} through day ${daysElapsed}.`);
+        }
+        const units = mtd ? mtd.totalUnits : 0;
+        const orders = mtd ? mtd.totalOrders : 0;
+        const revenue = mtd ? mtd.avgOrder * mtd.totalOrders : 0; // avgOrder * orders recovers totalRevenue without re-deriving it
+        const prevUnits = prev ? prev.totalUnits : 0;
+        const prevOrders = prev ? prev.totalOrders : 0;
+        const aov = mtd ? mtd.avgOrder : 0;
+        const prevAov = prev ? prev.avgOrder : 0;
+
+        setKpi('ov-kpi-units', units.toLocaleString(), prev ? pctChange(units, prevUnits) : null);
+        setKpi('ov-kpi-orders', orders.toLocaleString(), prev ? pctChange(orders, prevOrders) : null);
+        setKpi('ov-kpi-aov', '$' + aov.toFixed(2), prev ? pctChange(Math.round(aov*100), Math.round(prevAov*100)) : null);
+
+        const heroRevEl = document.getElementById('ov-hero-revenue');
+        if (heroRevEl) heroRevEl.textContent = '$' + Math.round(revenue).toLocaleString();
+        const activeSkus = new Set(validRows.filter(r => {
+          const d = csNormalizeDate(r.date);
+          return d && d.substring(0,7) === `${mtdYear}-${String(mtdMonth).padStart(2,'0')}` && parseInt(d.substring(8,10),10) <= daysElapsed;
+        }).map(r => csBaseSku(r.sku)).filter(Boolean));
+        const heroSkusEl = document.getElementById('ov-hero-skus');
+        if (heroSkusEl) heroSkusEl.textContent = activeSkus.size.toLocaleString();
+
+        // Ad Spend / ACOS — current month's row from SHEET_ADVERTISING
+        // directly (spend/acos columns), same month-bucketed convention
+        // already used for ad_units on the Sales page.
+        const adRows = csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [];
+        const adRowCurr = adRows.find(r => parseInt(r.year,10) === mtdYear && parseInt(r.month,10) === mtdMonth);
+        const adRowPrev = adRows.find(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
+        const adSpend = adRowCurr ? csParseAmt(adRowCurr.spend) : 0;
+        const adSpendPrev = adRowPrev ? csParseAmt(adRowPrev.spend) : null;
+        const acos = adRowCurr ? parseFloat(String(adRowCurr.acos||'').replace(/[^0-9.\-]/g,'')) : null;
+        setKpi('ov-kpi-adspend', '$' + adSpend.toLocaleString(undefined,{maximumFractionDigits:0}), adSpendPrev ? pctChange(adSpend, adSpendPrev) : null);
+        setKpiPlain('ov-kpi-acos', acos != null && !isNaN(acos) ? acos.toFixed(1) + '%' : '—', 'This month');
+
+        const adUnitsCurr = adRowCurr ? parseInt(adRowCurr.ad_units,10) || 0 : 0;
+        const organicUnits = Math.max(0, units - adUnitsCurr);
+        setKpiPlain('ov-kpi-organic-units', organicUnits.toLocaleString(), 'This month');
+
+        // Ad-Driven Orders — count of ad_orders rows for the current
+        // month (order-level events, per the same convention already
+        // established on the Sales page).
+        const adOrderRowsAll = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv) : [];
+        const adDrivenOrders = adOrderRowsAll.filter(r => parseInt(r.year,10) === mtdYear && parseInt(r.month,10) === mtdMonth && csIsCosmetteRow(r)).length;
+        setKpiPlain('ov-kpi-ad-orders', adDrivenOrders.toLocaleString(), 'This month');
+
+        // Pending Orders — raw (unfiltered-for-validity) rows with
+        // status=pending, current month, COS-filtered.
+        const pendingCount = allRows.filter(r => {
+          const d = csNormalizeDate(r.date);
+          if (!d || d.substring(0,7) !== `${mtdYear}-${String(mtdMonth).padStart(2,'0')}`) return false;
+          return (r.status||'').trim().toLowerCase() === 'pending';
+        }).length;
+        setKpiPlain('ov-kpi-pending', pendingCount.toLocaleString(), 'Current month');
+
+        csBuildRevenueChart('chart-ov-trend', mtdYear).catch(e => console.warn('[CosmetteOverview] revenue chart failed:', e.message));
+
+        if (mtd) {
+          csBuildTopProducts('ov-products-tbody', null, validRows, mtdYear, mtdMonth, adOrderRowsAll.filter(r=>parseInt(r.year,10)===mtdYear&&parseInt(r.month,10)===mtdMonth), prevYear, prevMonth, validRows, adOrderRowsAll.filter(r=>parseInt(r.year,10)===prevYear&&parseInt(r.month,10)===prevMonth));
+        }
+
+      } catch (err) {
+        console.warn('[CosmetteOverview] failed:', err.message);
+      }
+    })();
+    return window._csOverviewPromise;
   };
 })();
 </script>
