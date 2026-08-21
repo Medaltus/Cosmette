@@ -807,6 +807,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pd"> Prime Day</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pbdd"> PBDD</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bfcm"> BFCM</label>
       </div>
       <button class="pdf-export-btn" id="pdf-export-btn" onclick="exportPartnerPDF()">
         <span class="pdfx-spin"></span>
@@ -7057,6 +7061,10 @@ window.initSubscriptions = function () {
     _investChart: 'chart-invest',
     _impressChart: 'chart-impressions',
     _snsChart: 'chart-sns',
+    _csbssTopSellersChart: 'bss-chart-top-sellers',
+    _cspdTopSellersChart: 'pd-chart-top-sellers',
+    _cspbddTopSellersChart: 'pbdd-chart-top-sellers',
+    _csbfcmTopSellersChart: 'bfcm-chart-top-sellers',
   };
   let PDFX_CHART_CACHE = null;
 
@@ -7424,6 +7432,34 @@ window.initSubscriptions = function () {
       '</div>';
   }
 
+  // Event pages (Big Spring Sale / Prime Day / PBDD / BFCM) — confirmed
+  // directly, Cosmette shares one prefix convention across all 4
+  // (bss-/pd-/pbdd-/bfcm-, same suffix ids: -kpi-total-units,
+  // -exec-summary-headline, -exec-summary-body, -event-dates, -legend,
+  // -chart-top-sellers), driven by one shared initEventReport(channelId)
+  // function rather than Skinuva's 4 separately-named init functions.
+  function buildEventPage(prefix, label, monthYear) {
+    const dates = pdfxText('#' + prefix + '-event-dates');
+    const kpis = [
+      prefix + '-kpi-total-units', prefix + '-kpi-total-orders', prefix + '-kpi-avg-order',
+      prefix + '-kpi-units-ads', prefix + '-kpi-units-organic',
+    ].map(pdfxKpi);
+    const headline = pdfxText('#' + prefix + '-exec-summary-headline');
+    const body = pdfxText('#' + prefix + '-exec-summary-body');
+    const chartVarName = '_cs' + prefix + 'TopSellersChart';
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner">' +
+          pdfxHeaderBand(monthYear, 'Events') +
+          '<div class="pdfx-chlabel">Event Performance</div>' +
+          '<div class="pdfx-chrow"><span class="pdfx-chname">' + pdfxEscape(label) + '</span><span class="pdfx-chdate">' + pdfxEscape(dates) + '</span></div>' +
+          (headline ? '<div class="pdfx-card" style="margin-bottom:14px;"><div class="pdfx-card-title">' + pdfxEscape(headline) + '</div>' + (body ? '<div style="font-size:12px;color:var(--muted);line-height:1.7;">' + pdfxEscape(body) + '</div>' : '') + '</div>' : '') +
+          '<div class="pdfx-kpis">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div><div>' + pdfxLegendHtml(prefix + '-legend') + '</div></div>' + pdfxChartBlock(chartVarName) + '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
   // ---- main export flow ------------------------------------------------
 
   window.exportPartnerPDF = async function () {
@@ -7442,16 +7478,26 @@ window.initSubscriptions = function () {
         amazon:        !!document.getElementById('pdf-include-amazon')        && document.getElementById('pdf-include-amazon').checked,
         stewardship:   !!document.getElementById('pdf-include-stewardship')   && document.getElementById('pdf-include-stewardship').checked,
         opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
+        bss:  !!document.getElementById('pdf-include-bss')  && document.getElementById('pdf-include-bss').checked,
+        pd:   !!document.getElementById('pdf-include-pd')   && document.getElementById('pdf-include-pd').checked,
+        pbdd: !!document.getElementById('pdf-include-pbdd') && document.getElementById('pdf-include-pbdd').checked,
+        bfcm: !!document.getElementById('pdf-include-bfcm') && document.getElementById('pdf-include-bfcm').checked,
       };
 
       // Case 8 (race conditions) — wait for real completion signals
       // (each page's own init promise), never a fixed timeout alone.
       // Gated on the same checkboxes — no reason to fetch/render a page
-      // that isn't going into the export.
+      // that isn't going into the export. All 4 events share one
+      // initEventReport(channelId) function (confirmed directly) rather
+      // than Skinuva's 4 separately-named init functions.
       const initPromises = [
         (includeSections.amazon        && typeof window.initAmazonSalesInternal === 'function')  ? window.initAmazonSalesInternal()  : null,
         (includeSections.stewardship   && typeof window.initStewardshipInternal === 'function')  ? window.initStewardshipInternal()  : null,
         (includeSections.opportunities && typeof window.initSubscriptions === 'function')         ? window.initSubscriptions()        : null,
+        (includeSections.bss  && typeof window.initEventReport === 'function') ? window.initEventReport('ev-bss')  : null,
+        (includeSections.pd   && typeof window.initEventReport === 'function') ? window.initEventReport('ev-pd')   : null,
+        (includeSections.pbdd && typeof window.initEventReport === 'function') ? window.initEventReport('ev-pbdd') : null,
+        (includeSections.bfcm && typeof window.initEventReport === 'function') ? window.initEventReport('ev-bfcm') : null,
       ].filter(Boolean);
       if (initPromises.length) {
         console.log('[pdf-export] awaiting', initPromises.length, 'chart data load(s) before building PDF');
@@ -7476,6 +7522,7 @@ window.initSubscriptions = function () {
       // never going to render because its page got excluded.
       const chartsBySection = {
         amazon: ['_amazonChart'], stewardship: ['_investChart', '_impressChart'], opportunities: ['_snsChart'],
+        bss: ['_csbssTopSellersChart'], pd: ['_cspdTopSellersChart'], pbdd: ['_cspbddTopSellersChart'], bfcm: ['_csbfcmTopSellersChart'],
       };
       const expectedCharts = Object.keys(chartsBySection)
         .filter(sec => includeSections[sec])
@@ -7509,11 +7556,16 @@ window.initSubscriptions = function () {
       }
 
       // Each page only included if its checkbox is checked — matches
-      // Skinuva's real salesMarketingPages array pattern exactly.
+      // Skinuva's real salesMarketingPages/eventPages array pattern
+      // exactly.
       const pages = [
         includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
         includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
+        includeSections.bss  ? buildEventPage('bss',  'Big Spring Sale',             monthYear) : '',
+        includeSections.pd   ? buildEventPage('pd',   'Prime Day',                   monthYear) : '',
+        includeSections.pbdd ? buildEventPage('pbdd', 'Prime Big Deal Days',         monthYear) : '',
+        includeSections.bfcm ? buildEventPage('bfcm', 'Black Friday & Cyber Monday', monthYear) : '',
       ].join('');
       root.innerHTML = buildCoverPage(monthYear) + pages;
 
