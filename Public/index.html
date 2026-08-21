@@ -2452,6 +2452,17 @@ function csPct(current, previous) {
   if (!previous) return null;
   return Math.round(((current - previous) / previous) * 100);
 }
+// Alphabetical, except "Bundles" always sorts last — used everywhere
+// category tabs are built (Insights Products, Listing Audit, PPC
+// Strategy, Organic) so ordering stays consistent across all four pages.
+function csSortCategoriesBundlesLast(categories) {
+  return categories.slice().sort((a, b) => {
+    const aBundle = a.trim().toLowerCase() === 'bundles', bBundle = b.trim().toLowerCase() === 'bundles';
+    if (aBundle && !bBundle) return 1;
+    if (bBundle && !aBundle) return -1;
+    return a.localeCompare(b);
+  });
+}
 function csGetLastFullMonth() {
   const now = new Date();
   let year = now.getFullYear(), month = now.getMonth();
@@ -4975,7 +4986,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const cat = names.categoryBySku[sku] || 'Uncategorized';
           (byCategory[cat] = byCategory[cat] || []).push(sku);
         });
-        const categories = Object.keys(byCategory).sort();
+        const categories = csSortCategoriesBundlesLast(Object.keys(byCategory));
 
         tabsEl.innerHTML = categories.map((cat, i) =>
           `<button class="ch-tab${i===0?' active':''}" onclick="window.__csSelectListingCategory('${slugify(cat)}', this)">${escapeHtml(cat)}</button>`
@@ -5541,7 +5552,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!sku.startsWith('COS')) return;
           (byCategory[cat] = byCategory[cat] || []).push(sku);
         });
-        const categories = Object.keys(byCategory).sort();
+        const categories = csSortCategoriesBundlesLast(Object.keys(byCategory));
         if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found.</div></div>'; return; }
 
         const asinSetBySlug = {};
@@ -5770,23 +5781,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  window.__csRunListingAudit = function () {
-    // Unlike run-analysis/run-ppc-strategy-analysis (which only need
-    // {brand} — they resolve every sheet themselves via config/sheets.js),
-    // run-listing-audit.js requires the caller to pass sourceSheetId and
-    // auditSheetId explicitly (confirmed directly against the file:
-    // `if (!sourceSheetId) return res.status(400).json({error:'Missing:
-    // sourceSheetId'})`). auditGid is accepted but unused in the file's
-    // actual logic (writes go by tab name, not gid) — omitted here.
+  window.__csRunListingAudit = async function () {
+    // Confirmed directly, 2026-08-21: a single call auditing all 15 SKUs
+    // sequentially hit Vercel's 300s function timeout after 9 SKUs
+    // (~20-25s each). skuFilter (an array) was already a supported POST
+    // param in run-listing-audit.js — built for exactly this, just never
+    // orchestrated from the frontend before. Batches of 5 keep each call
+    // comfortably under 300s with margin.
+    const BATCH_SIZE = 5;
+    const btn = document.getElementById('run-audit-btn');
+    const st = document.getElementById('upload-status');
+    if (!btn) return;
     const cfg = window.SHEET_CFG;
-    const extraBody = {
-      sourceSheetId: cfg.SHEET_PRODUCT_INVENTORY ? cfg.SHEET_PRODUCT_INVENTORY.fileId : undefined,
-      auditSheetId: cfg.SHEET_LISTING_AUDIT ? cfg.SHEET_LISTING_AUDIT.fileId : undefined,
-    };
-    runCron('run-audit-btn', '/api/run-listing-audit', () => {
+    const sourceSheetId = cfg.SHEET_PRODUCT_INVENTORY ? cfg.SHEET_PRODUCT_INVENTORY.fileId : undefined;
+    const auditSheetId = cfg.SHEET_LISTING_AUDIT ? cfg.SHEET_LISTING_AUDIT.fileId : undefined;
+
+    btn.classList.add('running');
+    btn.disabled = true;
+    if (st) { st.textContent = 'Loading SKU list…'; st.className = 'upload-status'; }
+
+    try {
+      const names = await csFetchProductNames();
+      const uniqueSkus = [...new Set(Object.values(names.skuByAsin).filter(sku => sku.startsWith('COS')))];
+      if (!uniqueSkus.length) throw new Error('No Cosmette SKUs found to audit.');
+
+      const batches = [];
+      for (let i = 0; i < uniqueSkus.length; i += BATCH_SIZE) batches.push(uniqueSkus.slice(i, i + BATCH_SIZE));
+
+      let totalDone = 0;
+      for (let b = 0; b < batches.length; b++) {
+        if (st) { st.textContent = `Batch ${b+1} of ${batches.length} (${batches[b].length} SKUs)…`; st.className = 'upload-status'; }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 280000); // just under Vercel's 300s function limit
+        try {
+          const res = await fetch('/api/run-listing-audit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brand: cfg.BRAND_SLUG || 'cosmette', sourceSheetId, auditSheetId, skuFilter: batches[b] }),
+            signal: controller.signal,
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || `HTTP ${res.status} on batch ${b+1} of ${batches.length}`);
+          totalDone += batches[b].length;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      if (st) { st.textContent = `✓ Done — ${totalDone} SKUs audited — ` + new Date().toLocaleTimeString(); st.className = 'upload-status success'; }
+      if (typeof window.loadLastRunDates === 'function') window.loadLastRunDates();
       window._csListingAuditPromise = null;
       if (typeof window.initListingAudit === 'function') window.initListingAudit(true);
-    }, extraBody);
+    } catch (err) {
+      const msg = err.name === 'AbortError' ? 'Timed out (one batch ran past 280s)' : err.message;
+      console.warn('[run-audit-btn] failed:', msg);
+      if (st) { st.textContent = '✗ ' + msg; st.className = 'upload-status error'; }
+    } finally {
+      btn.classList.remove('running');
+      btn.disabled = false;
+    }
   };
 
   window.__csRunPpcAnalysis = function () {
@@ -6054,7 +6107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const byCategory = {};
         Object.entries(names.categoryBySku).forEach(([sku, cat]) => { (byCategory[cat] = byCategory[cat] || []).push(sku); });
-        const categories = Object.keys(CATEGORY_GID).filter(c => byCategory[c] && byCategory[c].length);
+        const categories = csSortCategoriesBundlesLast(Object.keys(CATEGORY_GID).filter(c => byCategory[c] && byCategory[c].length));
         if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found — check Master SKU List column K.</div></div>'; return; }
 
         tabsEl.innerHTML = categories.map((cat, i) =>
@@ -6360,7 +6413,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!sku.startsWith('COS')) return;
           (byCategory[cat] = byCategory[cat] || []).push(sku);
         });
-        const categories = Object.keys(byCategory).sort();
+        const categories = csSortCategoriesBundlesLast(Object.keys(byCategory));
         if (!categories.length) { panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">No categorized products found.</div></div>'; return; }
 
         const cfg = window.SHEET_CFG.SHEET_INSIGHTS;
