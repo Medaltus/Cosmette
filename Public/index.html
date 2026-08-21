@@ -798,16 +798,21 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   <div class="topbar">
     <span class="topbar-title" id="topbar-title">Home — Cosmette Skincare</span>
     <div class="topbar-right" style="display:flex;align-items:center;gap:10px;position:relative;">
-      <!-- Ported from Skinuva/évolis's real PDF export system — simplified
-           picker (no Website/Walmart/Fulfillment&CS/Strategy, none of
-           which exist for Cosmette). All 3 default checked. -->
-      <div style="position:relative;">
-        <button class="pdf-export-btn" id="pdf-export-btn" onclick="exportPartnerPDF()">
-          <span class="pdfx-spin"></span>
-          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-          <span class="pdfx-label-text">Export PDF</span>
-        </button>
+      <!-- Checkboxes for which pages to include — matches Skinuva's real
+           picker pattern exactly (pdf-include-* ids, includeSections
+           object in exportPartnerPDF). No Fulfillment & CS checkbox yet
+           since that page doesn't exist for Cosmette — add one here the
+           same way once it's built. All 3 that exist default checked. -->
+      <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
       </div>
+      <button class="pdf-export-btn" id="pdf-export-btn" onclick="exportPartnerPDF()">
+        <span class="pdfx-spin"></span>
+        <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        <span class="pdfx-label-text">Export PDF</span>
+      </button>
       <div id="clerk-user"></div>
     </div>
   </div>
@@ -7429,12 +7434,24 @@ window.initSubscriptions = function () {
     let _pdfPriorAmazonPeriod = 'lastFull';
 
     try {
+      // Matches Skinuva's real includeSections pattern exactly. No
+      // fulfillment key yet — that page doesn't exist for Cosmette;
+      // add `fulfillment: !!document.getElementById('pdf-include-fulfillment') && ...`
+      // here once it's built, same as the 3 below.
+      const includeSections = {
+        amazon:        !!document.getElementById('pdf-include-amazon')        && document.getElementById('pdf-include-amazon').checked,
+        stewardship:   !!document.getElementById('pdf-include-stewardship')   && document.getElementById('pdf-include-stewardship').checked,
+        opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
+      };
+
       // Case 8 (race conditions) — wait for real completion signals
       // (each page's own init promise), never a fixed timeout alone.
+      // Gated on the same checkboxes — no reason to fetch/render a page
+      // that isn't going into the export.
       const initPromises = [
-        typeof window.initAmazonSalesInternal === 'function' ? window.initAmazonSalesInternal() : null,
-        typeof window.initStewardshipInternal === 'function' ? window.initStewardshipInternal() : null,
-        typeof window.initSubscriptions === 'function' ? window.initSubscriptions() : null,
+        (includeSections.amazon        && typeof window.initAmazonSalesInternal === 'function')  ? window.initAmazonSalesInternal()  : null,
+        (includeSections.stewardship   && typeof window.initStewardshipInternal === 'function')  ? window.initStewardshipInternal()  : null,
+        (includeSections.opportunities && typeof window.initSubscriptions === 'function')         ? window.initSubscriptions()        : null,
       ].filter(Boolean);
       if (initPromises.length) {
         console.log('[pdf-export] awaiting', initPromises.length, 'chart data load(s) before building PDF');
@@ -7454,7 +7471,15 @@ window.initSubscriptions = function () {
       // Defensive backstop poll — the real fix is awaiting the init
       // promises above; this only catches a chart that was still
       // finishing its OWN render microtask after that promise resolved.
-      const expectedCharts = ['_amazonChart', '_investChart', '_impressChart', '_snsChart'];
+      // Filtered to only charts whose section is actually checked —
+      // otherwise this polls the full 12s waiting on a chart that was
+      // never going to render because its page got excluded.
+      const chartsBySection = {
+        amazon: ['_amazonChart'], stewardship: ['_investChart', '_impressChart'], opportunities: ['_snsChart'],
+      };
+      const expectedCharts = Object.keys(chartsBySection)
+        .filter(sec => includeSections[sec])
+        .reduce((arr, sec) => arr.concat(chartsBySection[sec]), []);
       const pollStart = Date.now();
       while (Date.now() - pollStart < 12000 && expectedCharts.some(v => !window[v])) {
         await new Promise(r => setTimeout(r, 150));
@@ -7483,7 +7508,14 @@ window.initSubscriptions = function () {
         document.body.appendChild(root);
       }
 
-      root.innerHTML = buildCoverPage(monthYear) + buildAmazonPage(monthYear) + buildStewardshipPage(monthYear) + buildOpportunitiesPage(monthYear);
+      // Each page only included if its checkbox is checked — matches
+      // Skinuva's real salesMarketingPages array pattern exactly.
+      const pages = [
+        includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
+        includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
+        includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
+      ].join('');
+      root.innerHTML = buildCoverPage(monthYear) + pages;
 
       // Case 5's sibling gotcha — fully visible on top of everything
       // during capture (not display:none swapped, not fixed/off-screen
