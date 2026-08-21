@@ -1847,7 +1847,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
           <div class="period-pills" id="ppc-period-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
         </div>
       </div>
-      <div class="kpi-row" style="margin-bottom:24px;flex-wrap:wrap;">
+      <div class="kpi-row" style="margin-bottom:24px;grid-template-columns:repeat(6,1fr);">
         <div class="kpi-card" id="ppc-kpi-adspend"><div class="kpi-label">Ad Spend</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-adsales"><div class="kpi-label">Ad Sales</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-acos"><div class="kpi-label">ACOS</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
@@ -5090,42 +5090,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const cfg = csBuildPeriodConfig(periodKey);
     const orderRows = cfg.isHistorical ? cache.histRows : cache.syncRows;
 
+    // Computes the same 11 metrics for any year/month — called once for
+    // the selected period, once for the prior period, so MoM is a real
+    // comparison, not just the period label. Ad summary sheet is
+    // monthly-granularity only (no daily rows), so "partial" only
+    // affects the order-based metrics (Total Sales/Orders/AOV/TACOS),
+    // same simplification already in place before this change.
+    function computeMetrics(year, month, isPartial, throughDay) {
+      const adRows = cache.adSummaryRows.filter(r => parseInt(r.year,10) === year && parseInt(r.month,10) === month);
+      const spend = adRows.reduce((s,r) => s + csParseAmt(r.spend), 0);
+      const adSales = adRows.reduce((s,r) => s + csParseAmt(r.sales), 0);
+      const impressions = adRows.reduce((s,r) => s + (parseInt(r.impressions,10)||0), 0);
+      const clicks = adRows.reduce((s,r) => s + (parseInt(r.clicks,10)||0), 0);
+      const acos = adSales > 0 ? (spend/adSales)*100 : null;
+      const ctr = impressions > 0 ? (clicks/impressions)*100 : null;
+      const cpc = clicks > 0 ? spend/clicks : null;
+
+      const totalAgg = isPartial
+        ? csAggregateMonthThroughDay(orderRows, year, month, throughDay)
+        : csAggregateMonth(orderRows, year, month);
+      const totalSales = totalAgg ? totalAgg.avgOrder * totalAgg.totalOrders : 0;
+      const totalOrders = totalAgg ? totalAgg.totalOrders : 0;
+      const aov = totalAgg ? totalAgg.avgOrder : 0;
+      const tacos = totalSales > 0 ? (spend/totalSales)*100 : null;
+      const hasAnyData = adRows.length > 0 || !!totalAgg;
+
+      return { spend, adSales, acos, totalSales, tacos, impressions, clicks, ctr, cpc, totalOrders, aov, hasAnyData };
+    }
+
+    const curr = computeMetrics(cfg.year, cfg.month, cfg.isPartial, cfg.throughDay);
+    // Prior period — null when the period itself has no defined "prior"
+    // (lastYear is a YoY comparison, not MoM-comparable the same way).
+    const prev = cfg.prevYear != null
+      ? computeMetrics(cfg.prevYear, cfg.prevMonth, cfg.isPartial, cfg.throughDay) // same throughDay cutoff for apples-to-apples MTD comparison
+      : null;
+    const prevForBadge = (prev && prev.hasAnyData) ? prev : null;
+
+    setKpiVal('ppc-kpi-adspend', '$' + curr.spend.toLocaleString(undefined,{maximumFractionDigits:0}));
+    setKpiVal('ppc-kpi-adsales', '$' + curr.adSales.toLocaleString(undefined,{maximumFractionDigits:0}));
+    setKpiVal('ppc-kpi-acos', curr.acos != null ? curr.acos.toFixed(1)+'%' : '—');
+    setKpiVal('ppc-kpi-totalsales', '$' + curr.totalSales.toLocaleString(undefined,{maximumFractionDigits:0}));
+    setKpiVal('ppc-kpi-tacos', curr.tacos != null ? curr.tacos.toFixed(1)+'%' : '—');
+    setKpiVal('ppc-kpi-impressions', curr.impressions.toLocaleString());
+    setKpiVal('ppc-kpi-clicks', curr.clicks.toLocaleString());
+    setKpiVal('ppc-kpi-ctr', curr.ctr != null ? curr.ctr.toFixed(2)+'%' : '—');
+    setKpiVal('ppc-kpi-cpc', curr.cpc != null ? '$'+curr.cpc.toFixed(2) : '—');
+    setKpiVal('ppc-kpi-orders', curr.totalOrders.toLocaleString());
+    setKpiVal('ppc-kpi-aov', curr.aov ? '$'+curr.aov.toFixed(2) : '—');
+
+    csSetBadge('ppc-kpi-adspend', 'kpi-mom', prevForBadge ? csPct(curr.spend, prevForBadge.spend) : null, 'MOM');
+    csSetBadge('ppc-kpi-adsales', 'kpi-mom', prevForBadge ? csPct(curr.adSales, prevForBadge.adSales) : null, 'MOM');
+    csSetBadge('ppc-kpi-acos', 'kpi-mom', (prevForBadge && curr.acos != null && prevForBadge.acos != null) ? csPct(curr.acos, prevForBadge.acos) : null, 'MOM');
+    csSetBadge('ppc-kpi-totalsales', 'kpi-mom', prevForBadge ? csPct(curr.totalSales, prevForBadge.totalSales) : null, 'MOM');
+    csSetBadge('ppc-kpi-tacos', 'kpi-mom', (prevForBadge && curr.tacos != null && prevForBadge.tacos != null) ? csPct(curr.tacos, prevForBadge.tacos) : null, 'MOM');
+    csSetBadge('ppc-kpi-impressions', 'kpi-mom', prevForBadge ? csPct(curr.impressions, prevForBadge.impressions) : null, 'MOM');
+    csSetBadge('ppc-kpi-clicks', 'kpi-mom', prevForBadge ? csPct(curr.clicks, prevForBadge.clicks) : null, 'MOM');
+    csSetBadge('ppc-kpi-ctr', 'kpi-mom', (prevForBadge && curr.ctr != null && prevForBadge.ctr != null) ? csPct(Math.round(curr.ctr*100), Math.round(prevForBadge.ctr*100)) : null, 'MOM');
+    csSetBadge('ppc-kpi-cpc', 'kpi-mom', (prevForBadge && curr.cpc != null && prevForBadge.cpc != null) ? csPct(Math.round(curr.cpc*100), Math.round(prevForBadge.cpc*100)) : null, 'MOM');
+    csSetBadge('ppc-kpi-orders', 'kpi-mom', prevForBadge ? csPct(curr.totalOrders, prevForBadge.totalOrders) : null, 'MOM');
+    csSetBadge('ppc-kpi-aov', 'kpi-mom', prevForBadge ? csPct(Math.round(curr.aov*100), Math.round(prevForBadge.aov*100)) : null, 'MOM');
+
     const adRows = cache.adSummaryRows.filter(r => parseInt(r.year,10) === cfg.year && parseInt(r.month,10) === cfg.month);
-    const spend = adRows.reduce((s,r) => s + csParseAmt(r.spend), 0);
-    const adSales = adRows.reduce((s,r) => s + csParseAmt(r.sales), 0);
-    const impressions = adRows.reduce((s,r) => s + (parseInt(r.impressions,10)||0), 0);
-    const clicks = adRows.reduce((s,r) => s + (parseInt(r.clicks,10)||0), 0);
-    const acos = adSales > 0 ? (spend/adSales)*100 : null;
-    const ctr = impressions > 0 ? (clicks/impressions)*100 : null;
-    const cpc = clicks > 0 ? spend/clicks : null;
-
-    const totalAgg = cfg.isPartial
-      ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
-      : csAggregateMonth(orderRows, cfg.year, cfg.month);
-    const totalSales = totalAgg ? totalAgg.avgOrder * totalAgg.totalOrders : 0;
-    const totalOrders = totalAgg ? totalAgg.totalOrders : 0;
-    const aov = totalAgg ? totalAgg.avgOrder : 0;
-    const tacos = totalSales > 0 ? (spend/totalSales)*100 : null;
-
-    setKpiVal('ppc-kpi-adspend', '$' + spend.toLocaleString(undefined,{maximumFractionDigits:0}));
-    setKpiVal('ppc-kpi-adsales', '$' + adSales.toLocaleString(undefined,{maximumFractionDigits:0}));
-    setKpiVal('ppc-kpi-acos', acos != null ? acos.toFixed(1)+'%' : '—');
-    setKpiVal('ppc-kpi-totalsales', '$' + totalSales.toLocaleString(undefined,{maximumFractionDigits:0}));
-    setKpiVal('ppc-kpi-tacos', tacos != null ? tacos.toFixed(1)+'%' : '—');
-    setKpiVal('ppc-kpi-impressions', impressions.toLocaleString());
-    setKpiVal('ppc-kpi-clicks', clicks.toLocaleString());
-    setKpiVal('ppc-kpi-ctr', ctr != null ? ctr.toFixed(2)+'%' : '—');
-    setKpiVal('ppc-kpi-cpc', cpc != null ? '$'+cpc.toFixed(2) : '—');
-    setKpiVal('ppc-kpi-orders', totalOrders.toLocaleString());
-    setKpiVal('ppc-kpi-aov', aov ? '$'+aov.toFixed(2) : '—');
-    ['ppc-kpi-adspend','ppc-kpi-adsales','ppc-kpi-acos','ppc-kpi-totalsales','ppc-kpi-tacos','ppc-kpi-impressions','ppc-kpi-clicks','ppc-kpi-ctr','ppc-kpi-cpc','ppc-kpi-orders','ppc-kpi-aov'].forEach(id => setKpiMomText(id, cfg.label, 'flat'));
-
     const takeawayEl = document.getElementById('ppc-context-takeaway');
     if (takeawayEl) {
       if (!adRows.length) {
         takeawayEl.textContent = `No ad data found for ${cfg.label.toLowerCase()}.`;
       } else {
-        takeawayEl.innerHTML = `<strong>${cfg.label}:</strong> $${spend.toFixed(2)} spend drove $${adSales.toFixed(2)} in ad sales (${acos != null ? acos.toFixed(1)+'% ACOS' : 'ACOS n/a'}). Blended against $${totalSales.toFixed(2)} total Amazon sales, that's ${tacos != null ? tacos.toFixed(1)+'% TACOS' : 'TACOS n/a'}.`;
+        takeawayEl.innerHTML = `<strong>${cfg.label}:</strong> $${curr.spend.toFixed(2)} spend drove $${curr.adSales.toFixed(2)} in ad sales (${curr.acos != null ? curr.acos.toFixed(1)+'% ACOS' : 'ACOS n/a'}). Blended against $${curr.totalSales.toFixed(2)} total Amazon sales, that's ${curr.tacos != null ? curr.tacos.toFixed(1)+'% TACOS' : 'TACOS n/a'}.`;
       }
     }
   };
@@ -5821,7 +5852,10 @@ document.addEventListener('DOMContentLoaded', () => {
             signal: controller.signal,
           });
           const json = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(json.error || `HTTP ${res.status} on batch ${b+1} of ${batches.length}`);
+          if (!res.ok) {
+            const detail = json.googleApiError ? ` — ${json.googleApiError.slice(0,200)}` : '';
+            throw new Error((json.error || `HTTP ${res.status}`) + ` on batch ${b+1} of ${batches.length}${detail}`);
+          }
           totalDone += batches[b].length;
         } finally {
           clearTimeout(timer);
