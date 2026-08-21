@@ -1259,6 +1259,9 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="s-amazon">
+      <div id="sales-historical-note" style="display:none;background:rgba(200,125,47,.08);border:1px solid rgba(200,125,47,.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11.5px;color:var(--navy);">
+        ⚠ <strong>Last Year</strong> shows sales from Cosmette's own seller account prior to the Medaltus partnership — not a Newderm-managed period.
+      </div>
       <div class="kpi-row">
         <div class="kpi-card kpi-card-tall" id="kpi-total-units"><div class="kpi-label">Total Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card kpi-card-tall" id="kpi-total-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
@@ -1268,7 +1271,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div class="card-title" style="margin-bottom:0;">Sales Revenue by Month</div>
+          <div class="card-title" style="margin-bottom:0;">Units Sold by Month</div>
           <div id="legend-amazon" style="display:flex;align-items:center;"></div>
         </div>
         <div style="position:relative;height:320px;"><canvas id="chart-amazon"></canvas></div>
@@ -2446,6 +2449,20 @@ function csIsValidOrder(row) {
 function csFilterRows(rows) {
   return rows.filter(r => csIsCosmetteRow(r) && csIsValidOrder(r));
 }
+// Cosmette sold on its own seller account before partnering with
+// Medaltus. Current-period KPIs must only ever count sales under
+// Medaltus's own "Newderm" seller account — a row from before the
+// partnership (selling_account = "Cosmette_Historical") is real
+// revenue, but not OUR performance to report as current. Rows synced
+// before this column existed have no selling_account value at all —
+// treated as Newderm, since the live sync has only ever run under that
+// account.
+function csFilterNewderm(rows) {
+  return rows.filter(r => !r.selling_account || r.selling_account === 'Newderm');
+}
+function csFilterCosmetteHistorical(rows) {
+  return rows.filter(r => r.selling_account === 'Cosmette_Historical');
+}
 function csAggregateMonth(rows, year, month) {
   const prefix = `${year}-${String(month).padStart(2,'0')}`;
   const filtered = rows.filter(r => csNormalizeDate(r.date).substring(0, 7) === prefix);
@@ -2653,6 +2670,95 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
 }
 
 const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// NEW — replaces the revenue chart on Sales Internal per instruction: no
+// revenue reporting for Cosmette on this chart, units only, combining
+// SHEET_ORDERS (current, Newderm) and SHEET_ORDERS_HISTORICAL (pre-
+// partnership, Cosmette_Historical) into one continuous timeline. Each
+// bar's color/legend entry reflects BOTH year AND selling account —
+// "Newderm 2026" stays the established current-year green; the
+// pre-partnership months get distinct colors per year ("Cosmette '25",
+// "Cosmette '26") so it's visually obvious which bars are Cosmette's own
+// historical performance vs. Medaltus's own management.
+function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
+  const monthMap = new Map(); // key "YYYY-MM" -> { units, bySeries: {seriesKey: units} }
+  function addRows(rows, seriesFn) {
+    rows.forEach(r => {
+      const d = csNormalizeDate(r.date);
+      const key = d.substring(0,7);
+      if (!key || key.length !== 7) return;
+      const [y,m] = key.split('-').map(Number);
+      if (!y || !m) return;
+      const seriesKey = seriesFn(y);
+      if (!monthMap.has(key)) monthMap.set(key, { year: y, month: m, bySeries: {} });
+      const entry = monthMap.get(key);
+      entry.bySeries[seriesKey] = (entry.bySeries[seriesKey] || 0) + (parseInt(r.unit_count,10) || 0);
+    });
+  }
+  const { year: currentYear } = csGetLastFullMonth();
+  addRows(syncRows, y => `Newderm ${y}`);
+  addRows(histRows, y => `Cosmette '${String(y).slice(2)}`);
+
+  const sortedKeys = [...monthMap.keys()].sort();
+  if (!sortedKeys.length) return;
+
+  // Assign each bar a single dominant series (majority of that month's
+  // units) — real transition months (partnership start) may briefly mix
+  // both accounts; the bar still needs one color to render.
+  const allSeriesKeys = new Set();
+  const barSeries = sortedKeys.map(key => {
+    const entry = monthMap.get(key);
+    const [dominant] = Object.entries(entry.bySeries).sort((a,b) => b[1]-a[1])[0];
+    allSeriesKeys.add(dominant);
+    return dominant;
+  });
+  const barValues = sortedKeys.map(key => Object.values(monthMap.get(key).bySeries).reduce((s,v)=>s+v,0));
+  const labels = sortedKeys.map(key => { const e = monthMap.get(key); return `${csMonths12[e.month-1]} '${String(e.year).slice(2)}`; });
+
+  // Color palette: current-year Newderm = established brand green.
+  // Cosmette-historical years get distinct, clearly non-green colors,
+  // most-recent-historical darkest, older lighter — same "recency"
+  // logic used elsewhere in this file, just applied to a different
+  // color family so it can never be confused with Newderm's own green.
+  const HISTORICAL_COLORS = ['#f4dfd0', '#ccd3d5', '#6b7ba2']; // sand, silver, slate — most-recent to oldest
+  const historicalSeriesKeys = [...allSeriesKeys].filter(k => k.startsWith("Cosmette")).sort().reverse(); // most recent year first
+  const colorBySeries = {};
+  allSeriesKeys.forEach(k => {
+    if (k === `Newderm ${currentYear}`) colorBySeries[k] = '#24e9a3';
+    else if (k.startsWith('Newderm')) colorBySeries[k] = '#001f60'; // a past/future Newderm year, if it ever occurs
+    else colorBySeries[k] = HISTORICAL_COLORS[historicalSeriesKeys.indexOf(k)] || '#6b7ba2';
+  });
+
+  const barColors = barSeries.map(s => colorBySeries[s]);
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (canvas._csChart) canvas._csChart.destroy();
+  canvas._csChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Units Sold', data: barValues, backgroundColor: barColors, borderRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${barSeries[ctx.dataIndex]}: ${ctx.parsed.y.toLocaleString()} units` } } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } },
+    },
+  });
+
+  // Manual legend — a single Chart.js dataset can't natively show one
+  // legend entry per bar color, and this needs to show BOTH year and
+  // seller account distinctly per instruction.
+  const legendEl = document.getElementById(legendId);
+  if (legendEl) {
+    const orderedSeries = [...allSeriesKeys].sort((a,b) => {
+      if (a.startsWith('Newderm') && !b.startsWith('Newderm')) return -1;
+      if (b.startsWith('Newderm') && !a.startsWith('Newderm')) return 1;
+      return b.localeCompare(a); // most recent year first within each group
+    });
+    legendEl.innerHTML = orderedSeries.map(s =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px;font-size:11px;color:var(--muted);"><span style="width:10px;height:10px;border-radius:2px;background:${colorBySeries[s]};display:inline-block;"></span>${s}</span>`
+    ).join('');
+  }
+}
+
 async function csBuildRevenueChart(canvasId, currentYear) {
   const cfg = window.SHEET_CFG.SHEET_REVENUE;
   if (!cfg) return;
@@ -2770,7 +2876,13 @@ window.renderCosmettePeriod = function (key) {
   window._csActivePeriod = key;
   const cfg = csBuildPeriodConfig(key);
   const monthNames = csMonths12;
-  const orderRows = cfg.isHistorical ? cache.histRows : cache.syncRows;
+  // Current-period figures must only ever count Medaltus's own "Newderm"
+  // seller account — Cosmette's own pre-partnership sales are real, but
+  // not our performance to report as current. Last Year is the one
+  // exception: it's explicitly meant to show Cosmette's OWN prior
+  // account, so it stays unfiltered (all of histRows, by definition
+  // Cosmette_Historical already).
+  const orderRows = cfg.isHistorical ? cache.histRows : csFilterNewderm(cache.syncRows);
 
   const subEl = document.getElementById('sales-page-sub');
   if (cfg.isPartial) {
@@ -2781,6 +2893,12 @@ window.renderCosmettePeriod = function (key) {
   }
   const heroEl = document.getElementById('overview-hero-date');
   if (heroEl) heroEl.textContent = `${monthNames[cfg.month-1]} ${cfg.year}`;
+
+  // Last Year is explicitly Cosmette's own prior seller account, not
+  // Medaltus/Newderm performance — flagged clearly so it's never
+  // mistaken for a Newderm-era number.
+  const historicalNoteEl = document.getElementById('sales-historical-note');
+  if (historicalNoteEl) historicalNoteEl.style.display = cfg.isHistorical ? '' : 'none';
 
   const curr = cfg.isPartial
     ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
@@ -2793,13 +2911,15 @@ window.renderCosmettePeriod = function (key) {
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No data for this period.</td></tr>';
     return;
   }
-  // Prior-period comparison always reads the sync sheet (same convention as
-  // Skinuva) — Prior Month and MTD's comparison month are always within
-  // SHEET_ORDERS' rolling window; Last Year has no prior-period comparison.
-  const prev = cfg.prevYear
+  // MoM/prior-period comparison — per instruction, for MTD/Last Full
+  // Month/Prior Month specifically, the COMPARISON baseline pulls from
+  // Cosmette's own historical seller account, not the live Newderm sync.
+  // The partnership is too new for a meaningful Newderm-vs-Newderm prior
+  // month to exist yet. Last Year has no further "prior" of its own.
+  const prev = (cfg.prevYear && !cfg.isHistorical)
     ? (cfg.isPartial
-        ? csAggregateMonthThroughDay(cache.syncRows, cfg.prevYear, cfg.prevMonth, cfg.throughDay)
-        : csAggregateMonth(cache.syncRows, cfg.prevYear, cfg.prevMonth))
+        ? csAggregateMonthThroughDay(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth, cfg.throughDay)
+        : csAggregateMonth(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth))
     : null;
 
   let adUnitsKpi = 0, prevAdUnitsKpi = 0;
@@ -2820,7 +2940,10 @@ window.renderCosmettePeriod = function (key) {
     const prevAdOrderRows = cfg.prevYear ? cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.prevYear && parseInt(r.month,10)===cfg.prevMonth) : [];
     csBuildTopProducts('tp-tbody', 'amazon-products-source', orderRows, cfg.year, cfg.month, adOrderRows, cfg.prevYear, cfg.prevMonth, orderRows, prevAdOrderRows);
   }
-  csBuildRevenueChart('chart-amazon', cfg.year).catch(e => console.warn('[CosmetteRevenue] failed:', e.message));
+  // Units chart is period-independent — always shows the full combined
+  // Newderm + Cosmette_Historical timeline, not scoped to whatever period
+  // pill is selected.
+  csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows);
 };
 
 function csRenderPeriodPills(activeKey) {
