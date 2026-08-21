@@ -5725,7 +5725,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // runPpcStrategyAnalysis(): toggle the button's own .running class
   // (drives the spinner + dimmed label via CSS, not a text swap) and use
   // the single shared #upload-status line, not one status span per button.
-  async function runCron(btnId, endpoint, onSuccess) {
+  async function runCron(btnId, endpoint, onSuccess, extraBody) {
     const btn = document.getElementById(btnId);
     const st = document.getElementById('upload-status');
     if (!btn) return;
@@ -5739,7 +5739,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brand: window.SHEET_CFG.BRAND_SLUG || 'cosmette' }),
+        body: JSON.stringify({ brand: window.SHEET_CFG.BRAND_SLUG || 'cosmette', ...extraBody }),
         signal: controller.signal,
       });
       const json = await res.json().catch(() => ({}));
@@ -5771,10 +5771,22 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.__csRunListingAudit = function () {
+    // Unlike run-analysis/run-ppc-strategy-analysis (which only need
+    // {brand} — they resolve every sheet themselves via config/sheets.js),
+    // run-listing-audit.js requires the caller to pass sourceSheetId and
+    // auditSheetId explicitly (confirmed directly against the file:
+    // `if (!sourceSheetId) return res.status(400).json({error:'Missing:
+    // sourceSheetId'})`). auditGid is accepted but unused in the file's
+    // actual logic (writes go by tab name, not gid) — omitted here.
+    const cfg = window.SHEET_CFG;
+    const extraBody = {
+      sourceSheetId: cfg.SHEET_PRODUCT_INVENTORY ? cfg.SHEET_PRODUCT_INVENTORY.fileId : undefined,
+      auditSheetId: cfg.SHEET_LISTING_AUDIT ? cfg.SHEET_LISTING_AUDIT.fileId : undefined,
+    };
     runCron('run-audit-btn', '/api/run-listing-audit', () => {
       window._csListingAuditPromise = null;
       if (typeof window.initListingAudit === 'function') window.initListingAudit(true);
-    });
+    }, extraBody);
   };
 
   window.__csRunPpcAnalysis = function () {
