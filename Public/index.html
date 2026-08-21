@@ -2453,12 +2453,16 @@ function csFilterRows(rows) {
 // Medaltus. Current-period KPIs must only ever count sales under
 // Medaltus's own "Newderm" seller account — a row from before the
 // partnership (selling_account = "Cosmette_Historical") is real
-// revenue, but not OUR performance to report as current. Rows synced
-// before this column existed have no selling_account value at all —
-// treated as Newderm, since the live sync has only ever run under that
-// account.
+// revenue, but not OUR performance to report as current.
+// FIXED — this previously defaulted a blank/missing selling_account to
+// "Newderm," on the assumption the live sync has only ever run under
+// that account. That assumption was wrong: confirmed directly there are
+// no Newderm rows before August at all, regardless of whether the
+// column is populated — so a blank value must never be treated as a
+// Newderm match, or pre-partnership rows could get miscounted as
+// current performance.
 function csFilterNewderm(rows) {
-  return rows.filter(r => !r.selling_account || r.selling_account === 'Newderm');
+  return rows.filter(r => r.selling_account === 'Newderm');
 }
 function csFilterCosmetteHistorical(rows) {
   return rows.filter(r => r.selling_account === 'Cosmette_Historical');
@@ -2671,17 +2675,18 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
 
 const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// NEW — replaces the revenue chart on Sales Internal per instruction: no
+// Replaces the revenue chart on Sales Internal per instruction: no
 // revenue reporting for Cosmette on this chart, units only, combining
 // SHEET_ORDERS (current, Newderm) and SHEET_ORDERS_HISTORICAL (pre-
-// partnership, Cosmette_Historical) into one continuous timeline. Each
-// bar's color/legend entry reflects BOTH year AND selling account —
-// "Newderm 2026" stays the established current-year green; the
-// pre-partnership months get distinct colors per year ("Cosmette '25",
-// "Cosmette '26") so it's visually obvious which bars are Cosmette's own
-// historical performance vs. Medaltus's own management.
+// partnership, Cosmette_Historical). Line chart, month-index x-axis
+// (Jan-Dec) with one overlaid line per series, matching the exact same
+// pattern and styling as the original csBuildRevenueChart (rounded
+// tension curves, same border width/point radius) — just units instead
+// of revenue, and series defined by seller account + year instead of a
+// simple year offset, since "2026" alone would conflate Cosmette's own
+// Jan-Jul sales with Newderm's Aug+ sales as if they were one line.
 function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
-  const monthMap = new Map(); // key "YYYY-MM" -> { units, bySeries: {seriesKey: units} }
+  const monthMap = new Map(); // key "YYYY-MM" -> { seriesKey: units, ... }
   function addRows(rows, seriesFn) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
@@ -2699,29 +2704,16 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
   addRows(syncRows, y => `Newderm ${y}`);
   addRows(histRows, y => `Cosmette '${String(y).slice(2)}`);
 
-  const sortedKeys = [...monthMap.keys()].sort();
-  if (!sortedKeys.length) return;
+  if (!monthMap.size) return;
 
-  // Assign each bar a single dominant series (majority of that month's
-  // units) — real transition months (partnership start) may briefly mix
-  // both accounts; the bar still needs one color to render.
+  // Every distinct series found, in the data — each becomes its own
+  // overlaid line on a shared Jan-Dec month-index x-axis, same as the
+  // original chart's year-lines.
   const allSeriesKeys = new Set();
-  const barSeries = sortedKeys.map(key => {
-    const entry = monthMap.get(key);
-    const [dominant] = Object.entries(entry.bySeries).sort((a,b) => b[1]-a[1])[0];
-    allSeriesKeys.add(dominant);
-    return dominant;
-  });
-  const barValues = sortedKeys.map(key => Object.values(monthMap.get(key).bySeries).reduce((s,v)=>s+v,0));
-  const labels = sortedKeys.map(key => { const e = monthMap.get(key); return `${csMonths12[e.month-1]} '${String(e.year).slice(2)}`; });
+  monthMap.forEach(entry => Object.keys(entry.bySeries).forEach(k => allSeriesKeys.add(k)));
 
-  // Color palette: current-year Newderm = established brand green.
-  // Cosmette-historical years get distinct, clearly non-green colors,
-  // most-recent-historical darkest, older lighter — same "recency"
-  // logic used elsewhere in this file, just applied to a different
-  // color family so it can never be confused with Newderm's own green.
   const HISTORICAL_COLORS = ['#f4dfd0', '#ccd3d5', '#6b7ba2']; // sand, silver, slate — most-recent to oldest
-  const historicalSeriesKeys = [...allSeriesKeys].filter(k => k.startsWith("Cosmette")).sort().reverse(); // most recent year first
+  const historicalSeriesKeys = [...allSeriesKeys].filter(k => k.startsWith('Cosmette')).sort().reverse();
   const colorBySeries = {};
   allSeriesKeys.forEach(k => {
     if (k === `Newderm ${currentYear}`) colorBySeries[k] = '#24e9a3';
@@ -2729,23 +2721,54 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
     else colorBySeries[k] = HISTORICAL_COLORS[historicalSeriesKeys.indexOf(k)] || '#6b7ba2';
   });
 
-  const barColors = barSeries.map(s => colorBySeries[s]);
+  // Each series may span more than one calendar year (e.g. "Cosmette
+  // '25" only has Jul-Dec 2025 data, "Cosmette '26" only Jan-Jul 2026) —
+  // find the one real year each series' data actually falls in, so the
+  // month-index lookup below reads the right cells.
+  const yearBySeries = {};
+  monthMap.forEach(entry => {
+    Object.keys(entry.bySeries).forEach(k => { if (!(k in yearBySeries)) yearBySeries[k] = entry.year; });
+  });
+
+  const datasets = [...allSeriesKeys].map(seriesKey => {
+    const y = yearBySeries[seriesKey];
+    const data = csMonths12.map((_, idx) => {
+      const mo = idx + 1;
+      const key = `${y}-${String(mo).padStart(2,'0')}`;
+      const entry = monthMap.get(key);
+      return entry && entry.bySeries[seriesKey] != null ? entry.bySeries[seriesKey] : null;
+    });
+    const isCurrent = seriesKey === `Newderm ${currentYear}`;
+    return {
+      label: seriesKey,
+      data,
+      borderColor: colorBySeries[seriesKey],
+      backgroundColor: isCurrent ? 'rgba(36,233,163,0.08)' : 'transparent',
+      fill: isCurrent,
+      pointRadius: 2,
+      tension: 0.3,
+      borderWidth: 2.5,
+    };
+  });
+
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   if (canvas._csChart) canvas._csChart.destroy();
   canvas._csChart = new Chart(canvas, {
-    type: 'bar',
-    data: { labels, datasets: [{ label: 'Units Sold', data: barValues, backgroundColor: barColors, borderRadius: 3 }] },
+    type: 'line',
+    data: { labels: csMonths12, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${barSeries[ctx.dataIndex]}: ${ctx.parsed.y.toLocaleString()} units` } } },
-      scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '—' : ctx.parsed.y.toLocaleString()} units` } } },
+      scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } },
     },
   });
 
-  // Manual legend — a single Chart.js dataset can't natively show one
-  // legend entry per bar color, and this needs to show BOTH year and
-  // seller account distinctly per instruction.
+  // Manual legend — needs to show BOTH year and seller account per
+  // instruction, which a bare Chart.js legend label already does here
+  // (each dataset.label is e.g. "Newderm 2026" / "Cosmette '26"), just
+  // rendered outside the canvas to match this dashboard's existing
+  // legend placement convention.
   const legendEl = document.getElementById(legendId);
   if (legendEl) {
     const orderedSeries = [...allSeriesKeys].sort((a,b) => {
