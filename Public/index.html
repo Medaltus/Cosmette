@@ -998,7 +998,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
       <div class="card" style="margin-bottom:20px;">
         <div class="card-title">Active Subscriptions by Month</div>
-        <div style="position:relative;height:320px;"><canvas id="mx-chart-sns"></canvas></div>
+        <div id="mx-sns-chart-wrap" style="position:relative;height:320px;"><canvas id="mx-chart-sns"></canvas></div>
       </div>
 
       <!-- Opportunity cards — read-only, locked to the approved month
@@ -1382,7 +1382,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
           <div class="card-title" style="margin-bottom:0;">Active Subscriptions by Month</div>
         </div>
-        <div style="position:relative;height:320px;"><canvas id="chart-sns"></canvas></div>
+        <div id="sns-chart-wrap" style="position:relative;height:320px;"><canvas id="chart-sns"></canvas></div>
       </div>
 
       <!-- 4 editable opportunity cards — opp1-4 title/subtitle/body,
@@ -3628,7 +3628,20 @@ document.addEventListener('DOMContentLoaded', () => {
     return isNaN(n) ? null : n;
   }
 
-  window.initSubscriptions = function () {
+  // Shared empty state for Subscribe & Save — used when there's genuinely
+// no subscription data yet (not an error, just a program that hasn't
+// started tracking any activity). Swaps the chart canvas for an honest
+// message instead of leaving a blank canvas that just looks broken.
+function csShowSubsEmptyState(wrapId, canvasId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:20px;">
+    <div style="font-size:32px;margin-bottom:10px;">📦</div>
+    <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subscribe &amp; Save not active yet</div>
+    <div style="font-size:11.5px;max-width:320px;">No subscription enrollment has been recorded for this brand yet — this will populate automatically once Subscribe &amp; Save data starts syncing.</div>
+  </div>`;
+}
+window.initSubscriptions = function () {
     if (window._csSubsPromise) return window._csSubsPromise;
     window._csSubsPromise = (async function () {
       const canvas = document.getElementById('chart-sns');
@@ -3661,7 +3674,7 @@ document.addEventListener('DOMContentLoaded', () => {
           withDate.forEach(x => {
             const r = x.row;
             const total = num(r.total_subscriptions ?? r.total_subs ?? r.subscriptions ?? r.active_subscriptions);
-            if (total === null || total === 0) return;
+            if (total === null) return; // only skip genuinely missing data — a real 0 (e.g. Subscribe & Save not active yet) should still show as a 0 bar, not disappear
             labels.push((!isNaN(x.y) && !isNaN(x.m)) ? `${monthAbbr[x.m-1]} '${String(x.y).slice(2)}` : (r.month_label || r.month || r.date || ''));
             values.push(total);
             years.push(x.y);
@@ -3698,6 +3711,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           } else {
             console.warn('[CosmetteSubscriptions] no total_subscriptions values matched — check column names. Available:', rows.length ? Object.keys(rows[0]) : '(none)');
+            csShowSubsEmptyState('sns-chart-wrap', 'chart-sns');
+            if (subsKpiEl) { subsKpiEl.textContent = '—'; const m = subsKpiEl.nextElementSibling; if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not active yet'; } }
           }
         } else {
           console.warn('[CosmetteSubscriptions] totals sheet did not return CSV.');
@@ -3708,7 +3723,7 @@ document.addEventListener('DOMContentLoaded', () => {
         //    match is worse than showing nothing). ──────────────────────
         if (csIsCsv(retentionCsv)) {
           const rows = csvToRows(retentionCsv);
-          console.log('[CosmetteSubscriptions] retention sheet — raw brand value per row:', JSON.stringify(rows.map(r => ({ year: r.year, month: r.month, brand: r.brand }))));
+          console.log('[CosmetteSubscriptions] retention sheet columns:', rows.length ? Object.keys(rows[0]) : '(no rows)');
           const target = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
           const useRows = rows.filter(r => (r.brand||'').toLowerCase().trim() === target);
 
@@ -3748,7 +3763,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           } else {
             console.warn('[CosmetteSubscriptions] no retention value found after brand filter — rows matched:', useRows.length);
-            if (retentionKpiEl) retentionKpiEl.textContent = '—';
+            if (retentionKpiEl) { retentionKpiEl.textContent = '—'; const m = retentionKpiEl.nextElementSibling; if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not enough history yet'; } }
           }
         } else {
           console.warn('[CosmetteSubscriptions] retention sheet did not return CSV.');
@@ -4552,7 +4567,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const labels = [], values = [], years = [];
           withDate.forEach(x => {
             const total = num(x.row.total_subscriptions ?? x.row.total_subs ?? x.row.subscriptions ?? x.row.active_subscriptions);
-            if (total === null || total === 0) return;
+            if (total === null) return; // a genuine 0 (e.g. Subscribe & Save not active yet) should still show as a 0 bar, not disappear
             labels.push(`${csMonths12[x.m-1]} '${String(x.y).slice(2)}`);
             values.push(total); years.push(x.y);
           });
@@ -4567,6 +4582,9 @@ document.addEventListener('DOMContentLoaded', () => {
               options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } } },
             });
             if (subsKpiEl) subsKpiEl.textContent = Math.round(values[values.length-1]).toLocaleString();
+          } else {
+            csShowSubsEmptyState('mx-sns-chart-wrap', 'mx-chart-sns');
+            if (subsKpiEl) { subsKpiEl.textContent = '—'; const m = subsKpiEl.nextElementSibling; if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not active yet'; } }
           }
         }
         if (csIsCsv(retentionCsv)) {
@@ -4581,7 +4599,12 @@ document.addEventListener('DOMContentLoaded', () => {
           if (hasHistory) { for (let i=withDateR.length-1;i>=0;i--){ if (readRetention(withDateR[i].row) !== null) { brandRow = withDateR[i].row; break; } } }
           if (!brandRow) brandRow = useRows[0] || null;
           const retentionVal = readRetention(brandRow);
-          if (retentionVal !== null && retentionKpiEl) retentionKpiEl.textContent = Math.round(retentionVal) + '%';
+          if (retentionVal !== null && retentionKpiEl) {
+            retentionKpiEl.textContent = Math.round(retentionVal) + '%';
+          } else if (retentionKpiEl) {
+            retentionKpiEl.textContent = '—';
+            const m = retentionKpiEl.nextElementSibling; if (m) { m.className = 'kpi-mom flat'; m.textContent = 'Not enough history yet'; }
+          }
         }
       } catch (err) {
         console.warn('[SubscriptionsExternal] failed:', err.message);
