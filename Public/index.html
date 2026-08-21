@@ -7558,7 +7558,7 @@ window.initSubscriptions = function () {
       // Each page only included if its checkbox is checked — matches
       // Skinuva's real salesMarketingPages/eventPages array pattern
       // exactly.
-      const pages = [
+      const pagesHtml = [
         includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
         includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
@@ -7567,7 +7567,7 @@ window.initSubscriptions = function () {
         includeSections.pbdd ? buildEventPage('pbdd', 'Prime Big Deal Days',         monthYear) : '',
         includeSections.bfcm ? buildEventPage('bfcm', 'Black Friday & Cyber Monday', monthYear) : '',
       ].join('');
-      root.innerHTML = buildCoverPage(monthYear) + pages;
+      root.innerHTML = buildCoverPage(monthYear) + pagesHtml;
 
       // Case 5's sibling gotcha — fully visible on top of everything
       // during capture (not display:none swapped, not fixed/off-screen
