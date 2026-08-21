@@ -2677,95 +2677,80 @@ const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 
 // Replaces the revenue chart on Sales Internal per instruction: no
 // revenue reporting for Cosmette on this chart, units only, combining
-// SHEET_ORDERS (current, Newderm) and SHEET_ORDERS_HISTORICAL (pre-
-// partnership, Cosmette_Historical). Line chart, month-index x-axis
-// (Jan-Dec) with one overlaid line per series, matching the exact same
-// pattern and styling as the original csBuildRevenueChart (rounded
-// tension curves, same border width/point radius) — just units instead
-// of revenue, and series defined by seller account + year instead of a
-// simple year offset, since "2026" alone would conflate Cosmette's own
-// Jan-Jul sales with Newderm's Aug+ sales as if they were one line.
+// SHEET_ORDERS (current, Medaltus/"Newderm" account) and
+// SHEET_ORDERS_HISTORICAL (pre-partnership, Cosmette_Historical). Two
+// series only: "Cosmette" (one flat color for ALL pre-partnership
+// history, regardless of which calendar year it falls in) and
+// "Medaltus {year}" (the current green, renamed from the internal
+// "Newderm" seller-account name per instruction). Continuous
+// chronological x-axis, not a Jan-Dec month-index overlay — Cosmette's
+// own history spans parts of two different calendar years (Jul-Dec 2025
+// AND Jan-Jul 2026), both including July; a month-index axis would put
+// both Julys at the same x-position and one would silently overwrite
+// the other the moment they're merged into a single color/series. Same
+// rounded-line styling as the original chart throughout.
 function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
-  const monthMap = new Map(); // key "YYYY-MM" -> { seriesKey: units, ... }
-  // FIXED — this previously labeled every row as "Newderm" or "Cosmette"
-  // purely by WHICH SHEET it came from (all of syncRows = Newderm, all
-  // of histRows = Cosmette_Historical), never checking the row's own
-  // selling_account value. That's wrong the moment historical data lives
-  // inside SHEET_ORDERS itself (confirmed directly: April-July rows are
-  // in SHEET_ORDERS but tagged Cosmette_Historical) — those rows were
-  // getting mislabeled as Newderm just because of which array held them.
-  // Combines both sheets into one pool and classifies every row by its
-  // own selling_account field instead.
+  const monthMap = new Map(); // key "YYYY-MM" -> { medaltus: units|null, cosmette: units|null }
   function addRows(rows) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
-      const [y,m] = key.split('-').map(Number);
-      if (!y || !m) return;
-      const seriesKey = r.selling_account === 'Newderm' ? `Newderm ${y}` : `Cosmette '${String(y).slice(2)}`;
-      if (!monthMap.has(key)) monthMap.set(key, { year: y, month: m, bySeries: {} });
+      const isMedaltus = r.selling_account === 'Newderm';
+      if (!monthMap.has(key)) monthMap.set(key, { medaltus: null, cosmette: null });
       const entry = monthMap.get(key);
-      entry.bySeries[seriesKey] = (entry.bySeries[seriesKey] || 0) + (parseInt(r.unit_count,10) || 0);
+      const field = isMedaltus ? 'medaltus' : 'cosmette';
+      entry[field] = (entry[field] || 0) + (parseInt(r.unit_count,10) || 0);
     });
   }
-  const { year: currentYear } = csGetLastFullMonth();
   addRows(syncRows);
   addRows(histRows);
 
   if (!monthMap.size) return;
 
-  // Every distinct series found, in the data — each becomes its own
-  // overlaid line on a shared Jan-Dec month-index x-axis, same as the
-  // original chart's year-lines.
-  const allSeriesKeys = new Set();
-  monthMap.forEach(entry => Object.keys(entry.bySeries).forEach(k => allSeriesKeys.add(k)));
-
-  const HISTORICAL_COLORS = ['#f4dfd0', '#ccd3d5', '#6b7ba2']; // sand, silver, slate — most-recent to oldest
-  const historicalSeriesKeys = [...allSeriesKeys].filter(k => k.startsWith('Cosmette')).sort().reverse();
-  const colorBySeries = {};
-  allSeriesKeys.forEach(k => {
-    if (k === `Newderm ${currentYear}`) colorBySeries[k] = '#24e9a3';
-    else if (k.startsWith('Newderm')) colorBySeries[k] = '#001f60'; // a past/future Newderm year, if it ever occurs
-    else colorBySeries[k] = HISTORICAL_COLORS[historicalSeriesKeys.indexOf(k)] || '#6b7ba2';
+  const sortedKeys = [...monthMap.keys()].sort();
+  const labels = sortedKeys.map(key => {
+    const [y,m] = key.split('-').map(Number);
+    return `${csMonths12[m-1]} '${String(y).slice(2)}`;
   });
+  const { year: currentYear } = csGetLastFullMonth();
 
-  // Each series may span more than one calendar year (e.g. "Cosmette
-  // '25" only has Jul-Dec 2025 data, "Cosmette '26" only Jan-Jul 2026) —
-  // find the one real year each series' data actually falls in, so the
-  // month-index lookup below reads the right cells.
-  const yearBySeries = {};
-  monthMap.forEach(entry => {
-    Object.keys(entry.bySeries).forEach(k => { if (!(k in yearBySeries)) yearBySeries[k] = entry.year; });
-  });
+  const medaltusData = sortedKeys.map(key => monthMap.get(key).medaltus);
+  const cosmetteData = sortedKeys.map(key => monthMap.get(key).cosmette);
 
-  const datasets = [...allSeriesKeys].map(seriesKey => {
-    const y = yearBySeries[seriesKey];
-    const data = csMonths12.map((_, idx) => {
-      const mo = idx + 1;
-      const key = `${y}-${String(mo).padStart(2,'0')}`;
-      const entry = monthMap.get(key);
-      return entry && entry.bySeries[seriesKey] != null ? entry.bySeries[seriesKey] : null;
-    });
-    const isCurrent = seriesKey === `Newderm ${currentYear}`;
-    return {
-      label: seriesKey,
-      data,
-      borderColor: colorBySeries[seriesKey],
-      backgroundColor: isCurrent ? 'rgba(36,233,163,0.08)' : 'transparent',
-      fill: isCurrent,
+  const datasets = [];
+  if (cosmetteData.some(v => v != null)) {
+    datasets.push({
+      label: 'Cosmette',
+      data: cosmetteData,
+      borderColor: '#f4dfd0',
+      backgroundColor: 'transparent',
+      fill: false,
       pointRadius: 2,
       tension: 0.3,
       borderWidth: 2.5,
-    };
-  });
+    });
+  }
+  if (medaltusData.some(v => v != null)) {
+    datasets.push({
+      label: `Medaltus ${currentYear}`,
+      data: medaltusData,
+      borderColor: '#24e9a3',
+      backgroundColor: 'rgba(36,233,163,0.08)',
+      fill: true,
+      pointRadius: 2,
+      tension: 0.3,
+      borderWidth: 2.5,
+    });
+  }
+  if (!datasets.length) return;
 
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   if (canvas._csChart) canvas._csChart.destroy();
   canvas._csChart = new Chart(canvas, {
     type: 'line',
-    data: { labels: csMonths12, datasets },
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '—' : ctx.parsed.y.toLocaleString()} units` } } },
@@ -2773,20 +2758,10 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
     },
   });
 
-  // Manual legend — needs to show BOTH year and seller account per
-  // instruction, which a bare Chart.js legend label already does here
-  // (each dataset.label is e.g. "Newderm 2026" / "Cosmette '26"), just
-  // rendered outside the canvas to match this dashboard's existing
-  // legend placement convention.
   const legendEl = document.getElementById(legendId);
   if (legendEl) {
-    const orderedSeries = [...allSeriesKeys].sort((a,b) => {
-      if (a.startsWith('Newderm') && !b.startsWith('Newderm')) return -1;
-      if (b.startsWith('Newderm') && !a.startsWith('Newderm')) return 1;
-      return b.localeCompare(a); // most recent year first within each group
-    });
-    legendEl.innerHTML = orderedSeries.map(s =>
-      `<span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px;font-size:11px;color:var(--muted);"><span style="width:10px;height:10px;border-radius:2px;background:${colorBySeries[s]};display:inline-block;"></span>${s}</span>`
+    legendEl.innerHTML = datasets.map(ds =>
+      `<span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px;font-size:11px;color:var(--muted);"><span style="width:10px;height:10px;border-radius:2px;background:${ds.borderColor};display:inline-block;"></span>${ds.label}</span>`
     ).join('');
   }
 }
