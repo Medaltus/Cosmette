@@ -754,7 +754,7 @@ async function runAnalysisForBrand(brand, apiKey) {
 
   const brandDesc = BRAND_DESCRIPTIONS[brand.id] || BRAND_DESCRIPTIONS.default;
 
-  const [kwRows, bizRows, sqpRows, ppcRows, adOrdersRows, listingRows, historyRows, productInventoryRows] = await Promise.all([
+  const [kwRows, bizRows, sqpRows, ppcRows, adOrdersRows, listingRows, historyRows, productInventoryRows, adSearchTermsRows] = await Promise.all([
     readRows(KEYWORD_TRACKER_SHEET_ID, brand.tabName).catch(() => []),
     readRows(sheets.businessReport, brand.tabName).catch(() => []),
     readRows(sheets.searchQueryPerformance, brand.tabName).catch(() => []),
@@ -763,11 +763,16 @@ async function runAnalysisForBrand(brand, apiKey) {
     readRows(sheets.listingAudit, brand.tabName).catch(() => []),
     readRows(sheets.insights, brand.tabName).catch(() => []),
     readRows(sheets.productInventory, brand.tabName).catch(() => []),
+    // NEW — sheets.advertising (above) is a monthly aggregate with no
+    // search_term/keyword columns; aggregatePpcByTerm() genuinely needs
+    // per-term granularity, which only this sheet has. Requires the
+    // adSearchTerms key in config/sheets.js and SHEET_AD_SEARCH_TERMS env var.
+    readRows(sheets.adSearchTerms, brand.tabName).catch(() => []),
   ]);
-  _lap(`all 8 sheet reads done (kwRows:${kwRows.length} bizRows:${bizRows.length} sqpRows:${sqpRows.length} ppcRows:${ppcRows.length} adOrdersRows:${adOrdersRows.length} listingRows:${listingRows.length} historyRows:${historyRows.length} productInventoryRows:${productInventoryRows.length})`);
+  _lap(`all 9 sheet reads done (kwRows:${kwRows.length} bizRows:${bizRows.length} sqpRows:${sqpRows.length} ppcRows:${ppcRows.length} adOrdersRows:${adOrdersRows.length} listingRows:${listingRows.length} historyRows:${historyRows.length} productInventoryRows:${productInventoryRows.length} adSearchTermsRows:${adSearchTermsRows.length})`);
 
   const bizTrimmed      = bizRows.slice(-15);
-  const ppcTrimmed      = ppcRows.slice(-15); // still sent raw for the PPC section's own prompt, unchanged from before
+  const ppcTrimmed      = adSearchTermsRows.slice(-15); // real per-term rows now, not the monthly aggregate — matches aggregatePpcByTerm's own input
   const sqpSection_raw   = sqpRows.slice(-15);
   const adOrdersTrimmed = adOrdersRows.slice(-30);
 
@@ -800,7 +805,7 @@ async function runAnalysisForBrand(brand, apiKey) {
   // ── The new deterministic layer ──────────────────────────────────────────
   const comparison = pickComparisonDates(kwRows);
   _lap('pickComparisonDates done');
-  const ppcByTerm = aggregatePpcByTerm(ppcRows);
+  const ppcByTerm = aggregatePpcByTerm(adSearchTermsRows);
   _lap('aggregatePpcByTerm done');
   const trackedKeywordSet = new Set(kwRows.map(r => normalizeTerm(r.keyword)));
   const rankChanges = buildRankChanges(kwRows, ppcByTerm, sqpRows, latestBySku, comparison);
