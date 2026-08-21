@@ -1112,11 +1112,17 @@ Ingredients: ${ingredients || 'NOT AVAILABLE'}${kwContext}${ppcTermContext}${unt
 
     if (!appendRes.ok) {
       const err = await appendRes.text();
-      console.error('[listing-audit] Sheet write failed:', appendRes.status, err.slice(0, 200));
+      // Full text, not truncated — the truncated version has made this
+      // error genuinely undiagnosable twice in a row (collapsed to
+      // "{...}" in Vercel's log viewer with nothing else to go on).
+      console.error(`[listing-audit] SHEET WRITE FAILED — status ${appendRes.status}`);
+      console.error(`[listing-audit] Full Google API error response:\n${err}`);
+      console.error(`[listing-audit] Rows attempted: ${auditRows.length}, columns per row: ${auditRows[0] ? auditRows[0].length : 'n/a'}`);
       return res.status(502).json({
         error: 'Audit completed but sheet write failed',
         status: appendRes.status,
-        skuCount: auditRows.length
+        skuCount: auditRows.length,
+        googleApiError: err.slice(0, 1000), // now actually surfaced to the caller, not just the server log
       });
     }
   }
@@ -1137,6 +1143,67 @@ function buildErrorRow(date, sku, name, errorMsg, now) {
 }
 
 async function ensureAuditHeaders(sheetId, tabName, token) {
+  const headerRow = [
+    'date', 'sku', 'sku_name', 'action',
+    'title_notes', 'title_rewrite',
+    'ih_notes', 'ih_rewrite',
+    'bullets_notes',
+    'bullet_1_rewrite', 'bullet_2_rewrite', 'bullet_3_rewrite', 'bullet_4_rewrite', 'bullet_5_rewrite',
+    'desc_notes', 'desc_rewrite',
+    'backend_notes', 'backend_rewrite',
+    'skip_reason', 'audited_at',
+    'recommendation', 'listing_age_days', 'prior_suggestion_notes'
+  ];
+
+  // FIXED 2026-08-21 — this function previously only ever checked whether
+  // an EXISTING tab already had a header row; if the tab didn't exist at
+  // all, that check's GET request itself failed, and the function just
+  // silently returned without creating anything. The actual append call
+  // later then failed with "Unable to parse range: {tab}!A2" — a real
+  // Google API error confirmed directly against Cosmette's own logs,
+  // not a hypothetical. Now checks spreadsheet metadata for the tab's
+  // existence first (same pattern api/config/_sheets_client.js's own
+  // ensureTab() already uses correctly) and creates it via batchUpdate
+  // if missing, before ever trying to read/write its A1 range.
+  const metaRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!metaRes.ok) {
+    console.error(`[listing-audit] Could not read spreadsheet metadata for ${sheetId} (status ${metaRes.status}) — cannot confirm or create the "${tabName}" tab.`);
+    return;
+  }
+  const meta = await metaRes.json();
+  const tabExists = (meta.sheets || []).some(s => s.properties && s.properties.title === tabName);
+
+  if (!tabExists) {
+    const createRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: [{ addSheet: { properties: { title: tabName } } }] }),
+      }
+    );
+    if (!createRes.ok) {
+      const errText = await createRes.text().catch(() => '');
+      console.error(`[listing-audit] Failed to create tab "${tabName}": ${createRes.status} ${errText.slice(0,200)}`);
+      return;
+    }
+    console.log(`[listing-audit] Created tab "${tabName}" in sheet ${sheetId}`);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName + '!A1')}?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [headerRow] }),
+      }
+    );
+    return; // freshly created with headers — nothing more to do
+  }
+
+  // Tab exists — only add headers if row 1 is genuinely empty (unchanged
+  // from before, this part was already correct).
   const checkRes = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName + '!A1:T1')}`,
     { headers: { Authorization: `Bearer ${token}` } }
@@ -1150,19 +1217,7 @@ async function ensureAuditHeaders(sheetId, tabName, token) {
     {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        values: [[
-          'date', 'sku', 'sku_name', 'action',
-          'title_notes', 'title_rewrite',
-          'ih_notes', 'ih_rewrite',
-          'bullets_notes',
-          'bullet_1_rewrite', 'bullet_2_rewrite', 'bullet_3_rewrite', 'bullet_4_rewrite', 'bullet_5_rewrite',
-          'desc_notes', 'desc_rewrite',
-          'backend_notes', 'backend_rewrite',
-          'skip_reason', 'audited_at',
-          'recommendation', 'listing_age_days', 'prior_suggestion_notes'
-        ]]
-      })
+      body: JSON.stringify({ values: [headerRow] })
     }
   );
 }
