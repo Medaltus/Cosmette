@@ -127,7 +127,13 @@ const AUDIT_HEADERS = [
   'bullet_1_rewrite', 'bullet_2_rewrite', 'bullet_3_rewrite', 'bullet_4_rewrite', 'bullet_5_rewrite',
   'desc_notes', 'desc_rewrite',
   'backend_notes', 'backend_rewrite',
-  'skip_reason', 'audited_at'
+  'skip_reason', 'audited_at',
+  // NEW — appended at the end deliberately, not interspersed. This array
+  // is written positionally against the real sheet's header row; a new
+  // field anywhere but the end shifts every existing row's data into the
+  // wrong columns on the next write. See write-report-insights.js for
+  // the same convention already established elsewhere in this codebase.
+  'recommendation', 'listing_age_days', 'prior_suggestion_notes'
 ];
 
 // ─── Keyword priority tiers — added 2026-07-27 per Jaclyn ───────────────────
@@ -137,6 +143,24 @@ const AUDIT_HEADERS = [
 // rank and search volume per keyword, and volume is required to do this
 // prioritization at all (the uploads log has rank only).
 const KEYWORD_TRACKER_SHEET_ID = '1geNDQgd_1ensLDyZOuXZBnvQrFT_RC85l9rHHGpgJe4';
+
+// NEW — real per-search-term clicks/purchases/cost, for keyword-level PPC
+// context in the audit prompt. Optional POST param adSearchTermsSheetId
+// overrides this default. IMPORTANT CAVEAT (same one run-ppc-strategy-
+// analysis.js already documents as GAP #3): this sheet has no sku/asin
+// column at all, so a click/purchase number here is matched to a keyword
+// STRING only, brand-wide, never confirmed to belong to this specific
+// SKU. Treated as directional context in the prompt, never asserted as
+// this-SKU's-own performance.
+const AD_SEARCH_TERMS_SHEET_ID = '1N1OwnBLJ_KUZrz1kq5itQO9qKG0KaXhMmY6FFfdBo3o';
+
+// How recently the CURRENT title/bullets/description need to have changed
+// before the audit defaults to recommending further edits at all, absent
+// a genuine compliance violation. Rankings take time to reflect a change;
+// constantly rewriting a listing before that has happened means we're
+// never actually measuring what we last shipped. 21 days is a working
+// default — adjust here if it's consistently off in practice.
+const LISTING_AGE_HOLD_STEADY_DAYS = 21;
 
 // Real page-1 depth varies ~24-60 depending on layout/sponsored density —
 // 48 is a working middle, same cutoff run-analysis.js uses, adjust here if
@@ -180,6 +204,63 @@ function buildKwTrackerLookup(kwTrackerRows, sku) {
   });
   return map;
 }
+
+// NEW — same idea as buildKwTrackerLookup, but at (or nearest to) a
+// specific past date rather than always the latest snapshot. Used to
+// compare "rank when we last suggested changes" against "rank now."
+function buildKwTrackerLookupAtDate(kwTrackerRows, sku, targetDate) {
+  const rowsForSku = kwTrackerRows.filter(r => (r.sku || '').trim() === sku && r.date);
+  if (!rowsForSku.length || !targetDate) return {};
+  const targetMs = new Date(targetDate).getTime();
+  let closestDate = null, closestDiff = Infinity;
+  rowsForSku.forEach(r => {
+    const diff = Math.abs(new Date(r.date).getTime() - targetMs);
+    if (diff < closestDiff) { closestDiff = diff; closestDate = r.date; }
+  });
+  const map = {};
+  rowsForSku.forEach(r => {
+    if (r.date !== closestDate) return;
+    const kw = normTerm(r.keyword);
+    if (!kw) return;
+    map[kw] = parseRankValue(r.organic_rank);
+  });
+  return map;
+}
+
+// NEW — did our last audit's suggestions actually help? Compares each
+// Tier 1/2 keyword's rank at the time of the most recent PAST audit
+// against its rank now. Only looks at the single most recent prior
+// audit (not the full history) — a chain of "did it help" comparisons
+// across many past audits gets speculative fast; the most recent one is
+// the most defensible signal, and this is deliberately conservative
+// about what it claims.
+function buildPriorSuggestionEffectiveness(pastAuditRowsForSku, kwTrackerRows, sku, currentTargetKeywords) {
+  if (!pastAuditRowsForSku.length) return null;
+  const sorted = pastAuditRowsForSku.slice().sort((a, b) => (b.audited_at || '').localeCompare(a.audited_at || ''));
+  const lastAudit = sorted[0];
+  if (!lastAudit.audited_at) return null;
+
+  const rankAtAuditTime = buildKwTrackerLookupAtDate(kwTrackerRows, sku, lastAudit.audited_at);
+  const rankNow = buildKwTrackerLookup(kwTrackerRows, sku);
+
+  const daysSince = Math.round((Date.now() - new Date(lastAudit.audited_at).getTime()) / (24 * 60 * 60 * 1000));
+  const changes = [];
+  currentTargetKeywords.forEach(kw => {
+    const key = normTerm(kw);
+    const before = rankAtAuditTime[key];
+    const after = rankNow[key] ? rankNow[key].rank : null;
+    if (before == null && after == null) return; // never ranked either time — not informative
+    changes.push({ keyword: kw, before, after });
+  });
+
+  return {
+    lastAuditDate: lastAudit.audited_at,
+    daysSince,
+    hadRewrite: !!(lastAudit.title_rewrite || lastAudit.bullet_1_rewrite || lastAudit.desc_rewrite || lastAudit.backend_rewrite),
+    changes,
+  };
+}
+
 
 // Sorts a SKU's keyword targets into 3 tiers. Volume-unknown keywords
 // (not on the tracker) fall into "other" rather than being guessed into
@@ -234,6 +315,77 @@ function computeKeywordTenureDays(sku, keyword, allRawRowsForSku) {
     lastDate = row.date;
   }
   return consecutiveDays;
+}
+
+// NEW — how many days has the CURRENT title+bullets+description been
+// live, unchanged? Different question from computeKeywordTenureDays
+// above (which tracks one keyword's presence) — this tracks the whole
+// listing version. Walks back through daily snapshots comparing the
+// full joined text; stops at the first day whose content differs from
+// today's, or reaches the oldest available snapshot (meaning we simply
+// don't have history far back enough to find a change — reported as
+// such, not guessed).
+function computeListingContentAgeDays(sku, allRawRowsForSku) {
+  const datedRows = allRawRowsForSku
+    .filter(row => (row[COL.sku] || '').trim() === sku)
+    .map(row => ({
+      date: (row[COL.date] || '').trim(),
+      text: normTerm([row[COL.title], row[COL.bullet_1], row[COL.bullet_2], row[COL.bullet_3], row[COL.bullet_4], row[COL.bullet_5], row[COL.description]].join('|')),
+    }))
+    .filter(r => r.date)
+    .sort((a, b) => b.date.localeCompare(a.date)); // most recent first
+
+  if (!datedRows.length) return { days: null, changedOn: null, hitDataLimit: false };
+  const currentText = datedRows[0].text;
+  let lastMatchingDate = datedRows[0].date;
+  for (let i = 1; i < datedRows.length; i++) {
+    if (datedRows[i].text !== currentText) {
+      const days = Math.round((new Date(datedRows[0].date) - new Date(datedRows[i].date)) / (24 * 60 * 60 * 1000));
+      return { days, changedOn: lastMatchingDate, hitDataLimit: false };
+    }
+    lastMatchingDate = datedRows[i].date;
+  }
+  // Never found a different version — either it's always been this way,
+  // or our snapshot history simply doesn't go back far enough to know.
+  const days = Math.round((new Date(datedRows[0].date) - new Date(datedRows[datedRows.length - 1].date)) / (24 * 60 * 60 * 1000));
+  return { days, changedOn: lastMatchingDate, hitDataLimit: true };
+}
+
+// NEW — aggregates the ad search terms sheet into one entry per keyword
+// string (brand-wide — see the sheet ID comment above re: no SKU/ASIN
+// column). Only the most recent ~90 days are summed, to keep this a
+// "recent performance" signal rather than an all-time total that dilutes
+// a real recent problem.
+function buildAdSearchTermLookup(searchTermRows) {
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const map = {};
+  searchTermRows.forEach(r => {
+    const term = normTerm(r.search_term || r.keyword);
+    if (!term) return;
+    const d = new Date(r.date || '');
+    if (isNaN(d.getTime()) || d < cutoff) return;
+    if (!map[term]) map[term] = { clicks: 0, purchases: 0, cost: 0, sales: 0 };
+    map[term].clicks += parseInt(r.clicks, 10) || 0;
+    map[term].purchases += parseInt(r.purchases, 10) || 0;
+    map[term].cost += parseFloat(r.cost) || 0;
+    map[term].sales += parseFloat(r.sales) || 0;
+  });
+  return map;
+}
+
+// NEW — terms with real purchases in the last 90 days that aren't in
+// ANY SKU's targeted keyword list (top20 + opportunity + reach,
+// combined across the whole brand). Brand-wide because the search
+// terms sheet can't tell us which SKU actually earned the sale — this
+// is "something is converting and nobody is targeting it," surfaced for
+// a human to assign to the right SKU, not a per-SKU claim.
+function findUntappedConvertingTerms(searchTermLookup, allTargetedKeywordsBrandWide) {
+  const targeted = new Set(allTargetedKeywordsBrandWide.map(normTerm));
+  return Object.entries(searchTermLookup)
+    .filter(([term, stats]) => stats.purchases > 0 && !targeted.has(term))
+    .sort((a, b) => b[1].purchases - a[1].purchases)
+    .slice(0, 10)
+    .map(([term, stats]) => ({ term, ...stats }));
 }
 
 // Tier 3 — "this keyword has been in the listing a long time and still
@@ -299,6 +451,7 @@ function san(s, maxLen) {
 // we capture everything after the first colon on each labeled line.
 function parseDelimited(text) {
   const keys = [
+    'RECOMMENDATION',
     'TITLE_NOTES', 'TITLE_REWRITE',
     'IH_NOTES', 'IH_REWRITE',
     'BULLETS_NOTES',
@@ -327,6 +480,7 @@ function parseDelimited(text) {
   }
 
   return {
+    recommendation:   result['RECOMMENDATION']    || '',
     title_notes:      result['TITLE_NOTES']      || '',
     title_rewrite:    result['TITLE_REWRITE']    || '',
     ih_notes:         result['IH_NOTES']         || '',
@@ -554,9 +708,62 @@ module.exports = async function handler(req, res) {
     console.warn('[listing-audit] keyword tracker fetch error:', e.message);
   }
 
+  // NEW — ad search terms (real clicks/purchases/cost per keyword, no
+  // SKU/ASIN attribution — see the sheet ID comment near the top of this
+  // file). Optional override via adSearchTermsSheetId POST param.
+  let adSearchTermLookup = {};
+  try {
+    const searchTermsSheetId = req.body.adSearchTermsSheetId || AD_SEARCH_TERMS_SHEET_ID;
+    const searchTermsUrl = `https://docs.google.com/spreadsheets/d/${searchTermsSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(brand)}`;
+    const searchTermsRes = await fetch(searchTermsUrl, { headers: { Authorization: `Bearer ${token}` } });
+    if (searchTermsRes.ok) {
+      const csvText = await searchTermsRes.text();
+      const lines = csvText.trim().split('\n');
+      if (lines.length > 1) {
+        const headers = parseSimpleCsv(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+        const searchTermRows = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cells = parseSimpleCsv(lines[i]).map(c => c.replace(/^"|"$/g, '').trim());
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = cells[idx] || ''; });
+          searchTermRows.push(obj);
+        }
+        adSearchTermLookup = buildAdSearchTermLookup(searchTermRows);
+        console.log(`[listing-audit] ad search terms: ${searchTermRows.length} rows loaded for ${brand}, ${Object.keys(adSearchTermLookup).length} distinct terms in last 90 days`);
+      }
+    } else {
+      console.warn(`[listing-audit] ad search terms fetch failed (${searchTermsRes.status}) — PPC click/conversion context will be skipped`);
+    }
+  } catch (e) {
+    console.warn('[listing-audit] ad search terms fetch error:', e.message);
+  }
+
   // ── 2. Ensure audit sheet has headers ────────────────────────────────────
   const auditTabName = brand; // tab is named after the brand, e.g. "evolis"
   await ensureAuditHeaders(auditSheetId, auditTabName, token);
+
+  // NEW — this SKU's own past audit rows, read from the SAME audit sheet
+  // we're about to write to. Fetched once for the whole brand, filtered
+  // per-SKU inside the loop (same pattern as kwTrackerRows above). No
+  // rows exist yet on a brand's first-ever run — handled as "no prior
+  // history," not an error.
+  let pastAuditRows = [];
+  try {
+    const pastAuditUrl = `https://sheets.googleapis.com/v4/spreadsheets/${auditSheetId}/values/${encodeURIComponent(auditTabName + '!A2:T')}`;
+    const pastAuditRes = await fetch(pastAuditUrl, { headers: { Authorization: `Bearer ${token}` } });
+    if (pastAuditRes.ok) {
+      const data = await pastAuditRes.json();
+      const auditHeaderNames = ['date','sku','sku_name','action','title_notes','title_rewrite','ih_notes','ih_rewrite','bullets_notes','bullet_1_rewrite','bullet_2_rewrite','bullet_3_rewrite','bullet_4_rewrite','bullet_5_rewrite','desc_notes','desc_rewrite','backend_notes','backend_rewrite','skip_reason','audited_at'];
+      pastAuditRows = (data.values || []).map(row => {
+        const obj = {};
+        auditHeaderNames.forEach((h, idx) => { obj[h] = row[idx] || ''; });
+        return obj;
+      });
+      console.log(`[listing-audit] past audit rows loaded: ${pastAuditRows.length}`);
+    }
+  } catch (e) {
+    console.warn('[listing-audit] past audit rows fetch error (non-fatal, first run has none anyway):', e.message);
+  }
 
   // ── 3. Audit each SKU ────────────────────────────────────────────────────
   const auditRows = [];
@@ -598,7 +805,14 @@ BULLET FORMATTING RULES (apply to all bullet rewrites):
 - Within a single SKU, bullet headers should not repeat the same keyword root — vary to maximize keyword coverage.
 - Bullet rewrites must be max 200 chars including the ALL-CAPS header.
 
+HOLD STEADY vs. PROCEED — read the LISTING AGE line in the user message, if present:
+- Rankings take time to reflect any change we ship — re-editing a listing every audit cycle means we're never actually measuring what we last shipped, only ever reacting to noise.
+- If LISTING AGE shows the current content has been live fewer than ${LISTING_AGE_HOLD_STEADY_DAYS} days, your default recommendation is to HOLD STEADY — do not propose further title/bullet/description rewrites just because a new audit ran. Still flag and fix any genuine compliance violation (drug claims, missing size format, over-length fields, etc.) regardless of age — compliance risk doesn't wait for rankings to settle. But do not suggest keyword-placement or wording changes purely for optimization if the listing is this recent.
+- If LISTING AGE shows ${LISTING_AGE_HOLD_STEADY_DAYS}+ days, or PRIOR AUDIT context shows keywords declined or went stagnant since the last round of changes, proceed with recommendations as normal.
+- State your reasoning explicitly in TITLE_NOTES when holding steady, e.g. "Current title is only 9 days old — holding steady, no changes recommended pending more ranking data."
+
 OUTPUT FORMAT — use exactly these labels, one per line, no JSON, no markdown:
+RECOMMENDATION: [HOLD_STEADY or PROCEED — see the HOLD STEADY vs. PROCEED rules above.]
 TITLE_NOTES: [violations found, or "No violations" if clean. Max 300 chars.]
 TITLE_REWRITE: [compliant rewrite, max 75 chars. If clean, repeat original trimmed to 75.]
 IH_NOTES: [violations found, or generated if missing. Max 300 chars.]
@@ -614,7 +828,18 @@ DESC_REWRITE: [compliant rewrite of description, max 400 chars, plain sentences 
 BACKEND_NOTES: [violations found, or "No violations" if clean. Max 300 chars.]
 BACKEND_REWRITE: [compliant backend keywords, max 200 chars, spaces only no commas.]
 
-Write nothing else. No preamble. No explanation after the last line. Start immediately with TITLE_NOTES:`;
+Write nothing else. No preamble. No explanation after the last line. Start immediately with RECOMMENDATION:`;
+
+  // NEW — computed once, brand-wide, from every SKU's own targeted
+  // keyword list (top20 + opportunity + reach combined across the
+  // catalog) — see findUntappedConvertingTerms's own comment for why
+  // this can't be scoped per-SKU.
+  const allTargetedKeywordsBrandWide = Object.values(skuKeywordMap)
+    .flatMap(k => [...(k.top20 || []), ...(k.opportunity || []), ...(k.reach || [])]);
+  const untappedConvertingTermsBrandWide = findUntappedConvertingTerms(adSearchTermLookup, allTargetedKeywordsBrandWide);
+  if (untappedConvertingTermsBrandWide.length) {
+    console.log(`[listing-audit] ${untappedConvertingTermsBrandWide.length} untapped converting terms found brand-wide`);
+  }
 
   for (const row of rows) {
     const sku  = (row[COL.sku]  || '').trim();
@@ -634,14 +859,23 @@ Write nothing else. No preamble. No explanation after the last line. Start immed
       const ingredients  = san(row[COL.ingredients], 600);
 
       let userPrompt;
+      // Computed once per SKU regardless of travel status — travel SKUs
+      // still have a real listing age, even with a shorter audit prompt.
+      const listingAge = computeListingContentAgeDays(sku, allRawRows);
+      let effectivenessForRow = null;
       if (travel) {
+        const travelListingAgeContext = listingAge.days != null
+          ? (listingAge.hitDataLimit
+              ? `\n\nLISTING AGE: Current content has been unchanged for at least ${listingAge.days} days (snapshot history doesn't go back far enough to find when it last changed before that).`
+              : `\n\nLISTING AGE: Current content has been live for ${listingAge.days} days (last changed ${listingAge.changedOn}).`)
+          : '';
         userPrompt = `Audit this TRAVEL SIZE SKU. For travel SKUs only check title and item highlights. Set BULLETS_NOTES and BULLETS_REWRITE to empty string.
 
 SKU: ${sku}
 Name: ${name} [TRAVEL SIZE]
 Title: ${title}
 Item Highlights: ${ih}
-Backend: ${backend}`;
+Backend: ${backend}${travelListingAgeContext}`;
       } else {
         // Pass sibling SKU names for cross-catalog bullet alignment
         const siblings = rows
@@ -698,6 +932,55 @@ FIELD PRIORITY FOR PLACEMENT (highest SEO weight to lowest): Title > Item Highli
           }
         }
 
+        // NEW — real click/purchase data for this SKU's own target
+        // keywords, where a matching search term exists. Brand-wide
+        // attribution caveat stated explicitly so Claude doesn't treat
+        // it as confirmed this-SKU performance.
+        let ppcTermContext = '';
+        if (skuKws && skuKws.top20.length && Object.keys(adSearchTermLookup).length) {
+          const allTarget = [...skuKws.top20, ...(skuKws.opportunity || []), ...(skuKws.reach || [])];
+          const matched = allTarget
+            .map(kw => ({ kw, stats: adSearchTermLookup[normTerm(kw)] }))
+            .filter(x => x.stats);
+          if (matched.length) {
+            ppcTermContext = `\n\nAD SEARCH TERM PERFORMANCE (last 90 days, brand-wide — these terms matched a search string but this sheet has no SKU/ASIN column, so treat as directional context, not confirmed this-SKU data):\n${matched.map(m => `"${m.kw}": ${m.stats.clicks} clicks, ${m.stats.purchases} purchases, $${m.stats.cost.toFixed(2)} spend, $${m.stats.sales.toFixed(2)} sales`).join('; ')}`;
+          }
+        }
+
+        // NEW — brand-wide terms that are converting but aren't targeted
+        // anywhere. Genuinely can't be assigned to this specific SKU
+        // (no SKU/ASIN on the sheet) — surfaced as a flag for a human to
+        // route to the right listing, not folded into this SKU's own
+        // recommendations as if it were confirmed to belong here.
+        const untappedTerms = untappedConvertingTermsBrandWide.length
+          ? `\n\nUNTAPPED CONVERTING TERMS (brand-wide, not attributable to a specific SKU — flag as "worth investigating for a listing" in NOTES, don't assume it belongs to THIS SKU): ${untappedConvertingTermsBrandWide.map(t => `"${t.term}" (${t.purchases} purchases, $${t.sales.toFixed(2)} sales, not currently targeted anywhere)`).join('; ')}`
+          : '';
+
+        // NEW — how long has the current version been live? Feeds the
+        // hold-steady instruction in the system prompt. (Computed once
+        // above, outside this branch — reused here.)
+        let listingAgeContext = '';
+        if (listingAge.days != null) {
+          listingAgeContext = listingAge.hitDataLimit
+            ? `\n\nLISTING AGE: Current content has been unchanged for at least ${listingAge.days} days (snapshot history doesn't go back far enough to find when it last changed before that).`
+            : `\n\nLISTING AGE: Current content has been live for ${listingAge.days} days (last changed ${listingAge.changedOn}).`;
+        }
+
+        // NEW — did last audit's suggestions actually help rank?
+        const skuPastAuditRows = pastAuditRows.filter(r => (r.sku || '').trim() === sku);
+        const allTargetForEffectiveness = skuKws ? [...skuKws.top20, ...(skuKws.opportunity || [])] : [];
+        const effectiveness = allTargetForEffectiveness.length
+          ? buildPriorSuggestionEffectiveness(skuPastAuditRows, kwTrackerRows, sku, allTargetForEffectiveness)
+          : null;
+        effectivenessForRow = effectiveness;
+        let effectivenessContext = '';
+        if (effectiveness) {
+          const improved = effectiveness.changes.filter(c => c.before != null && c.after != null && c.after < c.before);
+          const declined = effectiveness.changes.filter(c => c.before != null && c.after != null && c.after > c.before);
+          const newlyRanked = effectiveness.changes.filter(c => c.before == null && c.after != null);
+          effectivenessContext = `\n\nPRIOR AUDIT (${effectiveness.daysSince} days ago, ${effectiveness.hadRewrite ? 'rewrites were suggested' : 'no rewrites suggested that time'}): since then, ${improved.length} keyword(s) improved rank, ${declined.length} declined, ${newlyRanked.length} newly ranking. ${effectiveness.changes.length ? effectiveness.changes.map(c => `"${c.keyword}" ${c.before ?? 'unranked'}→${c.after ?? 'unranked'}`).join(', ') : ''}`;
+        }
+
         userPrompt = `Audit this full listing SKU.
 
 SKU: ${sku}
@@ -713,7 +996,7 @@ Bullet 4: ${b4}
 Bullet 5: ${b5}
 Description (excerpt): ${desc}
 Backend: ${backend}
-Ingredients: ${ingredients || 'NOT AVAILABLE'}${kwContext}`;
+Ingredients: ${ingredients || 'NOT AVAILABLE'}${kwContext}${ppcTermContext}${untappedTerms}${listingAgeContext}${effectivenessContext}`;
       }
 
       // Call Claude — retry once on 429
@@ -781,7 +1064,10 @@ Ingredients: ${ingredients || 'NOT AVAILABLE'}${kwContext}`;
         parsed.backend_notes,
         parsed.backend_rewrite,
         '',   // skip_reason
-        now   // audited_at
+        now,  // audited_at
+        parsed.recommendation || '',
+        listingAge.days != null ? String(listingAge.days) : '',
+        effectivenessForRow ? `${effectivenessForRow.daysSince}d since last audit — ${effectivenessForRow.changes.filter(c=>c.before!=null&&c.after!=null&&c.after<c.before).length} improved, ${effectivenessForRow.changes.filter(c=>c.before!=null&&c.after!=null&&c.after>c.before).length} declined` : '',
       ]);
 
       console.log(`[listing-audit] ✓ ${sku}`);
@@ -822,7 +1108,8 @@ function buildErrorRow(date, sku, name, errorMsg, now) {
   return [
     date, sku, name, 'error',
     errorMsg.slice(0, 300), '', '', '', '', '', '', '', '', '', '', '', '', '',
-    '', now
+    '', now,
+    '', '', ''  // recommendation, listing_age_days, prior_suggestion_notes
   ];
 }
 
@@ -849,7 +1136,8 @@ async function ensureAuditHeaders(sheetId, tabName, token) {
           'bullet_1_rewrite', 'bullet_2_rewrite', 'bullet_3_rewrite', 'bullet_4_rewrite', 'bullet_5_rewrite',
           'desc_notes', 'desc_rewrite',
           'backend_notes', 'backend_rewrite',
-          'skip_reason', 'audited_at'
+          'skip_reason', 'audited_at',
+          'recommendation', 'listing_age_days', 'prior_suggestion_notes'
         ]]
       })
     }
