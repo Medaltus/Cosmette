@@ -269,6 +269,20 @@ nav{flex:1;padding:8px 8px 0;}
 .sub-tab.active{background:var(--navy);color:var(--white);font-weight:600;}
 .sub-page{display:none;}
 .sub-page.active{display:block;}
+.la-audit-zone{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-top:10px;overflow:hidden;border-left:4px solid var(--warn);}
+.la-audit-zone-hd{padding:10px 14px 8px;background:var(--bg);border-bottom:1px solid var(--border);}
+.la-audit-zone-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);margin-bottom:3px;}
+.la-audit-zone-field{font-size:12.5px;font-weight:700;color:var(--navy);}
+.la-audit-note{font-size:12.5px;color:var(--navy);line-height:1.65;padding:10px 14px;}
+.la-audit-note strong{color:var(--danger);}
+.la-audit-rewrite{padding:10px 14px 12px;font-size:12.5px;color:var(--navy);line-height:1.65;background:rgba(36,233,163,.05);border-top:1px solid rgba(36,233,163,.15);position:relative;}
+.la-audit-rewrite-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#1db88a;margin-bottom:4px;}
+.la-audit-copy-btn{position:absolute;top:10px;right:12px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:10px;cursor:pointer;color:var(--muted);}
+.la-audit-copy-btn:hover{background:var(--white);}
+.la-audit-chars{font-size:10px;color:var(--muted);margin-top:5px;}
+.la-audit-chars .over{color:var(--danger);font-weight:600;}
+.la-audit-zone.clean{border-left-color:#1db88a;}
+.la-audit-zone.clean .la-audit-zone-label{color:#1db88a;}
 .la-hero{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:20px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;}
 table.perf-compare{width:100%;border-collapse:collapse;}
 table.perf-compare th{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);}
@@ -5035,6 +5049,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const lastSynced = rows.reduce((max, r) => ((r.last_synced || '') > max ? r.last_synced : max), '');
         if (badge) badge.textContent = lastSynced ? `✓ Live copy — synced ${new Date(lastSynced).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${skus.length} SKUs` : `${skus.length} SKUs loaded`;
+
+        // NEW — actual audit findings/rewrites, now that Run Listing
+        // Audit has successfully written real rows. Injected as
+        // .la-audit-zone cards below each relevant .la-card, matching
+        // Skinuva's real injectAuditResults()/injectZone() exactly.
+        loadAndInjectAuditResults(names.categoryBySku);
       } catch (err) {
         console.warn('[CosmetteListingAudit] failed:', err.message);
         panelsEl.innerHTML = '<div class="placeholder-block"><div class="ph-title">Error loading listings</div></div>';
@@ -5043,6 +5063,119 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
     return window._csListingAuditPromise;
   };
+
+  // NEW — fetches SHEET_LISTING_AUDIT's cosmette tab (by tab name via
+  // gviz, not gid — the tab was only just auto-created by run-listing-
+  // audit.js, so no gid was known in advance) and injects the real
+  // audit findings/rewrites below each matching .la-card.
+  async function loadAndInjectAuditResults(categoryBySku) {
+    const cfg = window.SHEET_CFG.SHEET_LISTING_AUDIT;
+    if (!cfg) return;
+    try {
+      const brandSlug = window.SHEET_CFG.BRAND_SLUG || 'cosmette';
+      const url = `https://docs.google.com/spreadsheets/d/${cfg.fileId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(brandSlug)}&_cb=${Date.now()}`;
+      const csv = await fetch(url).then(r => r.ok ? r.text() : '').catch(() => '');
+      if (!csIsCsv(csv)) { console.log('[CosmetteListingAudit] No audit results tab found yet — run Listing Audit to populate it.'); return; }
+      const rows = csParseCsv(csv);
+      if (!rows.length) return;
+
+      // Latest audit per SKU, by audited_at.
+      const latestBySku = {};
+      rows.forEach(r => {
+        const sku = (r.sku || '').trim();
+        if (!sku) return;
+        if (!latestBySku[sku] || (r.audited_at || '') > (latestBySku[sku].audited_at || '')) latestBySku[sku] = r;
+      });
+      console.log('[CosmetteListingAudit] audit results loaded for', Object.keys(latestBySku).length, 'SKUs');
+
+      Object.entries(latestBySku).forEach(([sku, r]) => {
+        const cat = categoryBySku[sku];
+        if (!cat) return;
+        const panel = document.getElementById(`la-panel-${slugify(cat)}-${sku}`);
+        if (!panel) return;
+        panel.querySelectorAll('.la-audit-zone').forEach(z => z.remove());
+
+        function injectZone(labelText, sublabelText, note, rewrite, charLimit) {
+          const card = [...panel.querySelectorAll('.la-card')].find(c => {
+            if (sublabelText) {
+              const sub = c.querySelector('.la-card-sublabel');
+              return sub && sub.textContent.trim() === sublabelText;
+            }
+            const lbl = c.querySelector('.la-card-label');
+            return lbl && lbl.textContent.includes(labelText);
+          });
+          if (!card) return;
+          if (!note && !rewrite) return;
+          const chars = rewrite ? rewrite.length : 0;
+          const isClean = !note || note.toLowerCase().startsWith('no violation');
+          const charInfo = (charLimit > 0 && rewrite)
+            ? `<div class="la-audit-chars">${chars} chars ${chars > charLimit ? `<span class="over">OVER limit of ${charLimit}</span>` : `✔ within ${charLimit} char limit`}</div>`
+            : '';
+          const fieldLabel = sublabelText ? sublabelText : labelText;
+          const zone = document.createElement('div');
+          zone.className = 'la-audit-zone' + (isClean ? ' clean' : '');
+          const hd = document.createElement('div');
+          hd.className = 'la-audit-zone-hd';
+          hd.innerHTML = `<div class="la-audit-zone-label">${isClean ? '✔ Compliant' : '⚠ Audit Findings'}</div><div class="la-audit-zone-field">${escapeHtml(fieldLabel)}</div>`;
+          zone.appendChild(hd);
+          if (note) {
+            const nb = document.createElement('div');
+            nb.className = 'la-audit-note';
+            nb.textContent = note;
+            zone.appendChild(nb);
+          }
+          if (rewrite) {
+            const rw = document.createElement('div');
+            rw.className = 'la-audit-rewrite';
+            const rl = document.createElement('div');
+            rl.className = 'la-audit-rewrite-label';
+            rl.textContent = '→ Suggested Rewrite';
+            rw.appendChild(rl);
+            const cp = document.createElement('button');
+            cp.className = 'la-audit-copy-btn';
+            cp.textContent = 'Copy';
+            cp.addEventListener('click', () => navigator.clipboard.writeText(rewrite));
+            rw.appendChild(cp);
+            const p = document.createElement('p');
+            p.style.margin = '0';
+            p.textContent = rewrite;
+            rw.appendChild(p);
+            if (charInfo) {
+              const ci = document.createElement('div');
+              ci.innerHTML = charInfo;
+              rw.appendChild(ci);
+            }
+            zone.appendChild(rw);
+          }
+          card.appendChild(zone);
+        }
+
+        injectZone('Active Title', null, r.title_notes, r.title_rewrite, 75);
+        injectZone('Item Highlights', null, r.ih_notes, r.ih_rewrite, 125);
+        if (r.bullets_notes || r.bullet_1_rewrite) injectZone('Active Bullet Points', 'BULLET 1', r.bullets_notes, r.bullet_1_rewrite, 200);
+        if (r.bullet_2_rewrite) injectZone('Active Bullet Points', 'BULLET 2', '', r.bullet_2_rewrite, 200);
+        if (r.bullet_3_rewrite) injectZone('Active Bullet Points', 'BULLET 3', '', r.bullet_3_rewrite, 200);
+        if (r.bullet_4_rewrite) injectZone('Active Bullet Points', 'BULLET 4', '', r.bullet_4_rewrite, 200);
+        if (r.bullet_5_rewrite) injectZone('Active Bullet Points', 'BULLET 5', '', r.bullet_5_rewrite, 200);
+        injectZone('Active Product Description', null, r.desc_notes, r.desc_rewrite, 0);
+        injectZone('Backend Keywords', null, r.backend_notes, r.backend_rewrite, 500);
+
+        // NEW fields this session added to run-listing-audit.js — shown
+        // as their own small zone at the end when present.
+        if (r.recommendation || r.prior_suggestion_notes) {
+          const extra = document.createElement('div');
+          extra.className = 'la-audit-zone clean';
+          extra.innerHTML = `<div class="la-audit-zone-hd"><div class="la-audit-zone-label">ℹ Audit Context</div><div class="la-audit-zone-field">Recommendation &amp; History</div></div>` +
+            (r.recommendation ? `<div class="la-audit-note"><strong>${escapeHtml(r.recommendation)}</strong>${r.listing_age_days ? ` — listing is ${escapeHtml(r.listing_age_days)} days old` : ''}</div>` : '') +
+            (r.prior_suggestion_notes ? `<div class="la-audit-note">${escapeHtml(r.prior_suggestion_notes)}</div>` : '');
+          const lastCard = [...panel.querySelectorAll('.la-card')].pop();
+          if (lastCard) lastCard.appendChild(extra);
+        }
+      });
+    } catch (err) {
+      console.warn('[CosmetteListingAudit] audit results fetch failed:', err.message);
+    }
+  }
 
   window.__csSelectListingCategory = function (catSlug, btn) {
     document.querySelectorAll('#la-category-tabs .ch-tab').forEach(b => b.classList.remove('active'));
