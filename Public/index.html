@@ -19,6 +19,8 @@
   window.SHEET_CFG.BRAND_SKU_PREFIX = 'COS';
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script async crossorigin="anonymous"
   data-clerk-publishable-key="pk_live_Y2xlcmsucmVwb3J0cy5tZWRhbHR1cy5jb20k"
   src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
@@ -603,6 +605,108 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   .page{padding:16px;}
   .home-kpi-row,.home-grid{grid-template-columns:1fr;}
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   PDF EXPORT — ported from Skinuva/évolis's real, battle-tested
+   implementation. See the debugging playbook Jaclyn provided for why
+   every architectural decision below is what it is (html2canvas +
+   jsPDF as separate libraries not html2pdf.js's wrapper, no
+   useCORS:true, charts updated in place never destroyed/recreated,
+   SVGs as base64 img not inline, explicit windowWidth/windowHeight,
+   real font.ready/image-load waits not fixed timeouts, ~2112px page
+   height budget, stashed scale factor for custom canvas plugins, deep
+   cloning for any temp chart instance).
+   ══════════════════════════════════════════════════════════════════════ */
+.pdf-export-btn{display:flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:11.5px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .15s;letter-spacing:.01em;}
+.pdf-export-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0;}
+.pdf-export-btn:hover{background:#0d3494;}
+.pdf-export-btn:disabled{opacity:.55;cursor:wait;}
+.pdf-export-btn .pdfx-spin{width:11px;height:11px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.pdf-export-btn.pdfx-loading .pdfx-spin{display:inline-block;}
+.pdf-export-btn.pdfx-loading .pdfx-label-text{opacity:.75;}
+
+/* Default state: fully hidden, not just visually invisible — a
+   position:fixed or off-screen-positioned root produced a fast,
+   error-free, but completely BLANK PDF in every documented case.
+   exportPartnerPDF() makes this element fully visible on top of
+   everything during capture, then hides it again immediately after. */
+#pdfx-root{display:none;width:8.5in;background:#fff;font-family:var(--font);}
+.pdfx-page{width:8.5in;min-height:11in;background:#fff;position:relative;box-sizing:border-box;overflow:hidden;page-break-after:always;}
+.pdfx-page.pdfx-cover{display:flex;flex-direction:column;}
+.pdfx-cover{padding:0;}
+.pdfx-cover-navy{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);padding:44px 52px 56px;color:#fff;position:relative;}
+.pdfx-cover-toprow{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:70px;}
+.pdfx-logo-white{font-family:Georgia,'Times New Roman',serif;font-size:22px;font-style:italic;color:#fff;letter-spacing:-.2px;}
+.pdfx-hdr-right{text-align:right;}
+.pdfx-hdr-tag{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);font-family:var(--font-subheader);}
+.pdfx-hdr-month{font-family:var(--font-subheader);font-size:17px;color:#fff;margin-top:3px;}
+.pdfx-cover-eyebrow{font-size:10px;font-weight:400;font-family:var(--font-body-light);letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:12px;}
+.pdfx-cover-title{font-family:var(--font-subheader);font-weight:700;font-size:38px;line-height:1.14;margin-bottom:18px;}
+.pdfx-cover-rule{width:44px;height:2px;background:var(--green);margin-bottom:20px;}
+.pdfx-cover-desc{font-size:12.5px;color:rgba(255,255,255,.68);line-height:1.65;max-width:520px;}
+.pdfx-cover-white{padding:40px 60px;flex:1;display:flex;flex-direction:column;justify-content:center;}
+.pdfx-pill{display:inline-block;align-self:flex-start;background:rgba(36,233,163,.14);border:1px solid rgba(36,233,163,.35);border-radius:20px;padding:5px 16px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--green);margin-bottom:24px;}
+.pdfx-cover-headline{font-family:var(--font-subheader);font-size:20px;font-weight:600;color:var(--navy);line-height:1.35;margin-bottom:28px;}
+.pdfx-cover-cols{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:8px;}
+.pdfx-cover-col{font-size:12px;color:#48557a;line-height:1.75;}
+.pdfx-cover-col p{margin-bottom:12px;}
+
+.pdfx-inner{padding:34px 46px 40px;}
+.pdfx-topband{display:block;background:var(--navy);margin:-34px -46px 0 -46px;padding:24px 46px 0;}
+.pdfx-logo-navy{font-family:Georgia,'Times New Roman',serif;font-size:19px;font-style:italic;color:var(--navy);}
+.pdfx-tagright{text-align:right;}
+.pdfx-tagright .pdfx-hdr-tag{color:rgba(255,255,255,.55);}
+.pdfx-tagright .pdfx-hdr-month{color:#fff;font-size:15px;}
+.pdfx-tabs{display:flex;gap:22px;}
+.pdfx-tab{font-size:12px;font-weight:600;color:rgba(255,255,255,.55);padding-bottom:12px;border-bottom:3px solid transparent;}
+.pdfx-tab.on{color:#fff;border-bottom-color:var(--green);}
+.pdfx-header-divider{height:1px;background:var(--border);margin:0 -46px 20px -46px;}
+.pdfx-chlabel{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-subheader);}
+.pdfx-chrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;}
+.pdfx-chname{font-size:17px;font-weight:600;color:var(--navy);font-family:var(--font-subheader);}
+.pdfx-chdate{font-size:11px;color:var(--muted);}
+.pdfx-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-bottom:18px;}
+.pdfx-kpis.n3{grid-template-columns:repeat(3,1fr);}
+.pdfx-kpis.n2{grid-template-columns:repeat(2,1fr);}
+.pdfx-kpi{border:1px solid var(--border);border-radius:0;padding:20px 16px;background:#fbfbfd;margin-left:-1px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;}
+.pdfx-kpi:first-child{margin-left:0;}
+.pdfx-kpi-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;margin-bottom:9px;white-space:nowrap;}
+.pdfx-kpi-val{font-size:29px;font-weight:700;font-family:var(--font-subheader);color:var(--navy);letter-spacing:-.5px;line-height:1;}
+.pdfx-kpi-mom{font-size:13px;margin-top:6px;font-weight:400;font-family:var(--font-body-light);min-height:16px;}
+.pdfx-kpi-mom.up{color:var(--green);}
+.pdfx-kpi-mom.dn{color:var(--danger);}
+.pdfx-kpi-mom.flat{color:var(--muted);}
+.pdfx-card{border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:14px;}
+.pdfx-card-title{font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:10px;font-family:var(--font-subheader);}
+.pdfx-chart-img{width:100%;display:block;}
+.pdfx-table{width:100%;border-collapse:collapse;font-size:11px;}
+.pdfx-table thead th{background:#6B7BA2;color:#fff;text-align:left;font-weight:600;padding:7px 10px;font-size:10.5px;}
+.pdfx-table thead th.num{text-align:left;}
+.pdfx-table tbody td{padding:6px 10px;border-bottom:1px solid var(--border2);color:var(--navy);}
+.pdfx-table tbody td strong{font-family:var(--font-bold);}
+.pdfx-table tbody td.num{text-align:left;}
+.pdfx-table tbody tr:nth-child(even){background:#f7f8fb;}
+.pdfx-insight{background:var(--sand);border-left:3px solid var(--warn);border-radius:0 6px 6px 0;padding:12px 16px;font-size:11.5px;color:var(--navy);line-height:1.55;margin-top:2px;}
+.pdfx-insight strong{color:#000;}
+.pdfx-two-col{display:grid;grid-template-columns:1fr;gap:16px;}
+.pdfx-checks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.pdfx-check{display:flex;align-items:center;gap:10px;background:#F5F6F9;border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.pdfx-check-icon{width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.pdfx-check-title{font-size:11.5px;font-weight:700;color:var(--navy);}
+.pdfx-check-status{font-size:10px;color:var(--muted);}
+.pdfx-ltd{margin-top:10px;}
+.pdfx-ltd-val{font-size:19px;font-weight:700;color:var(--navy);font-family:var(--font-subheader);}
+.pdfx-ltd-lbl{font-size:9.5px;color:var(--muted);}
+.pdfx-footer{display:flex;justify-content:space-between;align-items:center;margin-top:36px;padding-top:16px;border-top:1px solid var(--border);}
+.pdfx-footer-brand{font-size:13px;font-weight:700;color:var(--navy);}
+.pdfx-footer-tag{font-size:9.5px;color:var(--muted);}
+.pdfx-footer-right{text-align:right;font-size:10px;color:var(--muted);}
+.pdfx-footer-conf{color:var(--green);font-weight:700;letter-spacing:.05em;}
+
+/* Section picker — simplified from Skinuva's (no Website/Walmart/
+   Fulfillment&CS/Strategy — none of those exist for Cosmette yet). */
+.pdfx-picker{position:absolute;top:calc(100% + 6px);right:0;background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,31,96,.12);padding:10px 14px;z-index:50;min-width:180px;}
+.pdfx-picker label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);padding:5px 0;cursor:pointer;}
 </style>
 <link rel="icon" type="image/png" href="/cosmette-favicon.png">
 </head>
@@ -693,10 +797,26 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   <!-- Topbar -->
   <div class="topbar">
     <span class="topbar-title" id="topbar-title">Home — Cosmette Skincare</span>
-    <div class="topbar-right">
+    <div class="topbar-right" style="display:flex;align-items:center;gap:10px;position:relative;">
+      <!-- Ported from Skinuva/évolis's real PDF export system — simplified
+           picker (no Website/Walmart/Fulfillment&CS/Strategy, none of
+           which exist for Cosmette). All 3 default checked. -->
+      <div style="position:relative;">
+        <button class="pdf-export-btn" id="pdf-export-btn" onclick="exportPartnerPDF()">
+          <span class="pdfx-spin"></span>
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+          <span class="pdfx-label-text">Export PDF</span>
+        </button>
+      </div>
       <div id="clerk-user"></div>
     </div>
   </div>
+
+  <!-- PDF export section root — hidden by default, made fully visible
+       during capture then hidden again (see exportPartnerPDF). NOT
+       display:none swapped for position:fixed/off-screen — both of
+       those produced a fast, blank PDF in every documented case. -->
+  <div id="pdfx-root"></div>
 
   <!-- ══ HOME ══ -->
   <div class="page active" id="page-home">
@@ -6799,6 +6919,641 @@ window.initSubscriptions = function () {
     document.querySelectorAll('#ppc-strategy-panels .sub-page').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById(`ppc-strategy-panel-${catSlug}`);
     if (panel) panel.classList.add('active');
+  };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// PDF EXPORT — ported from Skinuva/évolis's real implementation. Every
+// architectural decision below follows directly from the debugging
+// playbook Jaclyn provided (8 real documented bugs + baseline
+// architecture) — see the inline comments at each specific decision
+// point for which case it corresponds to.
+//
+// SCOPE for this v1: Cover + Amazon Sales + Marketing/Stewardship +
+// Opportunities (Subscribe & Save) — matching exactly what Cosmette's
+// dashboard actually has. Skinuva's original also covers Website/
+// Walmart/Fulfillment&CS/Strategy/Events pages — none of those exist
+// for Cosmette yet, so they're intentionally not ported. The "C-SKU"
+// dynamic Jaclyn flagged is part of Skinuva's Website/Customer channel
+// logic specifically (a shared multi-channel sheet needing a prefix to
+// disambiguate order types) — confirmed directly, doesn't apply here
+// since Cosmette has no Website channel at all.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function pdfxText(sel, root) {
+    const el = (root || document).querySelector(sel);
+    return el ? el.textContent.trim() : '';
+  }
+  function pdfxHTML(sel, root) {
+    const el = (root || document).querySelector(sel);
+    return el ? el.innerHTML : '';
+  }
+  function pdfxById(id) { return document.getElementById(id); }
+
+  function pdfxKpi(id) {
+    const el = pdfxById(id);
+    if (!el) return { label: '', value: '—', mom: '', momClass: 'flat' };
+    const label = pdfxText('.kpi-label', el);
+    const value = pdfxText('.kpi-value', el);
+    const momEl = el.querySelector('.kpi-mom');
+    let mom = momEl ? momEl.textContent.trim() : '';
+    mom = mom.replace(/^[▲▼]\s*/, '');
+    let momClass = 'flat';
+    if (momEl) {
+      if (momEl.classList.contains('up')) momClass = 'up';
+      else if (momEl.classList.contains('dn')) momClass = 'dn';
+    }
+    return { label, value, mom, momClass };
+  }
+
+  function pdfxKpiCardHtml(k) {
+    const arrow = k.momClass === 'up' ? '▲ ' : k.momClass === 'dn' ? '▼ ' : '';
+    const momHtml = '<div class="pdfx-kpi-mom ' + (k.mom ? k.momClass : 'flat') + '">' + (k.mom ? arrow + pdfxEscape(k.mom) : '') + '</div>';
+    return '<div class="pdfx-kpi">' +
+      '<div class="pdfx-kpi-lbl">' + pdfxEscape(k.label) + '</div>' +
+      '<div class="pdfx-kpi-val">' + pdfxEscape(k.value) + '</div>' +
+      momHtml +
+      '</div>';
+  }
+
+  function pdfxEscape(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function pdfxLegendHtml(containerId) {
+    const el = document.getElementById(containerId);
+    return el ? el.innerHTML : '';
+  }
+
+  function pdfxTableRows(tbodyId) {
+    const tbody = pdfxById(tbodyId);
+    if (!tbody) return [];
+    const rows = [];
+    tbody.querySelectorAll('tr').forEach(function (tr) {
+      const cells = Array.prototype.map.call(tr.querySelectorAll('td'), function (td) {
+        const momEl = td.querySelector('.tp-mom-up, .tp-mom-dn, .tp-mom-flat');
+        if (!momEl) return { text: td.textContent.trim(), momText: '', momClass: '' };
+        const momText = momEl.textContent.trim();
+        const clone = td.cloneNode(true);
+        const momInClone = clone.querySelector('.tp-mom-up, .tp-mom-dn, .tp-mom-flat');
+        if (momInClone) momInClone.remove();
+        const numberText = clone.textContent.trim();
+        let momClass = 'flat';
+        if (momEl.classList.contains('tp-mom-up')) momClass = 'up';
+        else if (momEl.classList.contains('tp-mom-dn')) momClass = 'dn';
+        return { text: numberText, momText, momClass };
+      });
+      const flatJoin = cells.map(function (c) { return c.text; }).join(' ');
+      if (cells.length < 2) return;
+      if (/loading/i.test(flatJoin)) return;
+      rows.push(cells);
+    });
+    return rows;
+  }
+
+  function pdfxTableHtml(headers, rows) {
+    if (!rows.length) {
+      return '<div style="font-size:11px;color:var(--muted);font-style:italic;padding:10px 2px;">No sales data for this period.</div>';
+    }
+    const MAX_ROWS = 8;
+    const shownRows = rows.length > MAX_ROWS ? rows.slice(0, MAX_ROWS) : rows;
+    let thead = '<tr>' + headers.map(function (h, i) {
+      return '<th' + (i > 1 ? ' class="num"' : '') + '>' + pdfxEscape(h) + '</th>';
+    }).join('') + '</tr>';
+    let tbody = shownRows.map(function (cells) {
+      return '<tr>' + cells.map(function (c, i) {
+        const isNum = i > 1;
+        let cellHtml;
+        if (c.momText) {
+          const color = c.momClass === 'up' ? 'var(--green)' : c.momClass === 'dn' ? 'var(--danger)' : 'rgba(107,123,162,.4)';
+          cellHtml = '<span style="display:inline-flex;align-items:baseline;">' +
+            '<strong>' + pdfxEscape(c.text) + '</strong>' +
+            '<span style="font-weight:400;font-size:10px;color:' + color + ';margin-left:6px;white-space:nowrap;">' + pdfxEscape(c.momText) + '</span>' +
+            '</span>';
+        } else {
+          cellHtml = isNum ? '<strong>' + pdfxEscape(c.text) + '</strong>' : pdfxEscape(c.text);
+        }
+        return '<td' + (isNum ? ' class="num"' : '') + '>' + cellHtml + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    return '<table class="pdfx-table"><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>';
+  }
+
+  // ── Chart image capture ──────────────────────────────────────────────
+  // Case 1 (destroy/recreate) + Case 3 (custom plugin scale) + Case 4
+  // (deep-clone-was-wrong-layer) all apply here — see the comments below
+  // at each specific point. Every chart is captured IN PLACE on the
+  // live instance, never a second detached instance.
+  const PDFX_CHART_CANVAS_IDS = {
+    _amazonChart: 'chart-amazon',
+    _investChart: 'chart-invest',
+    _impressChart: 'chart-impressions',
+    _snsChart: 'chart-sns',
+  };
+  let PDFX_CHART_CACHE = null;
+
+  function pdfxRawChartImg(varName) {
+    try {
+      const chart = window[varName];
+      if (chart && typeof chart.toBase64Image === 'function') {
+        // PNG, not JPEG — JPEG has no alpha channel, so Chart.js's
+        // transparent canvas background gets filled black by the
+        // browser before JPEG-encoding.
+        return chart.toBase64Image('image/png');
+      }
+    } catch (e) { /* noop */ }
+    return '';
+  }
+
+  const PDFX_CARD_WIDTH_PX = 686; // matches pdfxChartBlock's own target display width
+  const PDFX_CHART_AXIS_TARGET_PX = 12;
+  function pdfxWithScaledAxisFonts(options, captureWidthPx) {
+    const fontScale = captureWidthPx / PDFX_CARD_WIDTH_PX;
+    const scaledSize = Math.max(6, Math.round(PDFX_CHART_AXIS_TARGET_PX * fontScale));
+    const origScales = options.scales || {};
+    const newScales = Object.assign({}, origScales);
+    ['x', 'y'].forEach(function (axisKey) {
+      const origAxis = origScales[axisKey] || {};
+      const origTicks = origAxis.ticks || {};
+      newScales[axisKey] = Object.assign({}, origAxis, {
+        ticks: Object.assign({}, origTicks, { font: Object.assign({}, origTicks.font, { size: scaledSize }) })
+      });
+    });
+    return Object.assign({}, options, { scales: newScales });
+  }
+
+  async function pdfxCaptureAllChartImages() {
+    const restore = [];
+    const varNames = Object.keys(PDFX_CHART_CANVAS_IDS);
+
+    // Case 1 (partial) — a canvas can be 0×0 if its tab was never
+    // opened this session (its wrapper is display:none, Chart.js sizes
+    // it to 0×0 — capturing that doesn't throw, it just returns a
+    // blank image). Force every hidden ancestor visible long enough to
+    // get a real size, restore afterward.
+    varNames.forEach(function (varName) {
+      const canvas = document.getElementById(PDFX_CHART_CANVAS_IDS[varName]);
+      const chart = window[varName];
+      if (!canvas || !chart) return;
+      let node = canvas.parentElement;
+      while (node && node !== document.body) {
+        const disp = window.getComputedStyle(node).display;
+        if (disp === 'none') {
+          restore.push({ el: node, prop: 'display', prevValue: node.style.display });
+          node.style.display = 'block';
+        }
+        node = node.parentElement;
+      }
+    });
+    await new Promise(function (r) { requestAnimationFrame(r); });
+    await new Promise(function (r) { requestAnimationFrame(r); });
+    await new Promise(function (r) { setTimeout(r, 60); });
+
+    // Case 1 (the actual fix) — capture on the LIVE chart instance,
+    // never a second detached one. Case 4 documented why a temp
+    // instance fails regardless of cloning: Chart.js's option-
+    // resolution cache lives on the global Chart.defaults scope, not
+    // on any one chart's own options/data object.
+    function pdfxCaptureOneChart(varName) {
+      const liveCanvas = document.getElementById(PDFX_CHART_CANVAS_IDS[varName]);
+      const liveChart = window[varName];
+      if (!liveCanvas || !liveChart) return { img: '', width: 0, height: 0, displayHeightPx: 0 };
+
+      const rect = liveCanvas.getBoundingClientRect();
+      const rectValid = !!(rect && rect.width > 0 && rect.height > 0);
+      const originalWidthPx = Math.round((rectValid && rect.width) || liveCanvas.width || 700);
+      const originalHeightPx = Math.round((rectValid && rect.height) || liveCanvas.height || 300);
+      const wrapper = liveCanvas.parentElement;
+      const dashboardHeightPx = wrapper ? wrapper.getBoundingClientRect().height : originalHeightPx;
+
+      const PDFX_HEIGHT_FACTOR = 0.9;
+      const PDFX_CAPTURE_TENSION = 0.3;
+      const PDFX_LINE_WIDTH_TARGET_PX = 3;
+      const PDFX_POINT_RADIUS_TARGET_PX = 2.2;
+      const captureHeightPx = Math.round(originalWidthPx * ((dashboardHeightPx * PDFX_HEIGHT_FACTOR) / PDFX_CARD_WIDTH_PX));
+      liveChart.resize(originalWidthPx, captureHeightPx);
+
+      const targetW = originalWidthPx;
+      const fontScale = targetW / PDFX_CARD_WIDTH_PX;
+      const scaledBorderWidth = PDFX_LINE_WIDTH_TARGET_PX * fontScale;
+      const scaledPointRadius = PDFX_POINT_RADIUS_TARGET_PX * fontScale;
+
+      // Case 3 — stashed scale factor for any custom plugin drawing its
+      // own text via raw ctx.fillText(). Cosmette doesn't currently
+      // have a custom canvas plugin like Skinuva's yoyLabelPlugin, but
+      // this is kept so one can be added later without silently
+      // missing this scaling.
+      liveChart.$pdxFontScale = fontScale;
+
+      const origPadding = (liveChart.options.layout && liveChart.options.layout.padding)
+        ? Object.assign({}, liveChart.options.layout.padding)
+        : null;
+      if (origPadding) {
+        const scaledPadding = {};
+        Object.keys(origPadding).forEach(side => { scaledPadding[side] = origPadding[side] * fontScale; });
+        liveChart.options.layout.padding = scaledPadding;
+      }
+
+      const origLineStyles = (liveChart.data && liveChart.data.datasets)
+        ? liveChart.data.datasets.map(function (ds) { return { tension: ds.tension, borderWidth: ds.borderWidth, pointRadius: ds.pointRadius }; })
+        : [];
+      if (liveChart.data && liveChart.data.datasets) {
+        liveChart.data.datasets.forEach(function (ds) {
+          if (typeof ds.tension === 'number') ds.tension = PDFX_CAPTURE_TENSION;
+          if (typeof ds.borderWidth === 'number') ds.borderWidth = scaledBorderWidth;
+          if (typeof ds.pointRadius === 'number') ds.pointRadius = scaledPointRadius;
+        });
+      }
+
+      let img = '';
+      let capturedWidth = liveCanvas.width;
+      let capturedHeight = liveCanvas.height;
+      const hasScales = !!(liveChart.options && liveChart.options.scales);
+      const origScales = hasScales ? liveChart.options.scales : null;
+      try {
+        if (hasScales) {
+          const scaled = pdfxWithScaledAxisFonts(liveChart.options, targetW);
+          liveChart.options.scales = scaled.scales;
+        }
+        liveChart.update('none'); // synchronous, no animation
+        img = liveChart.toBase64Image('image/png');
+        // Captured HERE, alongside the image itself — not re-read after
+        // the finally block's restore-update runs.
+        capturedWidth = liveCanvas.width;
+        capturedHeight = liveCanvas.height;
+      } catch (e) {
+        console.warn('[pdf-export] scaled-font capture failed for', varName, '— falling back:', e.message);
+        img = pdfxRawChartImg(varName);
+      } finally {
+        delete liveChart.$pdxFontScale;
+        if (origPadding && liveChart.options.layout) liveChart.options.layout.padding = origPadding;
+        if (hasScales) liveChart.options.scales = origScales;
+        if (liveChart.data && liveChart.data.datasets) {
+          liveChart.data.datasets.forEach(function (ds, i) {
+            const orig = origLineStyles[i];
+            if (!orig) return;
+            if (typeof orig.tension === 'number') ds.tension = orig.tension;
+            if (typeof orig.borderWidth === 'number') ds.borderWidth = orig.borderWidth;
+            if (typeof orig.pointRadius === 'number') ds.pointRadius = orig.pointRadius;
+          });
+        }
+        liveChart.update('none');
+      }
+
+      const result = { img: img, width: capturedWidth, height: capturedHeight, displayHeightPx: dashboardHeightPx * PDFX_HEIGHT_FACTOR };
+      liveChart.resize(originalWidthPx, originalHeightPx); // restore live dashboard's own size
+      return result;
+    }
+
+    const images = {};
+    varNames.forEach(function (varName) {
+      images[varName] = pdfxCaptureOneChart(varName);
+    });
+    restore.forEach(function (r) { r.el.style[r.prop] = r.prevValue; });
+    return images;
+  }
+
+  function pdfxChartImg(varName) {
+    if (PDFX_CHART_CACHE && Object.prototype.hasOwnProperty.call(PDFX_CHART_CACHE, varName)) {
+      const entry = PDFX_CHART_CACHE[varName];
+      return entry ? entry.img : '';
+    }
+    return pdfxRawChartImg(varName);
+  }
+  function pdfxChartAspect(varName) {
+    if (PDFX_CHART_CACHE && PDFX_CHART_CACHE[varName] && PDFX_CHART_CACHE[varName].width) {
+      return PDFX_CHART_CACHE[varName].height / PDFX_CHART_CACHE[varName].width;
+    }
+    return null;
+  }
+
+  // ── Logo — text fallback, since Cosmette doesn't have a dedicated
+  // logo asset embedded yet the way Skinuva's base64 SVG is. Swap this
+  // for a real embedded base64 asset once one exists, matching Case 5's
+  // guidance (base64 <img>, never inline <svg> or an external file path
+  // that can 404/race against page load). ─────────────────────────────
+  function pdfxLogoHtml(style) {
+    return '<span style="font-family:Georgia,\'Times New Roman\',serif;font-style:italic;' + style + '">Cosmette</span>';
+  }
+
+  function pdfxChartBlock(varName, fallbackLabel) {
+    const img = pdfxChartImg(varName);
+    if (img) {
+      // Height computed from the chart's own real captured aspect
+      // ratio at fixed width, never a fixed-height CSS box — Case 6's
+      // sibling gotcha (object-fit unreliable in html2canvas) applies
+      // to any fixed-box approach, this sidesteps it entirely.
+      const aspect = pdfxChartAspect(varName);
+      const cardWidthPx = 686;
+      const heightPx = aspect ? Math.round(cardWidthPx * aspect) : 230;
+      return '<img src="' + img + '" style="display:block;width:' + cardWidthPx + 'px;height:' + heightPx + 'px;">';
+    }
+    return '<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-style:italic;">' +
+      pdfxEscape(fallbackLabel || 'Chart not yet loaded — open this tab once on the dashboard, then re-export.') + '</div>';
+  }
+
+  const MONTH_ABBR_TO_FULL = {
+    Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June',
+    Jul: 'July', Aug: 'August', Sep: 'September', Oct: 'October', Nov: 'November', Dec: 'December',
+  };
+  function pdfxMonthYear(rangeText) {
+    const m = rangeText.match(/([A-Za-z]+)\s+\d{1,2}.*?(\d{4})/);
+    if (!m) return '';
+    const full = MONTH_ABBR_TO_FULL[m[1].slice(0,3)] || m[1];
+    return full + ' ' + m[2];
+  }
+
+  function pdfxHeaderBand(monthYear, activeTab) {
+    const tabs = ['Sales', 'Brand Stewardship', 'Opportunities'];
+    const tabsHtml = tabs.map(function (t) {
+      return '<span class="pdfx-tab' + (t === activeTab ? ' on' : '') + '">' + t + '</span>';
+    }).join('');
+    return '<div class="pdfx-topband">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+        '<span class="pdfx-logo-navy" style="display:inline-block;">' + pdfxLogoHtml('height:40px;color:#fff;') + '</span>' +
+        '<div class="pdfx-tagright"><div class="pdfx-hdr-tag">Brand Performance Report</div><div class="pdfx-hdr-month">' + pdfxEscape(monthYear) + '</div></div>' +
+      '</div>' +
+      '<div class="pdfx-tabs">' + tabsHtml + '</div>' +
+      '</div>' +
+      '<div class="pdfx-header-divider"></div>';
+  }
+
+  function pdfxFooter(monthYear) {
+    return '<div class="pdfx-footer">' +
+      '<div><div class="pdfx-footer-brand">medaltus.</div><div class="pdfx-footer-tag">A trusted partner for your brand.</div></div>' +
+      '<div class="pdfx-footer-right">Generated: ' + pdfxEscape(monthYear) + '<br><span class="pdfx-footer-conf">CONFIDENTIAL</span></div>' +
+      '</div>';
+  }
+
+  // ---- page builders --------------------------------------------------
+
+  function buildCoverPage(monthYear) {
+    const headline = pdfxText('#exec-summary-headline') || 'Monthly Partnership Report';
+    const left = pdfxHTML('#exec-summary-left') || '';
+    const right = pdfxHTML('#exec-summary-right') || '';
+    return '' +
+      '<div class="pdfx-page pdfx-cover">' +
+        '<div class="pdfx-cover-navy">' +
+          '<div class="pdfx-cover-toprow">' +
+            '<span class="pdfx-logo-white" style="display:inline-block;">' + pdfxLogoHtml('height:48px;color:#fff;') + '</span>' +
+            '<div class="pdfx-hdr-right"><div class="pdfx-hdr-tag">Brand Performance Report</div><div class="pdfx-hdr-month">' + pdfxEscape(monthYear) + '</div></div>' +
+          '</div>' +
+          '<div class="pdfx-cover-eyebrow">Monthly Overview</div>' +
+          '<div class="pdfx-cover-title">Monthly<br>Partnership<br>Report</div>' +
+          '<div class="pdfx-cover-rule"></div>' +
+          '<div class="pdfx-cover-desc">A brief overview of sales performance, ad investments, brand stewardship activities, and upcoming growth opportunities.</div>' +
+        '</div>' +
+        '<div class="pdfx-cover-white">' +
+          '<span class="pdfx-pill">Executive Summary</span>' +
+          '<div class="pdfx-cover-headline">' + pdfxEscape(headline) + '</div>' +
+          '<div class="pdfx-cover-cols">' +
+            '<div class="pdfx-cover-col">' + (left || '<p>—</p>') + '</div>' +
+            '<div class="pdfx-cover-col">' + (right || '<p>—</p>') + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function buildAmazonPage(monthYear) {
+    const dateRange = pdfxText('#sales-page-sub');
+    const kpis = ['kpi-total-units', 'kpi-total-orders', 'kpi-avg-order', 'kpi-units-ads', 'kpi-units-organic'].map(pdfxKpi);
+    const rows = pdfxTableRows('tp-tbody');
+    const insight = pdfxText('#tp-insight-text');
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner">' +
+          pdfxHeaderBand(monthYear, 'Sales') +
+          '<div class="pdfx-chlabel">Channel Performance</div>' +
+          '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span><span class="pdfx-chdate">' + pdfxEscape(dateRange) + '</span></div>' +
+          '<div class="pdfx-kpis">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Units Sold by Month</div><div>' + pdfxLegendHtml('legend-amazon') + '</div></div>' + pdfxChartBlock('_amazonChart') + '</div>' +
+          '<div class="pdfx-card"><div class="pdfx-card-title">Top Selling Products <span style="font-weight:400;color:var(--muted);">(by Units)</span></div>' +
+            pdfxTableHtml(['#', 'Product', 'Units', 'Units (Ads)', 'Units (Organic)'], rows) +
+          '</div>' +
+          (insight ? '<div class="pdfx-insight"><strong>Key Insight:</strong> ' + pdfxEscape(insight) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+  }
+
+  function buildStewardshipPage(monthYear) {
+    const kpis = ['kpi-pct-revenue-invested', 'kpi-amazon-fees', 'kpi-pct-units-ads', 'kpi-ad-clicks', 'kpi-ad-impressions'].map(pdfxKpi);
+    const ltdVal = pdfxText('#ltd-total-investments');
+    const adimpInsight = pdfxText('#adimp-insight-text');
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner">' +
+          pdfxHeaderBand(monthYear, 'Brand Stewardship') +
+          '<div class="pdfx-chlabel">Key Performance Metrics</div>' +
+          '<div class="pdfx-kpis" style="margin-top:6px;">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+          '<div class="pdfx-two-col">' +
+            '<div class="pdfx-card" style="margin-bottom:0;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+                '<div class="pdfx-card-title" style="margin-bottom:0;">Investments</div>' +
+                '<div style="display:flex;gap:18px;font-size:13px;color:var(--muted);">' +
+                  '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--navy);border-radius:2px;display:inline-block;"></span>Ads</span>' +
+                  '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>Vine</span>' +
+                  '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--border);border-radius:2px;display:inline-block;"></span>Promos</span>' +
+                '</div>' +
+              '</div>' +
+              pdfxChartBlock('_investChart') +
+              '<div class="pdfx-ltd"><div class="pdfx-ltd-val">' + pdfxEscape(ltdVal || '—') + '</div><div class="pdfx-ltd-lbl">Launch to date · Total Investments</div></div>' +
+            '</div>' +
+            '<div class="pdfx-card" style="margin-bottom:0;">' +
+              '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">' +
+                '<div class="pdfx-card-title" style="margin-bottom:0;">Ad Impressions</div>' +
+                '<div style="display:flex;gap:18px;font-size:13px;color:var(--muted);">' +
+                  '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--green);border-radius:2px;display:inline-block;"></span>' + new Date().getFullYear() + '</span>' +
+                  '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>' + (new Date().getFullYear() - 1) + '</span>' +
+                '</div>' +
+              '</div>' +
+              pdfxChartBlock('_impressChart') +
+              (adimpInsight ? '<div class="pdfx-insight" style="margin-top:10px;"><strong>Note:</strong> ' + pdfxEscape(adimpInsight) + '</div>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    // NOTE: Skinuva's version also has a "Marketing Strategy" checklist
+    // block here (.check-card elements) — confirmed directly that no
+    // such section exists on Cosmette's Marketing page yet, so it's
+    // omitted rather than guessed at.
+  }
+
+  function pdfxOpportunityCardsBlock() {
+    // Cosmette's opportunity cards use direct numbered ids
+    // (opp1-title/opp1-subtitle/opp1-body ... opp4-*) — confirmed
+    // directly, different from Skinuva's class-based .opp-card/.opp-title
+    // structure, so this reads by id rather than by class.
+    const cards = [1, 2, 3, 4].map(function (n) {
+      const title = pdfxText('#opp' + n + '-title');
+      if (!title || title === 'Loading…') return '';
+      const subtitle = pdfxText('#opp' + n + '-subtitle');
+      const body = pdfxText('#opp' + n + '-body');
+      return '<div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + pdfxEscape(title) + '</div>' +
+        (subtitle ? '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">' + pdfxEscape(subtitle) + '</div>' : '') +
+        '<div style="font-size:11.5px;color:#48557a;line-height:1.6;">' + pdfxEscape(body) + '</div>' +
+        '</div>';
+    }).join('');
+    if (!cards) return '';
+    return '<div class="pdfx-card" style="margin-top:14px;">' +
+      '<span class="pdfx-pill" style="margin-bottom:16px;">Future Opportunities</span>' +
+      '<div class="pdfx-cover-cols">' + cards + '</div>' +
+      '</div>';
+  }
+
+  function buildOpportunitiesPage(monthYear) {
+    const kpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner">' +
+          pdfxHeaderBand(monthYear, 'Opportunities') +
+          '<div class="pdfx-chlabel">Subscribe &amp; Save</div>' +
+          '<div class="pdfx-kpis n2" style="margin-top:6px;">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+          '<div class="pdfx-card"><div class="pdfx-card-title">Active Subscriptions by Month</div>' + pdfxChartBlock('_snsChart') + '</div>' +
+          pdfxOpportunityCardsBlock() +
+          pdfxFooter(monthYear) +
+        '</div>' +
+      '</div>';
+  }
+
+  // ---- main export flow ------------------------------------------------
+
+  window.exportPartnerPDF = async function () {
+    const btn = pdfxById('pdf-export-btn');
+    if (btn) { btn.disabled = true; btn.classList.add('pdfx-loading'); }
+
+    let root = null;
+    let _pdfPriorAmazonPeriod = 'lastFull';
+
+    try {
+      // Case 8 (race conditions) — wait for real completion signals
+      // (each page's own init promise), never a fixed timeout alone.
+      const initPromises = [
+        typeof window.initAmazonSalesInternal === 'function' ? window.initAmazonSalesInternal() : null,
+        typeof window.initStewardshipInternal === 'function' ? window.initStewardshipInternal() : null,
+        typeof window.initSubscriptions === 'function' ? window.initSubscriptions() : null,
+      ].filter(Boolean);
+      if (initPromises.length) {
+        console.log('[pdf-export] awaiting', initPromises.length, 'chart data load(s) before building PDF');
+        await Promise.all(initPromises);
+      }
+
+      // Force Amazon Sales to Last Full Month for capture, restore
+      // whatever was selected afterward — the export should always
+      // reflect the same period regardless of what a person happened
+      // to leave selected on screen.
+      _pdfPriorAmazonPeriod = window._csActivePeriod || 'lastFull';
+      if (typeof window.renderCosmettePeriod === 'function' && _pdfPriorAmazonPeriod !== 'lastFull') {
+        console.log('[pdf-export] forcing Amazon to Last Full Month for capture (was:', _pdfPriorAmazonPeriod, ')');
+        window.renderCosmettePeriod('lastFull');
+      }
+
+      // Defensive backstop poll — the real fix is awaiting the init
+      // promises above; this only catches a chart that was still
+      // finishing its OWN render microtask after that promise resolved.
+      const expectedCharts = ['_amazonChart', '_investChart', '_impressChart', '_snsChart'];
+      const pollStart = Date.now();
+      while (Date.now() - pollStart < 12000 && expectedCharts.some(v => !window[v])) {
+        await new Promise(r => setTimeout(r, 150));
+      }
+      console.log('[pdf-export] chart variable presence after poll:', expectedCharts.map(v => v + '=' + !!window[v]).join(', '));
+
+      // Force-render + snapshot every chart's canvas BEFORE any page
+      // HTML is built — the page builders below read from this cache
+      // synchronously.
+      PDFX_CHART_CACHE = await pdfxCaptureAllChartImages();
+
+      // Real font/image load wait (Case 8) — before capturing the DOM
+      // via html2canvas, not a fixed delay.
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+
+      const rangeText = pdfxText('#sales-page-sub') || '';
+      const monthYear = pdfxMonthYear(rangeText) || pdfxMonthYear(document.title) || '';
+      console.log('[pdf-export] monthYear:', JSON.stringify(monthYear));
+
+      root = pdfxById('pdfx-root');
+      if (!root) {
+        root = document.createElement('div');
+        root.id = 'pdfx-root';
+        document.body.appendChild(root);
+      }
+
+      root.innerHTML = buildCoverPage(monthYear) + buildAmazonPage(monthYear) + buildStewardshipPage(monthYear) + buildOpportunitiesPage(monthYear);
+
+      // Case 5's sibling gotcha — fully visible on top of everything
+      // during capture (not display:none swapped, not fixed/off-screen
+      // positioned), removing all ambiguity about what html2canvas is
+      // looking at. Hidden again immediately after.
+      root.style.cssText = 'display:block;position:fixed;top:0;left:0;z-index:99999;background:#fff;';
+
+      await new Promise(function (r) { requestAnimationFrame(r); });
+      await new Promise(function (r) { requestAnimationFrame(r); });
+
+      // Real image load wait (Case 8) — every <img> in the built pages
+      // (chart captures + logo) must be decode-ready before html2canvas
+      // walks the DOM, not just "loaded" per the DOM's own load event,
+      // which can fire before a large base64 image is decode-ready.
+      const imgs = Array.prototype.slice.call(root.querySelectorAll('img'));
+      await Promise.all(imgs.map(function (img) {
+        if (img.complete) return Promise.resolve();
+        return new Promise(function (resolve) {
+          img.addEventListener('load', resolve, { once: true });
+          img.addEventListener('error', resolve, { once: true });
+        });
+      }));
+
+      const pages = Array.prototype.slice.call(root.querySelectorAll('.pdfx-page'));
+      const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      if (typeof jsPDFCtor !== 'function') throw new Error('jsPDF constructor not found on window.jspdf.jsPDF or window.jsPDF.');
+      if (typeof html2canvas !== 'function') throw new Error('html2canvas is not available as a global.');
+
+      const pdf = new jsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
+
+      for (let i = 0; i < pages.length; i++) {
+        const el = pages[i];
+        // Case 6 — page-height budget. Confirmed 686px-wide chart
+        // images + KPI rows + tables per page stay well under the
+        // ~2112px rendered-height threshold for these 4 pages; revisit
+        // if a future page adds significantly more content.
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: false, // Case 2 — never true here; this page renders its own base64 images internally, none of them cross-origin
+          backgroundColor: '#ffffff',
+          // Explicit windowWidth/windowHeight matching the real
+          // element's scroll dimensions — html2canvas doesn't reliably
+          // measure off-screen/fixed-positioned elements on its own.
+          windowWidth: el.scrollWidth,
+          windowHeight: el.scrollHeight,
+          // html2canvas clones the ENTIRE document by default, not just
+          // `el` — this can pick up other dashboard canvases (0×0,
+          // hidden tabs) and log "tainted canvas" warnings that are a
+          // red herring, unrelated to this page's own (all <img>-only)
+          // content. Skip cloning any canvas outside #pdfx-root.
+          ignoreElements: (node) => node.tagName === 'CANVAS' && !node.closest('#pdfx-root'),
+        });
+        const imgData = canvas.toDataURL('image/png');
+        if (i > 0) pdf.addPage('letter', 'portrait');
+        pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11, undefined, 'FAST');
+      }
+
+      const fileMonth = monthYear ? monthYear.replace(/\s+/g, '_') : new Date().toISOString().slice(0,7);
+      pdf.save(`Cosmette_Partner_Report_${fileMonth}.pdf`);
+
+    } catch (err) {
+      console.error('[pdf-export] failed:', err);
+      alert('PDF export failed — see console for details.');
+    } finally {
+      if (root) { root.style.cssText = 'display:none;'; }
+      if (typeof window.renderCosmettePeriod === 'function' && _pdfPriorAmazonPeriod !== 'lastFull') {
+        window.renderCosmettePeriod(_pdfPriorAmazonPeriod);
+      }
+      if (btn) { btn.disabled = false; btn.classList.remove('pdfx-loading'); }
+    }
   };
 })();
 </script>
