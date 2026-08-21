@@ -356,20 +356,43 @@ function computeListingContentAgeDays(sku, allRawRowsForSku) {
 // column). Only the most recent ~90 days are summed, to keep this a
 // "recent performance" signal rather than an all-time total that dilutes
 // a real recent problem.
+// NEW — Google's gviz/tq CSV export (used for this specific fetch, unlike
+// the plain export?format=csv endpoint used elsewhere in this file) has a
+// well-documented quirk: a real Date-typed column can come back as the
+// literal string "Date(2026,7,14)" (JS Date-constructor argument style,
+// month already 0-indexed) instead of a plain "2026-08-14" string.
+// new Date("Date(2026,7,14)") does not parse — silently Invalid Date —
+// which would make every single row fail the same way regardless of how
+// recent it actually is. This handles both formats.
+function parseSheetDate(raw) {
+  const s = String(raw || '').trim();
+  const gvizMatch = s.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+  if (gvizMatch) {
+    const [, y, m, d] = gvizMatch;
+    return new Date(parseInt(y,10), parseInt(m,10), parseInt(d,10)); // month already 0-indexed in this format
+  }
+  return new Date(s);
+}
+
 function buildAdSearchTermLookup(searchTermRows) {
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const map = {};
+  let skippedInvalidDate = 0;
   searchTermRows.forEach(r => {
     const term = normTerm(r.search_term || r.keyword);
     if (!term) return;
-    const d = new Date(r.date || '');
-    if (isNaN(d.getTime()) || d < cutoff) return;
+    const d = parseSheetDate(r.date);
+    if (isNaN(d.getTime())) { skippedInvalidDate++; return; }
+    if (d < cutoff) return;
     if (!map[term]) map[term] = { clicks: 0, purchases: 0, cost: 0, sales: 0 };
     map[term].clicks += parseInt(r.clicks, 10) || 0;
     map[term].purchases += parseInt(r.purchases, 10) || 0;
     map[term].cost += parseFloat(r.cost) || 0;
     map[term].sales += parseFloat(r.sales) || 0;
   });
+  if (skippedInvalidDate > 0) {
+    console.warn(`[listing-audit] ad search terms: ${skippedInvalidDate} row(s) had an unparseable date value (sample: "${searchTermRows.find(r => isNaN(parseSheetDate(r.date).getTime()))?.date}") — check the sheet's actual date column format if this number looks high.`);
+  }
   return map;
 }
 
