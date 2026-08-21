@@ -2687,22 +2687,31 @@ const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 // Jan-Jul sales with Newderm's Aug+ sales as if they were one line.
 function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
   const monthMap = new Map(); // key "YYYY-MM" -> { seriesKey: units, ... }
-  function addRows(rows, seriesFn) {
+  // FIXED — this previously labeled every row as "Newderm" or "Cosmette"
+  // purely by WHICH SHEET it came from (all of syncRows = Newderm, all
+  // of histRows = Cosmette_Historical), never checking the row's own
+  // selling_account value. That's wrong the moment historical data lives
+  // inside SHEET_ORDERS itself (confirmed directly: April-July rows are
+  // in SHEET_ORDERS but tagged Cosmette_Historical) — those rows were
+  // getting mislabeled as Newderm just because of which array held them.
+  // Combines both sheets into one pool and classifies every row by its
+  // own selling_account field instead.
+  function addRows(rows) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
       const [y,m] = key.split('-').map(Number);
       if (!y || !m) return;
-      const seriesKey = seriesFn(y);
+      const seriesKey = r.selling_account === 'Newderm' ? `Newderm ${y}` : `Cosmette '${String(y).slice(2)}`;
       if (!monthMap.has(key)) monthMap.set(key, { year: y, month: m, bySeries: {} });
       const entry = monthMap.get(key);
       entry.bySeries[seriesKey] = (entry.bySeries[seriesKey] || 0) + (parseInt(r.unit_count,10) || 0);
     });
   }
   const { year: currentYear } = csGetLastFullMonth();
-  addRows(syncRows, y => `Newderm ${y}`);
-  addRows(histRows, y => `Cosmette '${String(y).slice(2)}`);
+  addRows(syncRows);
+  addRows(histRows);
 
   if (!monthMap.size) return;
 
@@ -2897,76 +2906,95 @@ window.renderCosmettePeriod = function (key) {
   const cache = window._csDataCache;
   if (!cache) { console.warn('[CosmetteSalesInternal] renderCosmettePeriod called before data loaded.'); return; }
   window._csActivePeriod = key;
-  const cfg = csBuildPeriodConfig(key);
-  const monthNames = csMonths12;
-  // Current-period figures must only ever count Medaltus's own "Newderm"
-  // seller account — Cosmette's own pre-partnership sales are real, but
-  // not our performance to report as current. Last Year is the one
-  // exception: it's explicitly meant to show Cosmette's OWN prior
-  // account, so it stays unfiltered (all of histRows, by definition
-  // Cosmette_Historical already).
-  const orderRows = cfg.isHistorical ? cache.histRows : csFilterNewderm(cache.syncRows);
+  try {
+    const cfg = csBuildPeriodConfig(key);
+    const monthNames = csMonths12;
+    // Current-period figures must only ever count Medaltus's own "Newderm"
+    // seller account — Cosmette's own pre-partnership sales are real, but
+    // not our performance to report as current. Last Year is the one
+    // exception: it's explicitly meant to show Cosmette's OWN prior
+    // account, so it stays unfiltered (all of histRows, by definition
+    // Cosmette_Historical already).
+    const orderRows = cfg.isHistorical ? cache.histRows : csFilterNewderm(cache.syncRows);
 
-  const subEl = document.getElementById('sales-page-sub');
-  if (cfg.isPartial) {
-    if (subEl) subEl.textContent = `${monthNames[cfg.month-1]} 1 – ${cfg.throughDay}, ${cfg.year} · ${cfg.label}`;
-  } else {
-    const lastDay = new Date(cfg.year, cfg.month, 0).getDate();
-    if (subEl) subEl.textContent = `${monthNames[cfg.month-1]} 1 – ${monthNames[cfg.month-1]} ${lastDay}, ${cfg.year} · ${cfg.label}`;
-  }
-  const heroEl = document.getElementById('overview-hero-date');
-  if (heroEl) heroEl.textContent = `${monthNames[cfg.month-1]} ${cfg.year}`;
+    const subEl = document.getElementById('sales-page-sub');
+    if (cfg.isPartial) {
+      if (subEl) subEl.textContent = `${monthNames[cfg.month-1]} 1 – ${cfg.throughDay}, ${cfg.year} · ${cfg.label}`;
+    } else {
+      const lastDay = new Date(cfg.year, cfg.month, 0).getDate();
+      if (subEl) subEl.textContent = `${monthNames[cfg.month-1]} 1 – ${monthNames[cfg.month-1]} ${lastDay}, ${cfg.year} · ${cfg.label}`;
+    }
+    const heroEl = document.getElementById('overview-hero-date');
+    if (heroEl) heroEl.textContent = `${monthNames[cfg.month-1]} ${cfg.year}`;
 
-  // Last Year is explicitly Cosmette's own prior seller account, not
-  // Medaltus/Newderm performance — flagged clearly so it's never
-  // mistaken for a Newderm-era number.
-  const historicalNoteEl = document.getElementById('sales-historical-note');
-  if (historicalNoteEl) historicalNoteEl.style.display = cfg.isHistorical ? '' : 'none';
+    // Last Year is explicitly Cosmette's own prior seller account, not
+    // Medaltus/Newderm performance — flagged clearly so it's never
+    // mistaken for a Newderm-era number.
+    const historicalNoteEl = document.getElementById('sales-historical-note');
+    if (historicalNoteEl) historicalNoteEl.style.display = cfg.isHistorical ? '' : 'none';
 
-  const curr = cfg.isPartial
-    ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
-    : csAggregateMonth(orderRows, cfg.year, cfg.month);
-  if (!curr) {
-    console.warn(`[CosmetteSalesInternal] No Cosmette rows found for ${cfg.year}-${cfg.month} (period: ${key}).`);
-    csSetKpiValue('kpi-total-units', '—'); csSetKpiValue('kpi-total-orders', '—');
-    csSetKpiValue('kpi-avg-order', '—'); csSetKpiValue('kpi-units-ads', '—'); csSetKpiValue('kpi-units-organic', '—');
+    const curr = cfg.isPartial
+      ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
+      : csAggregateMonth(orderRows, cfg.year, cfg.month);
+    if (!curr) {
+      console.warn(`[CosmetteSalesInternal] No Newderm rows found for ${cfg.year}-${cfg.month} (period: ${key}) — expected if this month predates the partnership.`);
+      csSetKpiValue('kpi-total-units', '—'); csSetKpiValue('kpi-total-orders', '—');
+      csSetKpiValue('kpi-avg-order', '—'); csSetKpiValue('kpi-units-ads', '—'); csSetKpiValue('kpi-units-organic', '—');
+      ['kpi-total-units','kpi-total-orders','kpi-avg-order','kpi-units-ads','kpi-units-organic'].forEach(id => csSetBadge(id, 'kpi-mom', null, ''));
+      const tbody = document.getElementById('tp-tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Newderm-account data for this period.</td></tr>';
+      return;
+    }
+    // MoM/prior-period comparison — per instruction, for MTD/Last Full
+    // Month/Prior Month specifically, the COMPARISON baseline pulls from
+    // Cosmette's own historical seller account, not the live Newderm sync.
+    // The partnership is too new for a meaningful Newderm-vs-Newderm prior
+    // month to exist yet. Last Year has no further "prior" of its own.
+    const prev = (cfg.prevYear && !cfg.isHistorical)
+      ? (cfg.isPartial
+          ? csAggregateMonthThroughDay(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth, cfg.throughDay)
+          : csAggregateMonth(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth))
+      : null;
+
+    let adUnitsKpi = 0, prevAdUnitsKpi = 0;
+    const adRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.year && parseInt(r.month,10) === cfg.month);
+    if (adRow) adUnitsKpi = parseInt(adRow.ad_units, 10) || 0;
+    if (cfg.prevYear) {
+      const prevAdRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.prevYear && parseInt(r.month,10) === cfg.prevMonth);
+      if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units, 10) || 0;
+    }
+    csRenderKPIs('', curr, prev, adUnitsKpi, cfg.prevYear ? prevAdUnitsKpi : null);
+    if (!prev) csSetBadge('kpi-total-units', 'kpi-mom', null, ''); // no comparison period for Last Year
+
+    if (cfg.isHistorical) {
+      const tbody = document.getElementById('tp-tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Per-product breakdown not available for Last Year yet — showing headline KPIs only for this period.</td></tr>';
+    } else {
+      const adOrderRows = cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.year && parseInt(r.month,10)===cfg.month);
+      const prevAdOrderRows = cfg.prevYear ? cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.prevYear && parseInt(r.month,10)===cfg.prevMonth) : [];
+      csBuildTopProducts('tp-tbody', 'amazon-products-source', orderRows, cfg.year, cfg.month, adOrderRows, cfg.prevYear, cfg.prevMonth, orderRows, prevAdOrderRows);
+    }
+  } catch (err) {
+    // FIXED — a thrown error here previously left the KPI cards stuck on
+    // whatever they last showed (their static "Loading…" placeholder on
+    // first load, or a stale value from the previous period on a later
+    // switch) with nothing in the UI indicating anything went wrong.
+    // Now surfaces honestly and logs the real cause instead.
+    console.error(`[CosmetteSalesInternal] renderCosmettePeriod('${key}') threw:`, err);
+    ['kpi-total-units','kpi-total-orders','kpi-avg-order','kpi-units-ads','kpi-units-organic'].forEach(id => {
+      csSetKpiValue(id, 'Error');
+      csSetBadge(id, 'kpi-mom', null, '');
+    });
     const tbody = document.getElementById('tp-tbody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No data for this period.</td></tr>';
-    return;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);font-style:italic;">Error loading this period — see console.</td></tr>`;
+  } finally {
+    // Units chart is period-independent — always shows the full combined
+    // Newderm + Cosmette_Historical timeline, not scoped to whatever period
+    // pill is selected. Guaranteed to re-run even if the KPI computation
+    // above returned early (no data) or threw, so switching periods can
+    // never leave the chart showing stale data from a prior period.
+    csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows);
   }
-  // MoM/prior-period comparison — per instruction, for MTD/Last Full
-  // Month/Prior Month specifically, the COMPARISON baseline pulls from
-  // Cosmette's own historical seller account, not the live Newderm sync.
-  // The partnership is too new for a meaningful Newderm-vs-Newderm prior
-  // month to exist yet. Last Year has no further "prior" of its own.
-  const prev = (cfg.prevYear && !cfg.isHistorical)
-    ? (cfg.isPartial
-        ? csAggregateMonthThroughDay(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth, cfg.throughDay)
-        : csAggregateMonth(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth))
-    : null;
-
-  let adUnitsKpi = 0, prevAdUnitsKpi = 0;
-  const adRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.year && parseInt(r.month,10) === cfg.month);
-  if (adRow) adUnitsKpi = parseInt(adRow.ad_units, 10) || 0;
-  if (cfg.prevYear) {
-    const prevAdRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.prevYear && parseInt(r.month,10) === cfg.prevMonth);
-    if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units, 10) || 0;
-  }
-  csRenderKPIs('', curr, prev, adUnitsKpi, cfg.prevYear ? prevAdUnitsKpi : null);
-  if (!prev) csSetBadge('kpi-total-units', 'kpi-mom', null, ''); // no comparison period for Last Year
-
-  if (cfg.isHistorical) {
-    const tbody = document.getElementById('tp-tbody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Per-product breakdown not available for Last Year yet — showing headline KPIs only for this period.</td></tr>';
-  } else {
-    const adOrderRows = cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.year && parseInt(r.month,10)===cfg.month);
-    const prevAdOrderRows = cfg.prevYear ? cache.adOrdersRows.filter(r => parseInt(r.year,10)===cfg.prevYear && parseInt(r.month,10)===cfg.prevMonth) : [];
-    csBuildTopProducts('tp-tbody', 'amazon-products-source', orderRows, cfg.year, cfg.month, adOrderRows, cfg.prevYear, cfg.prevMonth, orderRows, prevAdOrderRows);
-  }
-  // Units chart is period-independent — always shows the full combined
-  // Newderm + Cosmette_Historical timeline, not scoped to whatever period
-  // pill is selected.
-  csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows);
 };
 
 function csRenderPeriodPills(activeKey) {
