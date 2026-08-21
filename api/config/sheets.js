@@ -56,6 +56,11 @@ module.exports = {
   searchQueryPerformance: process.env.SHEET_SEARCH_QUERY_PERFORMANCE,
   masterSkuList:          process.env.SHEET_MASTER_SKU_LIST,
   keywordTracker:         process.env.SHEET_KEYWORD_TRACKER,
+  // NEW — added for run-analysis.js's PPC search-term analysis (the
+  // SHEET_ADVERTISING sheet is a monthly aggregate only, no search_term/
+  // keyword columns — this is the sheet with real per-term rows, same
+  // one the frontend's PPC Opportunities panels already read directly).
+  adSearchTerms:          process.env.SHEET_AD_SEARCH_TERMS,
   consignmentInventory:   process.env.SHEET_CONSIGNMENT_INVENTORY,
   fulfillmentDailyShipments: process.env.SHEET_FULFILLMENT_DAILY_SHIPMENTS,
   fulfillmentStates:         process.env.SHEET_FULFILLMENT_STATES,
