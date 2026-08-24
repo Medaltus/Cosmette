@@ -466,7 +466,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .ch-tab-hidden{display:none !important;}
 
 /* ── Topbar ── */
-.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar{background:transparent;border-bottom:none;padding:0 28px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .topbar-title{font-size:14px;font-weight:600;color:var(--navy);letter-spacing:-.2px;}
 .topbar-right{display:flex;align-items:center;gap:10px;}
 
@@ -796,27 +796,32 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 
   <!-- Topbar -->
   <div class="topbar">
-    <span class="topbar-title" id="topbar-title">Home — Cosmette Skincare</span>
+    <span></span>
     <div class="topbar-right" style="display:flex;align-items:center;gap:10px;position:relative;">
-      <!-- Checkboxes for which pages to include — matches Skinuva's real
-           picker pattern exactly (pdf-include-* ids, includeSections
-           object in exportPartnerPDF). No Fulfillment & CS checkbox yet
-           since that page doesn't exist for Cosmette — add one here the
-           same way once it's built. All 3 that exist default checked. -->
-      <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pd"> Prime Day</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pbdd"> PBDD</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bfcm"> BFCM</label>
+      <!-- PDF export controls only show on the internal Sales/Marketing/
+           Events pages — toggled by showPage(), hidden everywhere else
+           (Inventory, Home, PPC, Organic, Listing Audit, etc). -->
+      <div id="pdf-export-controls" style="display:none;align-items:center;gap:10px;">
+        <!-- Checkboxes for which pages to include — matches Skinuva's real
+             picker pattern exactly (pdf-include-* ids, includeSections
+             object in exportPartnerPDF). No Fulfillment & CS checkbox yet
+             since that page doesn't exist for Cosmette — add one here the
+             same way once it's built. All 3 that exist default checked. -->
+        <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pd"> Prime Day</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pbdd"> PBDD</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bfcm"> BFCM</label>
+        </div>
+        <button class="pdf-export-btn" id="pdf-export-btn" onclick="exportPartnerPDF()">
+          <span class="pdfx-spin"></span>
+          <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+          <span class="pdfx-label-text">Export PDF</span>
+        </button>
       </div>
-      <button class="pdf-export-btn" id="pdf-export-btn" onclick="exportPartnerPDF()">
-        <span class="pdfx-spin"></span>
-        <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-        <span class="pdfx-label-text">Export PDF</span>
-      </button>
       <div id="clerk-user"></div>
     </div>
   </div>
@@ -2129,6 +2134,12 @@ function showPage(id, btn) {
   if (btn) btn.classList.add('active');
   const titleEl = document.getElementById('topbar-title');
   if (titleEl) titleEl.textContent = PAGE_TITLES[id] || id;
+
+  // PDF export only makes sense on the internal Sales/Marketing/Events
+  // pages (the only pages it actually pulls data from) — hidden
+  // everywhere else (Inventory, Home, PPC, Organic, Listing Audit, etc).
+  const pdfControls = document.getElementById('pdf-export-controls');
+  if (pdfControls) pdfControls.style.display = (id === 'sales' || id === 'marketing' || id === 'events') ? 'flex' : 'none';
 
   if (id === 'onboarding' && !todosLoaded) {
     todosLoaded = true;
@@ -7056,21 +7067,18 @@ window.initSubscriptions = function () {
   // (deep-clone-was-wrong-layer) all apply here — see the comments below
   // at each specific point. Every chart is captured IN PLACE on the
   // live instance, never a second detached instance.
-  // FIXED — confirmed directly against Cosmette's actual chart-creation
-  // code: chart-amazon/chart-invest/chart-impressions all store their
-  // instance as canvas._csChart (a property ON the canvas element,
-  // reused generically across every chart that uses this pattern) —
-  // NOT as a window.X global the way this registry originally assumed
-  // (copied from Skinuva's own naming convention without verifying
-  // Cosmette's actual code, which is why every chart showed the
-  // "not yet loaded" fallback regardless of whether the tab had been
-  // opened). Subscribe & Save and the 4 event Top Sellers charts DO use
-  // real window globals, just with a `_cs` prefix this registry didn't
-  // have either. Each entry now tries BOTH lookup patterns.
+  // FIXED (round 2) — chart-invest/chart-impressions confirmed directly
+  // against Cosmette's actual code (csBuildInvestChart/csBuildImpressChart
+  // at their real creation sites): they're real window globals,
+  // window._csInvestChart and window._csImpressChart, NOT canvas._csChart
+  // like chart-amazon (csBuildUnitsChart) genuinely is. My first fix
+  // assumed all 3 shared one pattern without checking each individually —
+  // that's why chart-amazon started working but these two didn't. Each
+  // entry now carries its own confirmed windowVar where one exists.
   const PDFX_CHART_CANVAS_IDS = {
     _amazonChart:           { canvasId: 'chart-amazon' },
-    _investChart:           { canvasId: 'chart-invest' },
-    _impressChart:          { canvasId: 'chart-impressions' },
+    _investChart:           { canvasId: 'chart-invest', windowVar: '_csInvestChart' },
+    _impressChart:          { canvasId: 'chart-impressions', windowVar: '_csImpressChart' },
     _snsChart:              { canvasId: 'chart-sns', windowVar: '_csSnsChart' },
     _csbssTopSellersChart:  { canvasId: 'bss-chart-top-sellers',  windowVar: '_csbssTopSellersChart' },
     _cspdTopSellersChart:   { canvasId: 'pd-chart-top-sellers',   windowVar: '_cspdTopSellersChart' },
@@ -7341,7 +7349,7 @@ window.initSubscriptions = function () {
     return '' +
       '<div class="pdfx-page pdfx-cover">' +
         '<div class="pdfx-cover-navy">' +
-          (PDFX_WATERMARK_SRC ? '<img src="' + PDFX_WATERMARK_SRC + '" alt="" style="position:absolute;right:-60px;top:-30px;width:640px;height:auto;opacity:0.16;pointer-events:none;">' : '') +
+          (PDFX_WATERMARK_SRC ? '<img src="' + PDFX_WATERMARK_SRC + '" alt="" style="position:absolute;right:20px;top:20px;width:460px;height:auto;opacity:0.16;pointer-events:none;">' : '') +
           '<div class="pdfx-cover-toprow">' +
             '<span class="pdfx-logo-white" style="display:inline-block;">' + pdfxLogoHtml('height:40px;width:auto;') + '</span>' +
             '<div class="pdfx-hdr-right"><div class="pdfx-hdr-tag">Brand Performance Report</div><div class="pdfx-hdr-month">' + pdfxEscape(monthYear) + '</div></div>' +
