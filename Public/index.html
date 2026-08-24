@@ -2831,11 +2831,26 @@ const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 // rounded-line styling as the original chart throughout.
 function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
   const monthMap = new Map(); // key "YYYY-MM" -> { medaltus: units|null, cosmette: units|null }
-  function addRows(rows) {
+  // Current month (YYYY-MM, local) — the one month histRows won't have
+  // complete data for yet, so it must come from the rolling 120-day
+  // sync data instead. Every other month comes from histRows only —
+  // syncRows and histRows can and do legitimately overlap in date range
+  // (syncRows is a rolling window used elsewhere in the dashboard too),
+  // so without this split, any overlapping month gets summed twice.
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  function addRows(rows, sourceIsSync) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
+      const isCurrentMonth = key === currentMonthKey;
+      // Skip rows from the wrong source for this month: syncRows only
+      // contributes to the current month, histRows only contributes to
+      // every other month.
+      if (sourceIsSync && !isCurrentMonth) return;
+      if (!sourceIsSync && isCurrentMonth) return;
       const isMedaltus = r.selling_account === 'Newderm';
       if (!monthMap.has(key)) monthMap.set(key, { medaltus: null, cosmette: null });
       const entry = monthMap.get(key);
@@ -2843,8 +2858,8 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
       entry[field] = (entry[field] || 0) + (parseInt(r.unit_count,10) || 0);
     });
   }
-  addRows(syncRows);
-  addRows(histRows);
+  addRows(syncRows, true);
+  addRows(histRows, false);
 
   if (!monthMap.size) return;
 
