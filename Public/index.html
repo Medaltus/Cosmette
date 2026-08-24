@@ -726,9 +726,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <button class="nav-btn active" onclick="showPage('home',this)">
       <svg viewBox="0 0 16 16"><path d="M2 7l6-5 6 5v7a1 1 0 01-1 1H3a1 1 0 01-1-1V7z"/><path d="M6 15V9h4v6"/></svg>Home
     </button>
-    <button class="nav-btn" onclick="showPage('onboarding',this)">
-      <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Launch Checklist
-    </button>
 
     <div class="nav-section">Performance</div>
     <button class="nav-btn" onclick="showPage('sales-external',this)">
@@ -745,6 +742,11 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <button class="nav-btn soon" disabled>
       <svg viewBox="0 0 16 16"><rect x="1" y="5" width="14" height="9" rx="1.2"/><path d="M1 8h14M5 5V3a1 1 0 011-1h4a1 1 0 011 1v2"/><circle cx="4.5" cy="14" r="1.2"/><circle cx="11.5" cy="14" r="1.2"/></svg>Fulfillment
       <span class="nav-soon-badge">SOON</span>
+    </button>
+
+    <div class="nav-section">Completed</div>
+    <button class="nav-btn" onclick="showPage('onboarding',this)">
+      <svg viewBox="0 0 16 16"><path d="M8 1l2 4.5H15l-4 3.5 1.5 5L8 12l-4.5 2 1.5-5L1 5.5h5z"/></svg>Launch Checklist
     </button>
 
     <!-- Internal-only section — hidden by default, revealed only for signed-in @medaltus.com staff.
@@ -2921,7 +2923,7 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
   }
 }
 
-async function csBuildRevenueChart(canvasId, currentYear) {
+async function csBuildRevenueChart(canvasId, currentYear, currentMonthRevenueOverride) {
   const cfg = window.SHEET_CFG.SHEET_REVENUE;
   if (!cfg) return;
   const revCsv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid)).then(r => r.ok ? r.text() : '').catch(() => '');
@@ -2951,6 +2953,14 @@ async function csBuildRevenueChart(canvasId, currentYear) {
     const data = csMonths12.map((_, idx) => {
       const mo = idx + 1;
       if (yr === stopYear && mo > stopMonth) return null;
+      // Current month: SHEET_REVENUE is a manually-maintained lookup
+      // that won't have this month filled in yet — use the live
+      // MTD figure computed from the 120-day rolling sheet instead
+      // (passed in from initOverviewInternal, which already computes
+      // this for the KPI cards above this chart).
+      if (yr === stopYear && mo === stopMonth + 1 && currentMonthRevenueOverride != null) {
+        return currentMonthRevenueOverride;
+      }
       const row = parsed.find(r => r.year === yr && r.month === mo);
       return row ? row.revenue : null;
     });
@@ -3127,11 +3137,18 @@ window.renderCosmettePeriod = function (key) {
   }
 };
 
+// Internal Sales page deliberately excludes 'mtd' — Jaclyn: internal
+// reports should never show a partial/incomplete current month. This
+// only affects csRenderPeriodPills's own options list; CS_PERIOD_LABELS
+// itself is left intact since 'mtd' logic (csGetLastFullMonth-adjacent
+// helpers) is still used elsewhere (e.g. the Overview page).
+const CS_SALES_INTERNAL_PERIOD_KEYS = ['lastFull', 'prior', 'lastYear'];
+
 function csRenderPeriodPills(activeKey) {
   const container = document.getElementById('sales-period-pills');
   if (!container) return;
-  container.innerHTML = Object.entries(CS_PERIOD_LABELS).map(([key, label]) =>
-    `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectPeriod('${key}')">${label}</button>`
+  container.innerHTML = CS_SALES_INTERNAL_PERIOD_KEYS.map((key) =>
+    `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectPeriod('${key}')">${CS_PERIOD_LABELS[key]}</button>`
   ).join('');
 }
 window.__cosmetteSelectPeriod = function (key) {
@@ -4378,7 +4395,7 @@ window.initSubscriptions = function () {
         }).length;
         setKpiPlain('ov-kpi-pending', pendingCount.toLocaleString(), 'Current month');
 
-        csBuildRevenueChart('chart-ov-trend', mtdYear).catch(e => console.warn('[CosmetteOverview] revenue chart failed:', e.message));
+        csBuildRevenueChart('chart-ov-trend', mtdYear, revenue).catch(e => console.warn('[CosmetteOverview] revenue chart failed:', e.message));
 
         if (mtd) {
           csBuildTopProducts('ov-products-tbody', null, validRows, mtdYear, mtdMonth, adOrderRowsAll.filter(r=>parseInt(r.year,10)===mtdYear&&parseInt(r.month,10)===mtdMonth), prevYear, prevMonth, validRows, adOrderRowsAll.filter(r=>parseInt(r.year,10)===prevYear&&parseInt(r.month,10)===prevMonth));
