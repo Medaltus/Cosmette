@@ -1046,7 +1046,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
       <div class="card" id="x-top-products-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
-          <span class="card-title" style="margin-bottom:0;">Top Selling Products <span style="font-size:11px;color:var(--muted);font-weight:400;">(by Units)</span></span>
+          <span class="card-title" style="margin-bottom:0;">Sales by Product <span style="font-size:11px;color:var(--muted);font-weight:400;">(by Units)</span></span>
           <span id="x-amazon-products-source" style="font-size:10px;color:var(--muted);"></span>
         </div>
         <table class="data-table" id="x-amazon-top-sellers">
@@ -1227,6 +1227,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="kpi-row" style="margin-bottom:14px;">
+      <div class="kpi-card" id="ov-kpi-totalsales"><div class="kpi-label">Total Sales</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
       <div class="kpi-card" id="ov-kpi-units"><div class="kpi-label">Total Units Sold</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
       <div class="kpi-card" id="ov-kpi-orders"><div class="kpi-label">Total Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
       <div class="kpi-card" id="ov-kpi-aov"><div class="kpi-label">AOV</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
@@ -1235,8 +1236,22 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
     <div class="kpi-row" style="margin-bottom:20px;">
       <div class="kpi-card" id="ov-kpi-organic-units"><div class="kpi-label">MTD Organic Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
-      <div class="kpi-card" id="ov-kpi-ad-orders"><div class="kpi-label">MTD Ad-Driven Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">This month</div></div>
+      <div class="kpi-card" id="ov-kpi-organic-sales"><div class="kpi-label">MTD Organic Sales</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      <div class="kpi-card" id="ov-kpi-ad-orders"><div class="kpi-label">MTD Ad-Driven Units</div><div class="kpi-value">—</div><div class="kpi-mom flat">This month</div></div>
+      <div class="kpi-card" id="ov-kpi-ad-sales"><div class="kpi-label">MTD Ad Sales</div><div class="kpi-value">—</div><div class="kpi-mom flat">This month</div></div>
       <div class="kpi-card" id="ov-kpi-pending"><div class="kpi-label">Pending Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+    </div>
+
+    <!-- Channel Breakdown — Amazon only (Cosmette has no Walmart data;
+         per Skinuva's own scope, this table is Medaltus-owned channels
+         only, which for Cosmette today is just Amazon). Positioned
+         above the trend chart per the same convention. -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Channel Breakdown <span style="font-weight:400;color:var(--muted);">(Month to Date)</span></div>
+      <table class="data-table">
+        <thead><tr><th>Channel</th><th>Ad Spend</th><th>Ad Sales</th><th>Units</th><th>Orders</th><th>Revenue</th><th>AOV</th></tr></thead>
+        <tbody id="ov-channel-breakdown-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+      </table>
     </div>
 
     <div class="card" style="margin-bottom:20px;">
@@ -1245,7 +1260,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="card" style="margin-bottom:20px;">
-      <div class="card-title">Top Selling Products <span style="font-weight:400;color:var(--muted);">(by Units, Month to Date)</span></div>
+      <div class="card-title">Sales by Product <span style="font-weight:400;color:var(--muted);">(by Units, Month to Date)</span></div>
       <table class="data-table" id="ov-top-sellers">
         <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th></tr></thead>
         <tbody id="ov-products-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
@@ -1414,7 +1429,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
       <div class="card" id="top-products-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
-          <span class="card-title" style="margin-bottom:0;">Top Selling Products <span style="font-size:11px;color:var(--muted);font-weight:400;">(by Units)</span></span>
+          <span class="card-title" style="margin-bottom:0;">Sales by Product <span style="font-size:11px;color:var(--muted);font-weight:400;">(by Units)</span></span>
           <span id="amazon-products-source" style="font-size:10px;color:var(--muted);"></span>
         </div>
         <table class="data-table" id="amazon-top-sellers">
@@ -2019,7 +2034,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
 
       <div class="ppc-card">
-        <div class="ppc-card-title">Product Performance — Last Full Month</div>
+        <div class="ppc-card-title">Product Performance — Last Month</div>
         <div style="overflow-x:auto;">
           <table class="data-table">
             <thead><tr><th>Product</th><th>Sessions</th><th>Units</th><th>Revenue</th><th>Conv%</th></tr></thead>
@@ -2054,7 +2069,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 
     <!-- ── DATA-INFORMED OPPORTUNITIES ── -->
     <div class="channel-page" id="ppc-opportunities">
-      <div class="ppc-card-title" style="margin-bottom:2px;">Search Terms — Last Full Month</div>
+      <div class="ppc-card-title" style="margin-bottom:2px;">Search Terms — Last Month</div>
       <div class="ppc-note" style="margin-top:0;margin-bottom:14px;padding-top:0;border-top:none;">Pulled live from the Ad Search Terms sheet · up to 25 terms per panel, or fewer if fewer qualify</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
         <div class="ppc-card" style="margin-bottom:0;padding:16px;">
@@ -2991,7 +3006,7 @@ async function csBuildRevenueChart(canvasId, currentYear, currentMonthRevenueOve
 //    Fetches all four source sheets ONCE and caches the COS-filtered rows;
 //    switching periods only re-aggregates in memory, no re-fetch.
 // ═══════════════════════════════════════════════════════════════════════
-const CS_PERIOD_LABELS = { mtd: 'Month to Date', lastFull: 'Last Full Month', prior: 'Prior Month', lastYear: 'Last Year' };
+const CS_PERIOD_LABELS = { mtd: 'Month to Date', lastFull: 'Last Month', prior: 'Prior Month', lastYear: 'Last Year' };
 
 function csAggregateMonthThroughDay(rows, year, month, throughDay) {
   const prefix = `${year}-${String(month).padStart(2,'0')}`;
@@ -4350,9 +4365,10 @@ window.initSubscriptions = function () {
         const aov = mtd ? mtd.avgOrder : 0;
         const prevAov = prev ? prev.avgOrder : 0;
 
+        setKpi('ov-kpi-totalsales', '$' + Math.round(revenue).toLocaleString(), prev ? pctChange(Math.round(revenue), Math.round((prev.avgOrder||0)*(prev.totalOrders||0))) : null);
         setKpi('ov-kpi-units', units.toLocaleString(), prev ? pctChange(units, prevUnits) : null);
         setKpi('ov-kpi-orders', orders.toLocaleString(), prev ? pctChange(orders, prevOrders) : null);
-        setKpi('ov-kpi-aov', '$' + aov.toFixed(2), prev ? pctChange(Math.round(aov*100), Math.round(prevAov*100)) : null);
+        setKpi('ov-kpi-aov', '$' + aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), prev ? pctChange(Math.round(aov*100), Math.round(prevAov*100)) : null);
 
         const heroRevEl = document.getElementById('ov-hero-revenue');
         if (heroRevEl) heroRevEl.textContent = '$' + Math.round(revenue).toLocaleString();
@@ -4379,6 +4395,15 @@ window.initSubscriptions = function () {
         const organicUnits = Math.max(0, units - adUnitsCurr);
         setKpiPlain('ov-kpi-organic-units', organicUnits.toLocaleString(), 'This month');
 
+        // MTD Ad Sales / MTD Organic Sales $ — same ad-attributed-sales
+        // field already used for the PPC Blended KPI cards (adRowCurr.sales),
+        // Organic $ = Total Sales minus Ad Sales, floored at 0, same
+        // pattern as the existing Organic Units calc above.
+        const adSales = adRowCurr ? csParseAmt(adRowCurr.sales) : 0;
+        const organicSales = Math.max(0, revenue - adSales);
+        setKpiPlain('ov-kpi-ad-sales', '$' + adSales.toLocaleString(undefined,{maximumFractionDigits:0}), 'This month');
+        setKpiPlain('ov-kpi-organic-sales', '$' + organicSales.toLocaleString(undefined,{maximumFractionDigits:0}), 'This month');
+
         // Ad-Driven Orders — count of ad_orders rows for the current
         // month (order-level events, per the same convention already
         // established on the Sales page).
@@ -4394,6 +4419,23 @@ window.initSubscriptions = function () {
           return (r.status||'').trim().toLowerCase() === 'pending';
         }).length;
         setKpiPlain('ov-kpi-pending', pendingCount.toLocaleString(), 'Current month');
+
+        // Channel Breakdown — Amazon only (no Walmart data for Cosmette
+        // today; add a Walmart row here the same way, matching Skinuva's
+        // table, once that channel exists). Reuses every figure already
+        // computed above for the KPI cards — no new data fetch.
+        const cbTbody = document.getElementById('ov-channel-breakdown-tbody');
+        if (cbTbody) {
+          cbTbody.innerHTML = `<tr>
+            <td><strong>Amazon</strong></td>
+            <td>$${adSpend.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+            <td>$${adSales.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+            <td>${units.toLocaleString()}</td>
+            <td>${orders.toLocaleString()}</td>
+            <td>$${Math.round(revenue).toLocaleString()}</td>
+            <td>$${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+          </tr>`;
+        }
 
         csBuildRevenueChart('chart-ov-trend', mtdYear, revenue).catch(e => console.warn('[CosmetteOverview] revenue chart failed:', e.message));
 
@@ -5601,7 +5643,7 @@ window.initSubscriptions = function () {
     const prev = cfg.prevYear != null
       ? computeMetrics(cfg.prevYear, cfg.prevMonth, cfg.isPartial, cfg.throughDay) // same throughDay cutoff for apples-to-apples MTD comparison
       : null;
-    const prevForBadge = (prev && prev.hasAnyData) ? prev : null;
+    const prevForBadge = (periodKey === 'lastFull' && prev && prev.hasAnyData) ? prev : null;
 
     setKpiVal('ppc-kpi-adspend', '$' + curr.spend.toLocaleString(undefined,{maximumFractionDigits:0}));
     setKpiVal('ppc-kpi-adsales', '$' + curr.adSales.toLocaleString(undefined,{maximumFractionDigits:0}));
@@ -5611,9 +5653,9 @@ window.initSubscriptions = function () {
     setKpiVal('ppc-kpi-impressions', curr.impressions.toLocaleString());
     setKpiVal('ppc-kpi-clicks', curr.clicks.toLocaleString());
     setKpiVal('ppc-kpi-ctr', curr.ctr != null ? curr.ctr.toFixed(2)+'%' : '—');
-    setKpiVal('ppc-kpi-cpc', curr.cpc != null ? '$'+curr.cpc.toFixed(2) : '—');
+    setKpiVal('ppc-kpi-cpc', curr.cpc != null ? '$'+curr.cpc.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
     setKpiVal('ppc-kpi-orders', curr.totalOrders.toLocaleString());
-    setKpiVal('ppc-kpi-aov', curr.aov ? '$'+curr.aov.toFixed(2) : '—');
+    setKpiVal('ppc-kpi-aov', curr.aov ? '$'+curr.aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
 
     csSetBadge('ppc-kpi-adspend', 'kpi-mom', prevForBadge ? csPct(curr.spend, prevForBadge.spend) : null, 'MOM');
     csSetBadge('ppc-kpi-adsales', 'kpi-mom', prevForBadge ? csPct(curr.adSales, prevForBadge.adSales) : null, 'MOM');
@@ -5633,7 +5675,7 @@ window.initSubscriptions = function () {
       if (!adRows.length) {
         takeawayEl.textContent = `No ad data found for ${cfg.label.toLowerCase()}.`;
       } else {
-        takeawayEl.innerHTML = `<strong>${cfg.label}:</strong> $${curr.spend.toFixed(2)} spend drove $${curr.adSales.toFixed(2)} in ad sales (${curr.acos != null ? curr.acos.toFixed(1)+'% ACOS' : 'ACOS n/a'}). Blended against $${curr.totalSales.toFixed(2)} total Amazon sales, that's ${curr.tacos != null ? curr.tacos.toFixed(1)+'% TACOS' : 'TACOS n/a'}.`;
+        takeawayEl.innerHTML = `<strong>${cfg.label}:</strong> $${curr.spend.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} spend drove $${curr.adSales.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} in ad sales (${curr.acos != null ? curr.acos.toFixed(1)+'% ACOS' : 'ACOS n/a'}). Blended against $${curr.totalSales.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} total Amazon sales, that's ${curr.tacos != null ? curr.tacos.toFixed(1)+'% TACOS' : 'TACOS n/a'}.`;
       }
     }
   };
@@ -6562,7 +6604,7 @@ window.initSubscriptions = function () {
       const revenue = bizRow ? csParseAmt(bizRow.ORDERED_PRODUCT_SALES||bizRow.ordered_product_sales) : null;
       rowsData.sessions.push(sessions != null ? sessions.toLocaleString() : '—');
       rowsData.units.push(units != null ? units.toLocaleString() : '—');
-      rowsData.revenue.push(revenue != null ? '$'+revenue.toFixed(2) : '—');
+      rowsData.revenue.push(revenue != null ? '$'+revenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
       rowsData.conv.push((sessions && units != null) ? ((units/sessions)*100).toFixed(2)+'%' : '—');
     });
 
@@ -6730,7 +6772,7 @@ window.initSubscriptions = function () {
         const convClass = conv >= 15 ? 'rank-top' : (conv > 0 ? 'rank-low' : 'rank-none');
         return `<tr>
           <td><strong>${escapeHtml(name)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(names.skuByAsin[asin]||'')}</span></td>
-          <td>${sessions.toLocaleString()}</td><td>${units}</td><td>$${revenue.toFixed(2)}</td>
+          <td>${sessions.toLocaleString()}</td><td>${units}</td><td>$${revenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
           <td><span class="rank-pill ${convClass}">${conv.toFixed(2)}%</span></td>
         </tr>`;
       }).join('');
@@ -6821,7 +6863,7 @@ window.initSubscriptions = function () {
         cvr: g.clicks > 0 ? (g.purchases/g.clicks)*100 : 0,
         cpc: g.clicks > 0 ? g.cost/g.clicks : 0,
       }));
-      const N = 25, money = v => '$'+v.toFixed(2), pct = v => v.toFixed(0)+'%';
+      const N = 25, money = v => '$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), pct = v => v.toFixed(0)+'%';
 
       const topPerforming = currList.filter(t => t.sales > 0 && t.acos !== null && t.acos < 40).sort((a,b)=>b.sales-a.sales).slice(0,N);
       renderPanel('st-top-body', topPerforming, t => `<tr><td>${escapeHtml(t.term)}</td><td>${money(t.sales)}</td><td style="color:#1db88a;font-weight:600;">${pct(t.acos)}</td></tr>`);
@@ -6951,7 +6993,7 @@ window.initSubscriptions = function () {
           const cardsHtml = byCategory[cat].map(sku => {
             const asin = Object.keys(names.skuByAsin).find(a => names.skuByAsin[a] === sku) || '';
             const label = names.nameBySku[sku] || sku;
-            const row = bySku[sku];
+            const row = bySku[sku] || bySku[csRootSku(sku)];
             if (!row) return `<div class="ppc-strategy-card"><div class="ppc-strategy-hd"><div><div class="ppc-strategy-sku">${escapeHtml(sku)} · ${escapeHtml(asin)}</div><div class="ppc-strategy-name">${escapeHtml(label)}</div></div></div><div class="ppc-strategy-body"><div style="color:var(--muted);font-size:12px;">No PPC analysis run yet for this SKU — click "Run PPC Analysis" on the Insights Log page.</div></div></div>`;
             return renderStrategyCard(row, label);
           }).join('');
