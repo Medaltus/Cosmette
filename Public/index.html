@@ -2052,8 +2052,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
           <div class="ppc-metric-row"><div class="ppc-metric-lbl">Category Conv% Benchmark</div><div class="ppc-metric-val">15–20%</div></div>
         </div>
         <div class="ppc-card">
-          <div class="ppc-card-title">Keyword Coverage Status</div>
-          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">Keywords from Keyword Tracker with real sales or clicks on the Ad Search Terms report, and where each one currently lives in the listing.</div>
+          <div class="ppc-card-title">Keyword Coverage Status <span style="font-weight:400;color:var(--muted);">— Last Month</span></div>
+          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">Keywords from Keyword Tracker with real sales or clicks on the Ad Search Terms report last month, and where each one currently lives in the listing.</div>
           <div style="max-height:760px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
             <table class="data-table" style="font-size:11px;">
               <thead style="position:sticky;top:0;z-index:1;"><tr><th>Keyword</th><th>Product</th><th>Ad Sales</th><th>Ad Clicks</th><th>Where in Listing</th></tr></thead>
@@ -5745,7 +5745,12 @@ window.initSubscriptions = function () {
         ]);
 
         const kwRows = csIsCsv(kwCsv) ? csParseCsv(kwCsv).filter(r => r.date && r.asin && r.keyword) : [];
-        const adRows = csIsCsv(adCsv) ? csParseCsv(adCsv) : [];
+        // Scoped to Last Month, matching the rest of this page's period
+        // convention (csGetLastFullMonth — same helper csBuildPeriodConfig
+        // uses for the 'lastFull' pill).
+        const { year: kwcYear, month: kwcMonth } = csGetLastFullMonth();
+        const adRowsAll = csIsCsv(adCsv) ? csParseCsv(adCsv) : [];
+        const adRows = adRowsAll.filter(r => parseInt(r.year,10) === kwcYear && parseInt(r.month,10) === kwcMonth);
         const allListingRows = csIsCsv(listingCsv) ? csParseCsv(listingCsv) : [];
         const latestListingDate = allListingRows.reduce((max,r) => ((r.date||'') > max ? r.date : max), '');
         const listingRows = latestListingDate ? allListingRows.filter(r => r.date === latestListingDate) : allListingRows;
