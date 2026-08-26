@@ -2053,7 +2053,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         </div>
         <div class="ppc-card">
           <div class="ppc-card-title">Keyword Coverage Status</div>
-          <div class="ppc-note" style="margin-bottom:12px;">ℹ Needs a `keyword_sales` column on the Keyword Tracker sheet — confirmed directly that Cosmette's sheet doesn't have this field yet (only date, asin, sku, keyword, organic_rank, sponsored_rank, search_volume, boosted, last_synced). Build once that column exists.</div>
+          <div class="ppc-note" style="margin-top:0;margin-bottom:10px;padding-top:0;border-top:none;">Keywords from Keyword Tracker with real sales or clicks on the Ad Search Terms report, and where each one currently lives in the listing.</div>
+          <div style="max-height:760px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+            <table class="data-table" style="font-size:11px;">
+              <thead style="position:sticky;top:0;z-index:1;"><tr><th>Keyword</th><th>Product</th><th>Ad Sales</th><th>Ad Clicks</th><th>Where in Listing</th></tr></thead>
+              <tbody id="kwc-coverage-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -5692,6 +5698,114 @@ window.initSubscriptions = function () {
     window.renderPpcContext(key);
   };
 
+  function escapeHtmlKwc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  // Local copy of the listing-location check (Organic page's own IIFE has
+  // its own private version) — extended to include Description per
+  // Jaclyn's spec (Title/Item Highlights/B1-5/Description/Backend).
+  function kwcWhereInListing(listingRows, keyword, sku) {
+    const row = listingRows.find(r => csBaseSku(r.sku) === sku);
+    if (!row) return '—';
+    const kw = keyword.toLowerCase();
+    const hits = [];
+    if ((row.title||'').toLowerCase().includes(kw)) hits.push('Title');
+    for (let i=1;i<=5;i++) { const b = row['bullet_'+i]; if (b && b.toLowerCase().includes(kw)) hits.push('B'+i); }
+    if ((row.item_highlights||'').toLowerCase().includes(kw)) hits.push('IH');
+    if ((row.description||'').toLowerCase().includes(kw)) hits.push('Description');
+    if ((row.backend_keywords||'').toLowerCase().includes(kw)) hits.push('Backend');
+    return hits.length ? hits.join(', ') : 'Not in listing';
+  }
+
+  // Keyword Coverage Status — base keyword set is Keyword Tracker,
+  // filtered to keywords with real sales OR clicks on the Ad Search
+  // Terms report, cross-referenced against Product Inventory for where
+  // (if anywhere) each keyword currently lives in the listing. Per
+  // Jaclyn directly: NOT a keyword_sales column on Keyword Tracker (that
+  // field doesn't exist) — Ad Search Terms is the real sales/clicks
+  // source, same sheet already used for the Opportunities tab's panels.
+  window.initKeywordCoverage = function () {
+    if (window._csKwcPromise) return window._csKwcPromise;
+    window._csKwcPromise = (async function () {
+      const tbody = document.getElementById('kwc-coverage-tbody');
+      if (!tbody) return;
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_KEYWORD_TRACKER || !cfg.SHEET_AD_SEARCH_TERMS) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);">Missing ${!cfg.SHEET_KEYWORD_TRACKER?'SHEET_KEYWORD_TRACKER':'SHEET_AD_SEARCH_TERMS'} from SHEET_CONFIG.</td></tr>`;
+        return;
+      }
+      try {
+        const [kwCsv, adCsv, listingCsv, names] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER.fileId, cfg.SHEET_KEYWORD_TRACKER.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_AD_SEARCH_TERMS.fileId, cfg.SHEET_AD_SEARCH_TERMS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          cfg.SHEET_PRODUCT_INVENTORY
+            ? fetch(csSheetCsvUrl(cfg.SHEET_PRODUCT_INVENTORY.fileId, cfg.SHEET_PRODUCT_INVENTORY.gid)).then(r => r.ok ? r.text() : '').catch(() => '')
+            : Promise.resolve(''),
+          csFetchProductNames(),
+        ]);
+
+        const kwRows = csIsCsv(kwCsv) ? csParseCsv(kwCsv).filter(r => r.date && r.asin && r.keyword) : [];
+        const adRows = csIsCsv(adCsv) ? csParseCsv(adCsv) : [];
+        const allListingRows = csIsCsv(listingCsv) ? csParseCsv(listingCsv) : [];
+        const latestListingDate = allListingRows.reduce((max,r) => ((r.date||'') > max ? r.date : max), '');
+        const listingRows = latestListingDate ? allListingRows.filter(r => r.date === latestListingDate) : allListingRows;
+
+        if (!kwRows.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Keyword Tracker data found.</td></tr>'; return; }
+
+        // Aggregate Ad Search Terms sales+clicks per term (case-insensitive,
+        // summed across every date/campaign row for that term — same
+        // term-matching convention already used for the Rank Tracker's
+        // PPC classification).
+        const ppcByTerm = new Map();
+        adRows.forEach(r => {
+          const term = (r.search_term || r.keyword || '').trim().toLowerCase();
+          if (!term) return;
+          const e = ppcByTerm.get(term) || { sales: 0, clicks: 0 };
+          e.sales += csParseAmt(r.sales);
+          e.clicks += parseInt(r.clicks,10) || 0;
+          ppcByTerm.set(term, e);
+        });
+
+        // One row per unique (asin, keyword) from Keyword Tracker — most
+        // recent search_volume just for a stable sort, not displayed.
+        const latestByKey = {};
+        kwRows.forEach(r => {
+          const key = r.asin.toUpperCase() + '||' + r.keyword.toLowerCase();
+          if (!latestByKey[key] || (r.date||'') > (latestByKey[key].date||'')) latestByKey[key] = r;
+        });
+
+        const coverage = Object.values(latestByKey).map(r => {
+          const asin = r.asin.toUpperCase();
+          const keyword = r.keyword;
+          const ppc = ppcByTerm.get(keyword.toLowerCase());
+          return { asin, keyword, sales: ppc ? ppc.sales : 0, clicks: ppc ? ppc.clicks : 0, hasPpc: !!ppc };
+        }).filter(r => r.hasPpc && (r.sales > 0 || r.clicks > 0));
+
+        if (!coverage.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No tracked keywords have sales or clicks on the Ad Search Terms report yet.</td></tr>'; return; }
+
+        coverage.sort((a,b) => b.sales - a.sales || b.clicks - a.clicks);
+
+        tbody.innerHTML = coverage.map(r => {
+          const sku = names.skuByAsin[r.asin] || '';
+          const productLabel = names.nameBySku[sku] || sku || r.asin;
+          const where = sku ? kwcWhereInListing(listingRows, r.keyword, sku) : '—';
+          const notInListing = where === 'Not in listing';
+          return `<tr>
+            <td>${escapeHtmlKwc(r.keyword)}</td>
+            <td style="font-family:var(--mono);font-size:10px;">${escapeHtmlKwc(productLabel)}</td>
+            <td>$${r.sales.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+            <td>${r.clicks.toLocaleString()}</td>
+            <td style="${notInListing ? 'color:var(--danger);font-weight:600;' : ''}">${escapeHtmlKwc(where)}</td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        console.warn('[KeywordCoverage] failed:', err.message);
+        tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">Error loading.</td></tr>';
+      }
+    })();
+    return window._csKwcPromise;
+  };
+
   window.initPpcContext = function () {
     if (window._csPpcPromise) return window._csPpcPromise;
     window._csPpcPromise = (async function () {
@@ -5713,6 +5827,7 @@ window.initSubscriptions = function () {
         const startPeriod = window._csPpcActivePeriod || 'lastFull';
         renderPeriodPills(startPeriod);
         window.renderPpcContext(startPeriod);
+        window.initKeywordCoverage();
       } catch (err) {
         console.warn('[CosmettePPC] failed:', err.message);
       }
@@ -5754,6 +5869,7 @@ window.initSubscriptions = function () {
     if ((row.title||'').toLowerCase().includes(kw)) hits.push('Title');
     for (let i=1;i<=5;i++) { const b = row['bullet_'+i]; if (b && b.toLowerCase().includes(kw)) hits.push('B'+i); }
     if ((row.item_highlights||'').toLowerCase().includes(kw)) hits.push('IH');
+    if ((row.description||'').toLowerCase().includes(kw)) hits.push('Description');
     if ((row.backend_keywords||'').toLowerCase().includes(kw)) hits.push('Backend');
     return hits.length ? hits.join(', ') : 'Not in listing';
   }
