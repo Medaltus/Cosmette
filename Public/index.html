@@ -1211,8 +1211,9 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
            directly (spend/acos columns), not prorated — matches how the
            Sales page already treats this same month-bucketed sheet. -->
   <div class="page" id="page-overview">
-    <div class="page-hd">
-      <div><div class="page-title">Overview</div><div class="page-sub">Month to date</div></div>
+    <div class="page-hd" style="justify-content:space-between;">
+      <div><div class="page-title">Overview</div><div class="page-sub" id="ov-page-sub">Month to date</div></div>
+      <div class="period-pills" id="ov-period-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
     </div>
 
     <div class="home-hero" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
@@ -1221,7 +1222,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:4px;">Amazon</div>
       </div>
       <div style="display:flex;gap:20px;">
-        <div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--green);line-height:1;" id="ov-hero-revenue">—</div><div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;">Month-to-Date Revenue</div></div>
+        <div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--green);line-height:1;" id="ov-hero-revenue">—</div><div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;" id="ov-hero-revenue-label">Month-to-Date Revenue</div></div>
         <div style="text-align:center;"><div style="font-size:28px;font-weight:700;color:var(--green);line-height:1;" id="ov-hero-skus">—</div><div style="font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;">Active SKUs (with Sales)</div></div>
       </div>
     </div>
@@ -1249,7 +1250,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <div class="card" style="margin-bottom:20px;">
       <div class="card-title">Channel Breakdown <span style="font-weight:400;color:var(--muted);">(Month to Date)</span></div>
       <table class="data-table">
-        <thead><tr><th>Channel</th><th>Ad Spend</th><th>Ad Sales</th><th>Units</th><th>Orders</th><th>Revenue</th><th>AOV</th></tr></thead>
+        <thead><tr><th>Channel</th><th>Ad Spend</th><th>Ad Sales</th><th>Units</th><th>Total Orders</th><th>Revenue</th><th>AOV</th></tr></thead>
         <tbody id="ov-channel-breakdown-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
       </table>
     </div>
@@ -1260,7 +1261,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="card" style="margin-bottom:20px;">
-      <div class="card-title">Sales by Product <span style="font-weight:400;color:var(--muted);">(by Units, Month to Date)</span></div>
+      <div class="card-title">Sales by Product <span style="font-weight:400;color:var(--muted);" id="ov-products-period-label">(by Units, Month to Date)</span></div>
       <table class="data-table" id="ov-top-sellers">
         <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th></tr></thead>
         <tbody id="ov-products-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
@@ -2025,8 +2026,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div class="kpi-card" id="ppc-kpi-clicks"><div class="kpi-label">Clicks</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-ctr"><div class="kpi-label">CTR</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
         <div class="kpi-card" id="ppc-kpi-cpc"><div class="kpi-label">CPC</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
-        <div class="kpi-card" id="ppc-kpi-orders"><div class="kpi-label">Orders</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
-        <div class="kpi-card" id="ppc-kpi-aov"><div class="kpi-label">AOV</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="ppc-kpi-orders"><div class="kpi-label">Units (Ads)</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="ppc-kpi-aov"><div class="kpi-label">Avg. Sale per Unit</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
       </div>
       <div class="ppc-alert">
         <span class="ppc-alert-icon">📊</span>
@@ -2674,13 +2675,14 @@ function csSetKpiValue(id, value) {
   const el = document.getElementById(id);
   if (el) { const v = el.querySelector('.kpi-value'); if (v) v.textContent = value; }
 }
-function csSetBadge(id, cls, pctVal, label) {
+function csSetBadge(id, cls, pctVal, label, invert) {
   const el = document.getElementById(id);
   if (!el) return;
   const badge = el.querySelector('.' + cls);
   if (!badge) return;
   if (pctVal == null) { badge.className = cls + ' flat'; badge.textContent = label ? 'No prior data' : ''; return; }
-  const kind = pctVal === 0 ? 'flat' : (pctVal > 0 ? 'up' : 'dn');
+  const isGoodDirection = invert ? pctVal < 0 : pctVal > 0;
+  const kind = pctVal === 0 ? 'flat' : (isGoodDirection ? 'up' : 'dn');
   badge.className = cls + ' ' + kind;
   badge.textContent = `${pctVal > 0 ? '+' : ''}${pctVal}% ${label}`;
 }
@@ -2853,15 +2855,23 @@ const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 // the other the moment they're merged into a single color/series. Same
 // rounded-line styling as the original chart throughout.
 function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
-  const monthMap = new Map(); // key "YYYY-MM" -> { medaltus: units|null, cosmette: units|null }
-  // Current month (YYYY-MM, local) — the one month histRows won't have
-  // complete data for yet, so it must come from the rolling 120-day
-  // sync data instead. Every other month comes from histRows only —
-  // syncRows and histRows can and do legitimately overlap in date range
-  // (syncRows is a rolling window used elsewhere in the dashboard too),
-  // so without this split, any overlapping month gets summed twice.
+  // Calendar Jan-Dec x-axis, one dataset per (year, account-type) —
+  // matches the convention used on every other Medaltus brand's Units
+  // Sold chart (see csBuildRevenueChart for the same year-offset color
+  // palette). Cosmette is the one exception: since Cosmette_Historical
+  // data spans across a year boundary (2025 into 2026), it gets its own
+  // FIXED color regardless of which calendar year a given month falls
+  // in — per Jaclyn directly, two line segments is fine as long as both
+  // read as "the same series" visually, not colored per-year like
+  // Medaltus/Newderm's own data is.
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  // yearData[year] = { medaltus: [12 values|null], cosmette: [12 values|null] }
+  const yearData = {};
+  function ensureYear(y) {
+    if (!yearData[y]) yearData[y] = { medaltus: Array(12).fill(null), cosmette: Array(12).fill(null) };
+    return yearData[y];
+  }
 
   function addRows(rows, sourceIsSync) {
     rows.forEach(r => {
@@ -2869,58 +2879,60 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
       const isCurrentMonth = key === currentMonthKey;
-      // Skip rows from the wrong source for this month: syncRows only
-      // contributes to the current month, histRows only contributes to
-      // every other month.
+      // Same current-month split as before: syncRows (rolling 120-day)
+      // only contributes the current month, histRows contributes every
+      // other month — avoids double-counting where the two sources
+      // legitimately overlap in date range.
       if (sourceIsSync && !isCurrentMonth) return;
       if (!sourceIsSync && isCurrentMonth) return;
+      const [y, m] = key.split('-').map(Number);
+      const entry = ensureYear(y);
       const isMedaltus = r.selling_account === 'Newderm';
-      if (!monthMap.has(key)) monthMap.set(key, { medaltus: null, cosmette: null });
-      const entry = monthMap.get(key);
-      const field = isMedaltus ? 'medaltus' : 'cosmette';
-      entry[field] = (entry[field] || 0) + (parseInt(r.unit_count,10) || 0);
+      const arr = isMedaltus ? entry.medaltus : entry.cosmette;
+      arr[m-1] = (arr[m-1] || 0) + (parseInt(r.unit_count,10) || 0);
     });
   }
   addRows(syncRows, true);
   addRows(histRows, false);
 
-  if (!monthMap.size) return;
+  const years = Object.keys(yearData).map(Number).sort((a,b) => a-b);
+  if (!years.length) return;
 
-  const sortedKeys = [...monthMap.keys()].sort();
-  const labels = sortedKeys.map(key => {
-    const [y,m] = key.split('-').map(Number);
-    return `${csMonths12[m-1]} '${String(y).slice(2)}`;
-  });
   const { year: currentYear } = csGetLastFullMonth();
-
-  const medaltusData = sortedKeys.map(key => monthMap.get(key).medaltus);
-  const cosmetteData = sortedKeys.map(key => monthMap.get(key).cosmette);
+  const MEDALTUS_COLORS = {
+    0: { border:'#24e9a3', bg:'rgba(36,233,163,0.08)', fill:true },
+    1: { border:'#001f60', bg:'transparent', fill:false },
+    2: { border:'#f4dfd0', bg:'transparent', fill:false },
+    3: { border:'#ccd3d5', bg:'transparent', fill:false },
+  };
+  const COSMETTE_HISTORICAL_COLOR = { border:'#c9a98c', bg:'transparent', fill:false };
 
   const datasets = [];
-  if (cosmetteData.some(v => v != null)) {
-    datasets.push({
-      label: 'Cosmette',
-      data: cosmetteData,
-      borderColor: '#f4dfd0',
-      backgroundColor: 'transparent',
-      fill: false,
-      pointRadius: 2,
-      tension: 0.3,
-      borderWidth: 2.5,
-    });
-  }
-  if (medaltusData.some(v => v != null)) {
-    datasets.push({
-      label: `Medaltus ${currentYear}`,
-      data: medaltusData,
-      borderColor: '#24e9a3',
-      backgroundColor: 'rgba(36,233,163,0.08)',
-      fill: true,
-      pointRadius: 2,
-      tension: 0.3,
-      borderWidth: 2.5,
-    });
-  }
+  years.forEach(y => {
+    const entry = yearData[y];
+    if (entry.cosmette.some(v => v != null)) {
+      datasets.push({
+        label: 'Cosmette Historical',
+        data: entry.cosmette,
+        borderColor: COSMETTE_HISTORICAL_COLOR.border,
+        backgroundColor: COSMETTE_HISTORICAL_COLOR.bg,
+        fill: COSMETTE_HISTORICAL_COLOR.fill,
+        pointRadius: 2, tension: 0.3, borderWidth: 2.5,
+      });
+    }
+    if (entry.medaltus.some(v => v != null)) {
+      const offset = currentYear - y;
+      const color = MEDALTUS_COLORS[offset] || MEDALTUS_COLORS[3];
+      datasets.push({
+        label: String(y),
+        data: entry.medaltus,
+        borderColor: color.border,
+        backgroundColor: color.bg,
+        fill: color.fill,
+        pointRadius: 2, tension: 0.3, borderWidth: 2.5,
+      });
+    }
+  });
   if (!datasets.length) return;
 
   const canvas = document.getElementById(canvasId);
@@ -2928,7 +2940,7 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
   if (canvas._csChart) canvas._csChart.destroy();
   canvas._csChart = new Chart(canvas, {
     type: 'line',
-    data: { labels, datasets },
+    data: { labels: csMonths12, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '—' : ctx.parsed.y.toLocaleString()} units` } } },
@@ -2938,7 +2950,15 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
 
   const legendEl = document.getElementById(legendId);
   if (legendEl) {
-    legendEl.innerHTML = datasets.map(ds =>
+    // Dedupe by label — Cosmette Historical can appear as two dataset
+    // objects (one per calendar year it spans) but should only show
+    // once in the legend.
+    const seen = new Set();
+    legendEl.innerHTML = datasets.filter(ds => {
+      if (seen.has(ds.label)) return false;
+      seen.add(ds.label);
+      return true;
+    }).map(ds =>
       `<span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px;font-size:11px;color:var(--muted);"><span style="width:10px;height:10px;border-radius:2px;background:${ds.borderColor};display:inline-block;"></span>${ds.label}</span>`
     ).join('');
   }
@@ -3199,7 +3219,7 @@ window.initAmazonSalesInternal = function () {
       window._csDataCache = {
         syncRows, histRows,
         adSummaryRows: csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [],
-        adOrdersRows: csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv) : [],
+        adOrdersRows: csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow) : [],
       };
 
       const startPeriod = window._csActivePeriod || 'lastFull';
@@ -3525,8 +3545,8 @@ window.csResolveApprovedMonth = function () {
         if (prevAdRow) prevAdUnitsKpi = parseInt(prevAdRow.ad_units,10) || 0;
 
         csRenderKPIs('x-', curr, prev, adUnitsKpi, prevAdUnitsKpi);
-        const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===key.year && parseInt(r.month,10)===key.month) : [];
-        const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
+        const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow).filter(r => parseInt(r.year,10)===key.year && parseInt(r.month,10)===key.month) : [];
+        const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
         await csBuildTopProducts('x-tp-tbody', 'x-amazon-products-source', syncRows, key.year, key.month, adOrderRows, prevYear, prevMonth, syncRows, prevAdOrderRows);
         csBuildRevenueChart('x-chart-amazon', key.year).catch(e => console.warn('[SalesExternal] revenue chart failed:', e.message));
       } catch (err) {
@@ -4185,7 +4205,15 @@ window.initSubscriptions = function () {
       // the page stuck on "Loading reviews…" forever with nothing in
       // console, while a retry succeeded in under a second. A hard 20s
       // timeout turns that silent hang into a visible, retryable message.
-      const csv = await csFetchTextWithTimeout(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`, 20000);
+      //
+      // If cfg.gid ever comes back null/empty from /api/sheet-config, the
+      // URL would literally contain &gid=null and Google 400s on it — same
+      // confirmed failure mode as Skinuva's reviews sheet. Fall back to
+      // fetching the tab by name (brand slug) via gviz instead.
+      const reviewsUrl = (cfg.gid != null && cfg.gid !== '')
+        ? csSheetCsvUrl(cfg.fileId, cfg.gid)
+        : `https://docs.google.com/spreadsheets/d/${cfg.fileId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(window.SHEET_CFG.BRAND_SLUG || 'cosmette')}`;
+      const csv = await csFetchTextWithTimeout(reviewsUrl + `&_cb=${Date.now()}`, 20000);
       const allReviews = csIsCsv(csv) ? csParseCsv(csv) : [];
       console.log('[CosmetteReviews:'+ns+'] total review rows loaded:', allReviews.length, '— columns:', allReviews.length ? Object.keys(allReviews[0]).join(' | ') : '(none)');
       if (!allReviews.length) {
@@ -4341,119 +4369,180 @@ window.initSubscriptions = function () {
       const missing = need.filter(k => !cfg[k]);
       if (missing.length) { console.warn('[CosmetteOverview] Missing SHEET_CONFIG keys:', missing); return; }
 
-      const now = new Date();
-      const daysElapsed = now.getDate();
-      const mtdYear = now.getFullYear(), mtdMonth = now.getMonth() + 1;
-      let prevYear = mtdYear, prevMonth = mtdMonth - 1;
-      if (prevMonth === 0) { prevMonth = 12; prevYear--; }
-
       try {
         const [ordersCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
           fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
           fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
           fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
         ]);
-
-        const allRows = csIsCsv(ordersCsv) ? csParseCsv(ordersCsv).filter(csIsCosmetteRow) : [];
-        const validRows = csIsCsv(ordersCsv) ? csFilterRows(csParseCsv(ordersCsv)) : [];
-
-        const mtd = csAggregateMonthThroughDay(validRows, mtdYear, mtdMonth, daysElapsed);
-        const prev = csAggregateMonthThroughDay(validRows, prevYear, prevMonth, daysElapsed);
-
-        if (!mtd) {
-          console.warn(`[CosmetteOverview] No Cosmette order rows found for ${mtdYear}-${mtdMonth} through day ${daysElapsed}.`);
-        }
-        const units = mtd ? mtd.totalUnits : 0;
-        const orders = mtd ? mtd.totalOrders : 0;
-        const revenue = mtd ? mtd.avgOrder * mtd.totalOrders : 0; // avgOrder * orders recovers totalRevenue without re-deriving it
-        const prevUnits = prev ? prev.totalUnits : 0;
-        const prevOrders = prev ? prev.totalOrders : 0;
-        const aov = mtd ? mtd.avgOrder : 0;
-        const prevAov = prev ? prev.avgOrder : 0;
-
-        setKpi('ov-kpi-totalsales', '$' + Math.round(revenue).toLocaleString(), prev ? pctChange(Math.round(revenue), Math.round((prev.avgOrder||0)*(prev.totalOrders||0))) : null);
-        setKpi('ov-kpi-units', units.toLocaleString(), prev ? pctChange(units, prevUnits) : null);
-        setKpi('ov-kpi-orders', orders.toLocaleString(), prev ? pctChange(orders, prevOrders) : null);
-        setKpi('ov-kpi-aov', '$' + aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), prev ? pctChange(Math.round(aov*100), Math.round(prevAov*100)) : null);
-
-        const heroRevEl = document.getElementById('ov-hero-revenue');
-        if (heroRevEl) heroRevEl.textContent = '$' + Math.round(revenue).toLocaleString();
-        const activeSkus = new Set(validRows.filter(r => {
-          const d = csNormalizeDate(r.date);
-          return d && d.substring(0,7) === `${mtdYear}-${String(mtdMonth).padStart(2,'0')}` && parseInt(d.substring(8,10),10) <= daysElapsed;
-        }).map(r => csBaseSku(r.sku)).filter(Boolean));
-        const heroSkusEl = document.getElementById('ov-hero-skus');
-        if (heroSkusEl) heroSkusEl.textContent = activeSkus.size.toLocaleString();
-
-        // Ad Spend / ACOS — current month's row from SHEET_ADVERTISING
-        // directly (spend/acos columns), same month-bucketed convention
-        // already used for ad_units on the Sales page.
-        const adRows = csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [];
-        const adRowCurr = adRows.find(r => parseInt(r.year,10) === mtdYear && parseInt(r.month,10) === mtdMonth);
-        const adRowPrev = adRows.find(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
-        const adSpend = adRowCurr ? csParseAmt(adRowCurr.spend) : 0;
-        const adSpendPrev = adRowPrev ? csParseAmt(adRowPrev.spend) : null;
-        const acos = adRowCurr ? parseFloat(String(adRowCurr.acos||'').replace(/[^0-9.\-]/g,'')) : null;
-        setKpi('ov-kpi-adspend', '$' + adSpend.toLocaleString(undefined,{maximumFractionDigits:0}), adSpendPrev ? pctChange(adSpend, adSpendPrev) : null);
-        setKpiPlain('ov-kpi-acos', acos != null && !isNaN(acos) ? acos.toFixed(1) + '%' : '—', 'This month');
-
-        const adUnitsCurr = adRowCurr ? parseInt(adRowCurr.ad_units,10) || 0 : 0;
-        const organicUnits = Math.max(0, units - adUnitsCurr);
-        setKpiPlain('ov-kpi-organic-units', organicUnits.toLocaleString(), 'This month');
-
-        // MTD Ad Sales / MTD Organic Sales $ — same ad-attributed-sales
-        // field already used for the PPC Blended KPI cards (adRowCurr.sales),
-        // Organic $ = Total Sales minus Ad Sales, floored at 0, same
-        // pattern as the existing Organic Units calc above.
-        const adSales = adRowCurr ? csParseAmt(adRowCurr.sales) : 0;
-        const organicSales = Math.max(0, revenue - adSales);
-        setKpiPlain('ov-kpi-ad-sales', '$' + adSales.toLocaleString(undefined,{maximumFractionDigits:0}), 'This month');
-        setKpiPlain('ov-kpi-organic-sales', '$' + organicSales.toLocaleString(undefined,{maximumFractionDigits:0}), 'This month');
-
-        // Ad-Driven Orders — count of ad_orders rows for the current
-        // month (order-level events, per the same convention already
-        // established on the Sales page).
-        const adOrderRowsAll = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv) : [];
-        const adDrivenOrders = adOrderRowsAll.filter(r => parseInt(r.year,10) === mtdYear && parseInt(r.month,10) === mtdMonth && csIsCosmetteRow(r)).length;
-        setKpiPlain('ov-kpi-ad-orders', adDrivenOrders.toLocaleString(), 'This month');
-
-        // Pending Orders — raw (unfiltered-for-validity) rows with
-        // status=pending, current month, COS-filtered.
-        const pendingCount = allRows.filter(r => {
-          const d = csNormalizeDate(r.date);
-          if (!d || d.substring(0,7) !== `${mtdYear}-${String(mtdMonth).padStart(2,'0')}`) return false;
-          return (r.status||'').trim().toLowerCase() === 'pending';
-        }).length;
-        setKpiPlain('ov-kpi-pending', pendingCount.toLocaleString(), 'Current month');
-
-        // Channel Breakdown — Amazon only (no Walmart data for Cosmette
-        // today; add a Walmart row here the same way, matching Skinuva's
-        // table, once that channel exists). Reuses every figure already
-        // computed above for the KPI cards — no new data fetch.
-        const cbTbody = document.getElementById('ov-channel-breakdown-tbody');
-        if (cbTbody) {
-          cbTbody.innerHTML = `<tr>
-            <td><strong>Amazon</strong></td>
-            <td>$${adSpend.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
-            <td>$${adSales.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
-            <td>${units.toLocaleString()}</td>
-            <td>${orders.toLocaleString()}</td>
-            <td>$${Math.round(revenue).toLocaleString()}</td>
-            <td>$${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-          </tr>`;
-        }
-
-        csBuildRevenueChart('chart-ov-trend', mtdYear, revenue).catch(e => console.warn('[CosmetteOverview] revenue chart failed:', e.message));
-
-        if (mtd) {
-          csBuildTopProducts('ov-products-tbody', null, validRows, mtdYear, mtdMonth, adOrderRowsAll.filter(r=>parseInt(r.year,10)===mtdYear&&parseInt(r.month,10)===mtdMonth), prevYear, prevMonth, validRows, adOrderRowsAll.filter(r=>parseInt(r.year,10)===prevYear&&parseInt(r.month,10)===prevMonth));
-        }
-
+        window._csOverviewDataCache = {
+          allRows: csIsCsv(ordersCsv) ? csParseCsv(ordersCsv).filter(csIsCosmetteRow) : [],
+          validRows: csIsCsv(ordersCsv) ? csFilterRows(csParseCsv(ordersCsv)) : [],
+          adRows: csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [],
+          adOrderRowsAll: csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow) : [],
+        };
+        const startPeriod = window._csOverviewActivePeriod || 'mtd';
+        renderOverviewPeriodPills(startPeriod);
+        window.renderOverview(startPeriod);
       } catch (err) {
         console.warn('[CosmetteOverview] failed:', err.message);
       }
     })();
     return window._csOverviewPromise;
+  };
+
+  function renderOverviewPeriodPills(activeKey) {
+    const container = document.getElementById('ov-period-pills');
+    if (!container) return;
+    const labels = { mtd: 'Month to Date', lastFull: 'Last Month' };
+    container.innerHTML = Object.keys(labels).map(key =>
+      `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectOverviewPeriod('${key}')">${labels[key]}</button>`
+    ).join('');
+  }
+  window.__cosmetteSelectOverviewPeriod = function (key) {
+    renderOverviewPeriodPills(key);
+    window.renderOverview(key);
+  };
+
+  window.renderOverview = function (periodKey) {
+    const cache = window._csOverviewDataCache;
+    if (!cache) return;
+    window._csOverviewActivePeriod = periodKey;
+    const isMtd = periodKey === 'mtd';
+    const trueNow = new Date();
+
+    // MTD: real "today", partial month, same-day-cutoff comparison
+    // against last month (unchanged from before). Last Month: the most
+    // recently COMPLETED month (csGetLastFullMonth — same helper Sales
+    // Internal/PPC already use), full-month aggregation, compared
+    // against the full month before that.
+    let refYear, refMonth, throughDay, isPartial;
+    if (isMtd) {
+      refYear = trueNow.getFullYear(); refMonth = trueNow.getMonth() + 1;
+      throughDay = trueNow.getDate(); isPartial = true;
+    } else {
+      const lf = csGetLastFullMonth();
+      refYear = lf.year; refMonth = lf.month; throughDay = null; isPartial = false;
+    }
+    let prevYear = refYear, prevMonth = refMonth - 1;
+    if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+
+    const periodLabel = isMtd ? 'This month' : 'Last month';
+    const refPrefix = `${refYear}-${String(refMonth).padStart(2,'0')}`;
+
+    const pageSubEl = document.getElementById('ov-page-sub');
+    if (pageSubEl) pageSubEl.textContent = isMtd ? 'Month to date' : `Last month — ${csMonths12[refMonth-1]} ${refYear}`;
+    const heroRevLabelEl = document.getElementById('ov-hero-revenue-label');
+    if (heroRevLabelEl) heroRevLabelEl.textContent = isMtd ? 'Month-to-Date Revenue' : 'Last Month Revenue';
+
+    const mtd = isPartial
+      ? csAggregateMonthThroughDay(cache.validRows, refYear, refMonth, throughDay)
+      : csAggregateMonth(cache.validRows, refYear, refMonth);
+    const prev = isPartial
+      ? csAggregateMonthThroughDay(cache.validRows, prevYear, prevMonth, throughDay)
+      : csAggregateMonth(cache.validRows, prevYear, prevMonth);
+
+    if (!mtd) {
+      console.warn(`[CosmetteOverview] No Cosmette order rows found for ${refPrefix}${throughDay ? ' through day '+throughDay : ''}.`);
+    }
+    const units = mtd ? mtd.totalUnits : 0;
+    const orders = mtd ? mtd.totalOrders : 0;
+    const revenue = mtd ? mtd.avgOrder * mtd.totalOrders : 0; // avgOrder * orders recovers totalRevenue without re-deriving it
+    const prevUnits = prev ? prev.totalUnits : 0;
+    const prevOrders = prev ? prev.totalOrders : 0;
+    const aov = mtd ? mtd.avgOrder : 0;
+    const prevAov = prev ? prev.avgOrder : 0;
+
+    setKpi('ov-kpi-totalsales', '$' + Math.round(revenue).toLocaleString(), prev ? pctChange(Math.round(revenue), Math.round((prev.avgOrder||0)*(prev.totalOrders||0))) : null);
+    setKpi('ov-kpi-units', units.toLocaleString(), prev ? pctChange(units, prevUnits) : null);
+    setKpi('ov-kpi-orders', orders.toLocaleString(), prev ? pctChange(orders, prevOrders) : null);
+    setKpi('ov-kpi-aov', '$' + aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}), prev ? pctChange(Math.round(aov*100), Math.round(prevAov*100)) : null);
+
+    const heroRevEl = document.getElementById('ov-hero-revenue');
+    if (heroRevEl) heroRevEl.textContent = '$' + Math.round(revenue).toLocaleString();
+    const activeSkus = new Set(cache.validRows.filter(r => {
+      const d = csNormalizeDate(r.date);
+      if (!d || d.substring(0,7) !== refPrefix) return false;
+      if (throughDay) return parseInt(d.substring(8,10),10) <= throughDay;
+      return true;
+    }).map(r => csBaseSku(r.sku)).filter(Boolean));
+    const heroSkusEl = document.getElementById('ov-hero-skus');
+    if (heroSkusEl) heroSkusEl.textContent = activeSkus.size.toLocaleString();
+
+    // Ad Spend / ACOS — selected period's row from SHEET_ADVERTISING
+    // directly (spend/acos columns), same month-bucketed convention
+    // already used for ad_units on the Sales page.
+    const adRowCurr = cache.adRows.find(r => parseInt(r.year,10) === refYear && parseInt(r.month,10) === refMonth);
+    const adRowPrev = cache.adRows.find(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
+    const adSpend = adRowCurr ? csParseAmt(adRowCurr.spend) : 0;
+    const adSpendPrev = adRowPrev ? csParseAmt(adRowPrev.spend) : null;
+    const acos = adRowCurr ? parseFloat(String(adRowCurr.acos||'').replace(/[^0-9.\-]/g,'')) : null;
+    setKpi('ov-kpi-adspend', '$' + adSpend.toLocaleString(undefined,{maximumFractionDigits:0}), adSpendPrev ? pctChange(adSpend, adSpendPrev) : null);
+    setKpiPlain('ov-kpi-acos', acos != null && !isNaN(acos) ? acos.toFixed(1) + '%' : '—', periodLabel);
+
+    const adUnitsCurr = adRowCurr ? parseInt(adRowCurr.ad_units,10) || 0 : 0;
+    const organicUnits = Math.max(0, units - adUnitsCurr);
+    setKpiPlain('ov-kpi-organic-units', organicUnits.toLocaleString(), periodLabel);
+
+    // Ad Sales / Organic Sales $ — same ad-attributed-sales field already
+    // used for the PPC Blended KPI cards (adRowCurr.sales), Organic $ =
+    // Total Sales minus Ad Sales, floored at 0, same pattern as the
+    // existing Organic Units calc above.
+    const adSales = adRowCurr ? csParseAmt(adRowCurr.sales) : 0;
+    const organicSales = Math.max(0, revenue - adSales);
+    setKpiPlain('ov-kpi-ad-sales', '$' + adSales.toLocaleString(undefined,{maximumFractionDigits:0}), periodLabel);
+    setKpiPlain('ov-kpi-organic-sales', '$' + organicSales.toLocaleString(undefined,{maximumFractionDigits:0}), periodLabel);
+
+    // Ad-Driven Units — sum of ad_units for the selected period (order-
+    // level events, per the same convention already established on the
+    // Sales page).
+    const adOrderRowsCurr = cache.adOrderRowsAll.filter(r => parseInt(r.year,10) === refYear && parseInt(r.month,10) === refMonth);
+    const adOrderRowsPrev = cache.adOrderRowsAll.filter(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
+    const adDrivenOrders = adOrderRowsCurr.reduce((s, r) => s + (parseInt(r.ad_units,10) || 0), 0);
+    setKpiPlain('ov-kpi-ad-orders', adDrivenOrders.toLocaleString(), periodLabel);
+
+    // Pending Orders — raw (unfiltered-for-validity) rows with
+    // status=pending, selected period, COS-filtered.
+    const pendingCount = cache.allRows.filter(r => {
+      const d = csNormalizeDate(r.date);
+      if (!d || d.substring(0,7) !== refPrefix) return false;
+      return (r.status||'').trim().toLowerCase() === 'pending';
+    }).length;
+    setKpiPlain('ov-kpi-pending', pendingCount.toLocaleString(), isMtd ? 'Current month' : 'Last month');
+
+    // Channel Breakdown — Amazon only (no Walmart data for Cosmette
+    // today; add a Walmart row here the same way, matching Skinuva's
+    // table, once that channel exists). Reuses every figure already
+    // computed above for the KPI cards — no new data fetch.
+    const cbTitleEl = document.querySelector('#ov-channel-breakdown-tbody').closest('.card').querySelector('.card-title');
+    if (cbTitleEl) cbTitleEl.innerHTML = `Channel Breakdown <span style="font-weight:400;color:var(--muted);">(${isMtd ? 'Month to Date' : 'Last Month'})</span>`;
+    const cbTbody = document.getElementById('ov-channel-breakdown-tbody');
+    if (cbTbody) {
+      cbTbody.innerHTML = `<tr>
+        <td><strong>Amazon</strong></td>
+        <td>$${adSpend.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        <td>$${adSales.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        <td>${units.toLocaleString()}</td>
+        <td>${orders.toLocaleString()}</td>
+        <td>$${Math.round(revenue).toLocaleString()}</td>
+        <td>$${aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      </tr>`;
+    }
+
+    // Trend chart always shows the real current-calendar-year context
+    // (not shifted by the toggle) — only the current-month override is
+    // conditional: MTD needs it (SHEET_REVENUE won't have this month
+    // filled in yet), Last Month doesn't (that month is complete, so
+    // SHEET_REVENUE should already have its real value — passing an
+    // override here would risk overriding real data with a redundant
+    // recomputation).
+    csBuildRevenueChart('chart-ov-trend', trueNow.getFullYear(), isMtd ? revenue : null).catch(e => console.warn('[CosmetteOverview] revenue chart failed:', e.message));
+
+    if (mtd) {
+      const productsLabelEl = document.getElementById('ov-products-period-label');
+      if (productsLabelEl) productsLabelEl.textContent = isMtd ? '(by Units, Month to Date)' : `(by Units, ${csMonths12[refMonth-1]} ${refYear})`;
+      csBuildTopProducts('ov-products-tbody', null, cache.validRows, refYear, refMonth, adOrderRowsCurr, prevYear, prevMonth, cache.validRows, adOrderRowsPrev);
+    }
   };
 })();
 // ══════════════════════════════════════════════════════════════════════════
@@ -5630,6 +5719,13 @@ window.initSubscriptions = function () {
       const acos = adSales > 0 ? (spend/adSales)*100 : null;
       const ctr = impressions > 0 ? (clicks/impressions)*100 : null;
       const cpc = clicks > 0 ? spend/clicks : null;
+      // Ads-specific Units/Avg-Sale — same adSummaryRows this page already
+      // fetches, no new data source. Replaces the old "Orders"/"AOV" cards,
+      // which were genuinely blended (all orders, not ad-attributed) despite
+      // sitting on an ads-focused page — there's no true ad-order-count
+      // field in the underlying data, so this is the real number available.
+      const adUnits = adRows.reduce((s,r) => s + (parseInt(r.ad_units,10)||0), 0);
+      const avgSalePerUnit = adUnits > 0 ? adSales / adUnits : null;
 
       const totalAgg = isPartial
         ? csAggregateMonthThroughDay(orderRows, year, month, throughDay)
@@ -5640,7 +5736,7 @@ window.initSubscriptions = function () {
       const tacos = totalSales > 0 ? (spend/totalSales)*100 : null;
       const hasAnyData = adRows.length > 0 || !!totalAgg;
 
-      return { spend, adSales, acos, totalSales, tacos, impressions, clicks, ctr, cpc, totalOrders, aov, hasAnyData };
+      return { spend, adSales, acos, totalSales, tacos, impressions, clicks, ctr, cpc, totalOrders, aov, adUnits, avgSalePerUnit, hasAnyData };
     }
 
     const curr = computeMetrics(cfg.year, cfg.month, cfg.isPartial, cfg.throughDay);
@@ -5651,6 +5747,25 @@ window.initSubscriptions = function () {
       : null;
     const prevForBadge = (periodKey === 'lastFull' && prev && prev.hasAnyData) ? prev : null;
 
+    // MTD gets its own comparison, not just blank — per Jaclyn directly.
+    // Total Sales is real order-level data (day-granular), so `prev`
+    // computed above with the same throughDay cutoff already IS a fair
+    // same-day-range comparison, no estimation needed. Ad-platform
+    // metrics (Ad Spend, Ad Sales, ACOS, Impressions, Clicks, CTR, CPC,
+    // Units (Ads), Avg. Sale per Unit) all come from a monthly-bucketed
+    // sheet with no daily breakdown — comparing this month's partial
+    // total against a full prior month would read as artificially "down"
+    // early in the month regardless of real performance, so those get a
+    // clearly-labeled prorated estimate instead: prior month's real
+    // total × the exact day-fraction elapsed.
+    const isMtd = periodKey === 'mtd';
+    const mtdPrevForBadge = (isMtd && prev && prev.hasAnyData) ? prev : null;
+    const daysInMtdMonth = cfg.throughDay ? new Date(cfg.year, cfg.month, 0).getDate() : null;
+    const dayFraction = (isMtd && cfg.throughDay && daysInMtdMonth) ? cfg.throughDay / daysInMtdMonth : null;
+    function prorated(prevVal) { return (dayFraction != null && prevVal != null) ? prevVal * dayFraction : null; }
+    const momLabel = isMtd ? 'vs MTD last month' : 'MOM';
+    const estLabel = isMtd ? 'vs MTD last month (Est.)' : 'MOM';
+
     setKpiVal('ppc-kpi-adspend', '$' + curr.spend.toLocaleString(undefined,{maximumFractionDigits:0}));
     setKpiVal('ppc-kpi-adsales', '$' + curr.adSales.toLocaleString(undefined,{maximumFractionDigits:0}));
     setKpiVal('ppc-kpi-acos', curr.acos != null ? curr.acos.toFixed(1)+'%' : '—');
@@ -5660,20 +5775,49 @@ window.initSubscriptions = function () {
     setKpiVal('ppc-kpi-clicks', curr.clicks.toLocaleString());
     setKpiVal('ppc-kpi-ctr', curr.ctr != null ? curr.ctr.toFixed(2)+'%' : '—');
     setKpiVal('ppc-kpi-cpc', curr.cpc != null ? '$'+curr.cpc.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
-    setKpiVal('ppc-kpi-orders', curr.totalOrders.toLocaleString());
-    setKpiVal('ppc-kpi-aov', curr.aov ? '$'+curr.aov.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
+    setKpiVal('ppc-kpi-orders', curr.adUnits.toLocaleString());
+    setKpiVal('ppc-kpi-aov', curr.avgSalePerUnit != null ? '$'+curr.avgSalePerUnit.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
 
-    csSetBadge('ppc-kpi-adspend', 'kpi-mom', prevForBadge ? csPct(curr.spend, prevForBadge.spend) : null, 'MOM');
-    csSetBadge('ppc-kpi-adsales', 'kpi-mom', prevForBadge ? csPct(curr.adSales, prevForBadge.adSales) : null, 'MOM');
-    csSetBadge('ppc-kpi-acos', 'kpi-mom', (prevForBadge && curr.acos != null && prevForBadge.acos != null) ? csPct(curr.acos, prevForBadge.acos) : null, 'MOM');
-    csSetBadge('ppc-kpi-totalsales', 'kpi-mom', prevForBadge ? csPct(curr.totalSales, prevForBadge.totalSales) : null, 'MOM');
-    csSetBadge('ppc-kpi-tacos', 'kpi-mom', (prevForBadge && curr.tacos != null && prevForBadge.tacos != null) ? csPct(curr.tacos, prevForBadge.tacos) : null, 'MOM');
-    csSetBadge('ppc-kpi-impressions', 'kpi-mom', prevForBadge ? csPct(curr.impressions, prevForBadge.impressions) : null, 'MOM');
-    csSetBadge('ppc-kpi-clicks', 'kpi-mom', prevForBadge ? csPct(curr.clicks, prevForBadge.clicks) : null, 'MOM');
-    csSetBadge('ppc-kpi-ctr', 'kpi-mom', (prevForBadge && curr.ctr != null && prevForBadge.ctr != null) ? csPct(Math.round(curr.ctr*100), Math.round(prevForBadge.ctr*100)) : null, 'MOM');
-    csSetBadge('ppc-kpi-cpc', 'kpi-mom', (prevForBadge && curr.cpc != null && prevForBadge.cpc != null) ? csPct(Math.round(curr.cpc*100), Math.round(prevForBadge.cpc*100)) : null, 'MOM');
-    csSetBadge('ppc-kpi-orders', 'kpi-mom', prevForBadge ? csPct(curr.totalOrders, prevForBadge.totalOrders) : null, 'MOM');
-    csSetBadge('ppc-kpi-aov', 'kpi-mom', prevForBadge ? csPct(Math.round(curr.aov*100), Math.round(prevForBadge.aov*100)) : null, 'MOM');
+    // Ad-platform metrics — prorated estimate on MTD, real MOM on Last Month.
+    csSetBadge('ppc-kpi-adspend', 'kpi-mom', isMtd ? (mtdPrevForBadge ? csPct(curr.spend, prorated(mtdPrevForBadge.spend)) : null) : (prevForBadge ? csPct(curr.spend, prevForBadge.spend) : null), estLabel);
+    csSetBadge('ppc-kpi-adsales', 'kpi-mom', isMtd ? (mtdPrevForBadge ? csPct(curr.adSales, prorated(mtdPrevForBadge.adSales)) : null) : (prevForBadge ? csPct(curr.adSales, prevForBadge.adSales) : null), estLabel);
+    // Ratio metrics (ACOS/CTR/CPC/TACOS/Avg. Sale per Unit): the
+    // adSummaryRows-derived ratios (acos/ctr/cpc/avgSalePerUnit) are
+    // month-bucketed only, not day-truncated by throughDay — they
+    // already represent "whatever's synced this month so far" naturally.
+    // Prorating a ratio by day-fraction mathematically cancels out
+    // (scaling both numerator and denominator by the same fraction
+    // leaves the ratio unchanged), so the fair MTD "Est." comparison is
+    // simply curr vs the prior month's own full-month ratio directly —
+    // same math as Last Month's real comparison, just labeled "(Est.)"
+    // since it's comparing a partial-month-implied ratio against a full
+    // prior month's ratio. TACOS is the one exception: it blends a
+    // day-truncated real totalSales with a month-bucketed spend, so it
+    // doesn't cancel out the same clean way — see below.
+    const acosBadgeVal = isMtd ? (mtdPrevForBadge && curr.acos != null && mtdPrevForBadge.acos != null ? csPct(curr.acos, mtdPrevForBadge.acos) : null) : ((prevForBadge && curr.acos != null && prevForBadge.acos != null) ? csPct(curr.acos, prevForBadge.acos) : null);
+    csSetBadge('ppc-kpi-acos', 'kpi-mom', acosBadgeVal, estLabel, true);
+    csSetBadge('ppc-kpi-impressions', 'kpi-mom', isMtd ? (mtdPrevForBadge ? csPct(curr.impressions, prorated(mtdPrevForBadge.impressions)) : null) : (prevForBadge ? csPct(curr.impressions, prevForBadge.impressions) : null), estLabel);
+    csSetBadge('ppc-kpi-clicks', 'kpi-mom', isMtd ? (mtdPrevForBadge ? csPct(curr.clicks, prorated(mtdPrevForBadge.clicks)) : null) : (prevForBadge ? csPct(curr.clicks, prevForBadge.clicks) : null), estLabel);
+    const ctrBadgeVal = isMtd ? (mtdPrevForBadge && curr.ctr != null && mtdPrevForBadge.ctr != null ? csPct(Math.round(curr.ctr*100), Math.round(mtdPrevForBadge.ctr*100)) : null) : ((prevForBadge && curr.ctr != null && prevForBadge.ctr != null) ? csPct(Math.round(curr.ctr*100), Math.round(prevForBadge.ctr*100)) : null);
+    csSetBadge('ppc-kpi-ctr', 'kpi-mom', ctrBadgeVal, estLabel);
+    const cpcBadgeVal = isMtd ? (mtdPrevForBadge && curr.cpc != null && mtdPrevForBadge.cpc != null ? csPct(Math.round(curr.cpc*100), Math.round(mtdPrevForBadge.cpc*100)) : null) : ((prevForBadge && curr.cpc != null && prevForBadge.cpc != null) ? csPct(Math.round(curr.cpc*100), Math.round(prevForBadge.cpc*100)) : null);
+    csSetBadge('ppc-kpi-cpc', 'kpi-mom', cpcBadgeVal, estLabel);
+    csSetBadge('ppc-kpi-orders', 'kpi-mom', isMtd ? (mtdPrevForBadge ? csPct(curr.adUnits, prorated(mtdPrevForBadge.adUnits)) : null) : (prevForBadge ? csPct(curr.adUnits, prevForBadge.adUnits) : null), estLabel);
+    const avgSaleBadgeVal = isMtd ? (mtdPrevForBadge && curr.avgSalePerUnit != null && mtdPrevForBadge.avgSalePerUnit != null ? csPct(Math.round(curr.avgSalePerUnit*100), Math.round(mtdPrevForBadge.avgSalePerUnit*100)) : null) : (prevForBadge && curr.avgSalePerUnit != null && prevForBadge.avgSalePerUnit != null ? csPct(Math.round(curr.avgSalePerUnit*100), Math.round(prevForBadge.avgSalePerUnit*100)) : null);
+    csSetBadge('ppc-kpi-aov', 'kpi-mom', avgSaleBadgeVal, estLabel);
+
+    // Total Sales — real order-level data, so MTD gets a genuine
+    // same-day-range comparison, not an estimate.
+    csSetBadge('ppc-kpi-totalsales', 'kpi-mom', isMtd ? (mtdPrevForBadge ? csPct(curr.totalSales, mtdPrevForBadge.totalSales) : null) : (prevForBadge ? csPct(curr.totalSales, prevForBadge.totalSales) : null), momLabel);
+    // TACOS = spend (month-bucketed) ÷ totalSales (day-truncated on MTD)
+    // — the two inputs are on different time bases, so proration doesn't
+    // cleanly cancel out the way it does for ACOS/CTR/CPC (which divide
+    // two same-time-base ad-summary figures). Estimate it as prorated
+    // spend ÷ real MTD totalSales, still labeled "(Est.)".
+    const tacosBadgeVal = isMtd
+      ? (mtdPrevForBadge && curr.totalSales > 0 ? csPct(curr.tacos, (prorated(mtdPrevForBadge.spend) / curr.totalSales) * 100) : null)
+      : ((prevForBadge && curr.tacos != null && prevForBadge.tacos != null) ? csPct(curr.tacos, prevForBadge.tacos) : null);
+    csSetBadge('ppc-kpi-tacos', 'kpi-mom', tacosBadgeVal, estLabel, true);
 
     const adRows = cache.adSummaryRows.filter(r => parseInt(r.year,10) === cfg.year && parseInt(r.month,10) === cfg.month);
     const takeawayEl = document.getElementById('ppc-context-takeaway');
@@ -6878,7 +7022,12 @@ window.initSubscriptions = function () {
       if (!bizRows.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">No data</td></tr>'; if (takeawayEl) takeawayEl.textContent = 'No data synced yet.'; return; }
 
       const { year, month } = csGetLastFullMonth();
+      let prevMonth = month - 1, prevYear = year;
+      if (prevMonth === 0) { prevMonth = 12; prevYear--; }
       const monthRows = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===month && parseInt(r.YEAR||r.year,10)===year);
+      const prevMonthRows = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===prevMonth && parseInt(r.YEAR||r.year,10)===prevYear);
+      const prevByAsin = {};
+      prevMonthRows.forEach(r => { prevByAsin[(r.ASIN||r.asin||'').toUpperCase()] = r; });
       if (takeawayEl) takeawayEl.innerHTML = buildContextTakeaway(monthRows, names.nameByAsin, year, month);
       if (!monthRows.length) { tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">No data synced for this month yet</td></tr>'; return; }
 
@@ -6891,10 +7040,14 @@ window.initSubscriptions = function () {
         const revenue = csParseAmt(r.ORDERED_PRODUCT_SALES||r.ordered_product_sales);
         const conv = parseFloat(r.CONVERSION_RATE||r.conversion_rate)||0;
         const convClass = conv >= 15 ? 'rank-top' : (conv > 0 ? 'rank-low' : 'rank-none');
+        const prevRow = prevByAsin[asin];
+        const prevSessions = prevRow ? (parseInt(prevRow.SESSIONS||prevRow.sessions,10)||0) : null;
+        const prevUnits = prevRow ? (parseInt(prevRow.UNITS_ORDERED||prevRow.units_ordered,10)||0) : null;
+        const prevConv = prevRow ? (parseFloat(prevRow.CONVERSION_RATE||prevRow.conversion_rate)||0) : null;
         return `<tr>
           <td><strong>${escapeHtml(name)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(names.skuByAsin[asin]||'')}</span></td>
-          <td>${sessions.toLocaleString()}</td><td>${units}</td><td>$${revenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
-          <td><span class="rank-pill ${convClass}">${conv.toFixed(2)}%</span></td>
+          <td>${sessions.toLocaleString()} ${csMomSpan(sessions, prevSessions)}</td><td>${units} ${csMomSpan(units, prevUnits)}</td><td>$${revenue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+          <td><span class="rank-pill ${convClass}">${conv.toFixed(2)}%</span> ${csMomSpan(Math.round(conv*100), prevConv != null ? Math.round(prevConv*100) : null)}</td>
         </tr>`;
       }).join('');
     } catch (err) {
