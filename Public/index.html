@@ -2854,7 +2854,7 @@ const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 // both Julys at the same x-position and one would silently overwrite
 // the other the moment they're merged into a single color/series. Same
 // rounded-line styling as the original chart throughout.
-function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
+function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurrentMonth) {
   // Calendar Jan-Dec x-axis, one dataset per (year, account-type) —
   // matches the convention used on every other Medaltus brand's Units
   // Sold chart (see csBuildRevenueChart for the same year-offset color
@@ -2879,6 +2879,13 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
       const isCurrentMonth = key === currentMonthKey;
+      // excludeCurrentMonth: used for the PDF export specifically — the
+      // report should only ever show complete months, never a partial
+      // current month sitting on the same trend line as real data. When
+      // set, the current month's point is dropped entirely (not just
+      // switched to a different source), so the line simply ends at the
+      // last complete month instead of dipping to a partial total.
+      if (excludeCurrentMonth && isCurrentMonth) return;
       // Same current-month split as before: syncRows (rolling 120-day)
       // only contributes the current month, histRows contributes every
       // other month — avoids double-counting where the two sources
@@ -7863,6 +7870,7 @@ window.initSubscriptions = function () {
 
     let root = null;
     let _pdfPriorAmazonPeriod = 'lastFull';
+    let _pdfRebuiltUnitsChart = false;
 
     try {
       // Matches Skinuva's real includeSections pattern exactly. No
@@ -7907,6 +7915,19 @@ window.initSubscriptions = function () {
       if (typeof window.renderCosmettePeriod === 'function' && _pdfPriorAmazonPeriod !== 'lastFull') {
         console.log('[pdf-export] forcing Amazon to Last Full Month for capture (was:', _pdfPriorAmazonPeriod, ')');
         window.renderCosmettePeriod('lastFull');
+      }
+
+      // The Units Sold by Month chart is a separate, independent trend
+      // line — forcing the KPI cards above to 'lastFull' does NOT affect
+      // it, since it always plots the live rolling-120-day current month
+      // as its latest point regardless of which period pill is selected.
+      // Rebuild it here specifically excluding the current month, so the
+      // report's trend line only ever shows complete months — restored
+      // to the live view again in the finally block below.
+      if (includeSections.amazon && window._csDataCache && typeof csBuildUnitsChart === 'function') {
+        console.log('[pdf-export] rebuilding Units Sold chart excluding current month for capture');
+        csBuildUnitsChart('chart-amazon', 'legend-amazon', window._csDataCache.syncRows, window._csDataCache.histRows, true);
+        _pdfRebuiltUnitsChart = true;
       }
 
       // Defensive backstop poll — the real fix is awaiting the init
@@ -8030,6 +8051,9 @@ window.initSubscriptions = function () {
       if (root) { root.style.cssText = 'display:none;'; }
       if (typeof window.renderCosmettePeriod === 'function' && _pdfPriorAmazonPeriod !== 'lastFull') {
         window.renderCosmettePeriod(_pdfPriorAmazonPeriod);
+      }
+      if (_pdfRebuiltUnitsChart && window._csDataCache) {
+        csBuildUnitsChart('chart-amazon', 'legend-amazon', window._csDataCache.syncRows, window._csDataCache.histRows);
       }
       if (btn) { btn.disabled = false; btn.classList.remove('pdfx-loading'); }
     }
