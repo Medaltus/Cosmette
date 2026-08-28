@@ -3060,6 +3060,14 @@ function csBuildPeriodConfig(key) {
   const yoyYear = year - 1, yoyMonth = month;
 
   if (key === 'lastFull') {
+    // Hard defensive check — 'lastFull' must never resolve to the
+    // current (incomplete) month. csGetLastFullMonth() already
+    // guarantees this mathematically, but a loud console error here
+    // beats a silently wrong report if that ever regresses.
+    const now = new Date();
+    if (year === now.getFullYear() && month === now.getMonth() + 1) {
+      console.error('[csBuildPeriodConfig] lastFull resolved to the CURRENT month — this should never happen. Check csGetLastFullMonth().', { year, month });
+    }
     return { year, month, prevYear, prevMonth, isPartial: false, isHistorical: false, label: CS_PERIOD_LABELS.lastFull };
   }
   if (key === 'prior') {
@@ -3178,12 +3186,11 @@ window.renderCosmettePeriod = function (key) {
   }
 };
 
-// Internal Sales page deliberately excludes 'mtd' — Jaclyn: internal
-// reports should never show a partial/incomplete current month. This
-// only affects csRenderPeriodPills's own options list; CS_PERIOD_LABELS
-// itself is left intact since 'mtd' logic (csGetLastFullMonth-adjacent
-// helpers) is still used elsewhere (e.g. the Overview page).
-const CS_SALES_INTERNAL_PERIOD_KEYS = ['lastFull', 'prior', 'lastYear'];
+// Month to Date is now an explicit option per Jaclyn (2026-08-28) — the
+// PDF export still forces 'lastFull' during capture regardless of what's
+// selected here (see exportPartnerPDF), so reports never go out with
+// partial-month data even though the toggle now makes MTD viewable.
+const CS_SALES_INTERNAL_PERIOD_KEYS = ['mtd', 'lastFull', 'prior', 'lastYear'];
 
 function csRenderPeriodPills(activeKey) {
   const container = document.getElementById('sales-period-pills');
