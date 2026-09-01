@@ -4769,6 +4769,20 @@ window.initSubscriptions = function () {
   };
 
   // ── Out-of-Stock Log ──────────────────────────────────────────────────
+  // Ported from évolis's sync-oos-history.js switch (2026-09-01) — the
+  // cron now pre-computes OOS incidents server-side; this just fetches
+  // and groups them, instead of re-deriving streaks client-side from the
+  // full daily Products Cache snapshot the way this used to.
+  //
+  // ⚠️ OV_OOS_HISTORY_GID below is a PLACEHOLDER — needs Cosmette's own
+  // tab gid on the shared OOS history spreadsheet (same file id across
+  // every brand, one tab per brand). Per the doc this was ported from:
+  // "don't reuse évolis's gid (1494905008) — pull the real gid for that
+  // brand's own tab." Confirmed the file id from my own notes on this
+  // cron; do NOT ship this until the real Cosmette gid is filled in.
+  const OV_OOS_HISTORY_SHEET_ID = '1lbvdt8qcSRItrkWGjWnaJHcoBhjY275b1M6fM5_dKAM'; // same spreadsheet across brands
+  const OV_OOS_HISTORY_GID      = 'REPLACE_WITH_COSMETTE_TAB_GID'; // ⚠️ placeholder — see comment above
+
   function isCatalogSkuForOos(rawSku) {
     const upper = (rawSku || '').trim().toUpperCase();
     if (!upper) return false;
@@ -4777,44 +4791,81 @@ window.initSubscriptions = function () {
     return true;
   }
 
+  // Same "unconfirmed assumptions" évolis's own version carries, since
+  // that brand's sheet access was 401'd when this was written and never
+  // spot-checked against real cron output — worth verifying once
+  // Cosmette's own gid is real and data is actually loading:
+  // - status spelling: assumed case-insensitive "ongoing", with a
+  //   blank-status+blank-end_date fallback in case the cron spells it
+  //   differently
+  // - type spelling ("out of FBA" vs "out of all inventory"): displayed
+  //   as-is, reformatted (underscores→spaces, title case) rather than
+  //   mapped to fixed labels, since the exact literal values the cron
+  //   writes haven't been confirmed
+  // - brand column casing: assumed lowercase brand id ('cosmette') —
+  //   check the real casing once live data is in
+  function csFormatOosType(raw) {
+    if (!raw) return '';
+    return String(raw).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  function csIsOosOngoing(row) {
+    const status = (row.status || '').toLowerCase();
+    if (status.includes('ongoing')) return true;
+    if (!row.status && !row.end_date) return true; // fallback per doc's assumption
+    return false;
+  }
+
   async function loadOosLog() {
     const body = document.getElementById('oos-log-body');
     if (!body) return;
-    const cfg = window.SHEET_CFG.SHEET_PRODUCT_INVENTORY;
-    if (!cfg) { body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">SHEET_PRODUCT_INVENTORY missing from SHEET_CONFIG.</div>'; return; }
+    if (OV_OOS_HISTORY_GID === 'REPLACE_WITH_COSMETTE_TAB_GID') {
+      body.innerHTML = '<div class="ppc-card" style="color:var(--danger);">OV_OOS_HISTORY_GID is still a placeholder — needs Cosmette\'s real tab gid on the shared OOS history spreadsheet before this can load.</div>';
+      console.error('[CosmetteOosLog] OV_OOS_HISTORY_GID is a placeholder — fill in the real gid.');
+      return;
+    }
     try {
-      const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      const [csv, names] = await Promise.all([
+        fetch(csSheetCsvUrl(OV_OOS_HISTORY_SHEET_ID, OV_OOS_HISTORY_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        csFetchProductNames(),
+      ]);
+      let rows = csIsCsv(csv) ? csParseCsv(csv) : [];
       if (!rows.length) { body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">No data</div>'; return; }
 
-      const todayStr = rows.reduce((max, r) => ((r.date || '') > max ? r.date : max), '');
+      // Defensive brand filter, same as évolis's own version — the sheet
+      // is shared across every brand, one tab per brand, but filtering
+      // on the row's own brand column (when present) is a cheap
+      // safeguard against ever showing another brand's incidents if a
+      // tab/gid ever gets mixed up.
+      if (rows[0].hasOwnProperty('brand')) {
+        rows = rows.filter(r => (r.brand || '').toLowerCase().trim() === 'cosmette');
+      }
+      rows = rows.filter(r => isCatalogSkuForOos(r.sku));
+      if (!rows.length) { body.innerHTML = '<div class="ppc-card" style="color:var(--muted);">No out-of-stock incidents logged.</div>'; return; }
+
       const bySku = {};
-      rows.filter(r => isCatalogSkuForOos(r.sku)).forEach(r => {
-        const sku = (r.sku || '').trim();
+      rows.forEach(r => {
+        const sku = csBaseSku(r.sku);
         if (!sku) return;
-        if (!bySku[sku]) bySku[sku] = { name: r.name || sku, rows: [] };
-        bySku[sku].rows.push(r);
-        if (r.name) bySku[sku].name = r.name;
+        if (!bySku[sku]) bySku[sku] = [];
+        bySku[sku].push(r);
       });
 
       const skuLogs = [];
-      Object.entries(bySku).forEach(([sku, data]) => {
-        const sorted = [...data.rows].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-        const periods = [];
-        let streakStart = null, streakLastDate = null;
-        sorted.forEach(r => {
-          const avail = r.total_quantity === '' || r.total_quantity === null || r.total_quantity === undefined ? NaN : parseFloat(r.total_quantity);
-          const isOos = avail === 0;
-          if (isOos) { if (!streakStart) streakStart = r.date; streakLastDate = r.date; }
-          else if (streakStart) { periods.push({ start: streakStart, end: streakLastDate, ongoing: false }); streakStart = null; streakLastDate = null; }
-        });
-        if (streakStart) periods.push({ start: streakStart, end: streakLastDate, ongoing: streakLastDate === todayStr });
-        if (!periods.length) return;
+      Object.entries(bySku).forEach(([sku, incidentRows]) => {
         const dayCount = (start, end) => Math.round((new Date(end) - new Date(start)) / 86400000) + 1;
-        periods.forEach(p => { p.days = dayCount(p.start, p.ongoing ? todayStr : p.end); });
+        const periods = incidentRows.map(r => {
+          const ongoing = csIsOosOngoing(r);
+          const end = ongoing ? (r.last_updated || r.start_date) : (r.end_date || r.start_date);
+          return {
+            start: r.start_date, end: r.end_date, ongoing,
+            days: dayCount(r.start_date, end),
+            type: csFormatOosType(r.type),
+          };
+        }).sort((a,b) => (b.start||'').localeCompare(a.start||''));
+        if (!periods.length) return;
         const totalDays = periods.reduce((s, p) => s + p.days, 0);
         const isOngoing = periods.some(p => p.ongoing);
-        skuLogs.push({ sku, name: data.name, periods: periods.reverse(), totalDays, isOngoing });
+        skuLogs.push({ sku, name: names.nameBySku[sku] || sku, periods, totalDays, isOngoing });
       });
 
       skuLogs.sort((a, b) => { if (a.isOngoing !== b.isOngoing) return a.isOngoing ? -1 : 1; return b.totalDays - a.totalDays; });
@@ -4837,7 +4888,7 @@ window.initSubscriptions = function () {
             </div>
           </div>
           <div class="oos-sku-periods">
-            ${log.periods.map(p => `<div class="oos-period-row"><span>${p.start} → ${p.ongoing ? 'today' : p.end}</span><span>${p.days} day${p.days === 1 ? '' : 's'}${p.ongoing ? ' <span class="oos-pill ongoing" style="margin-left:6px;">Ongoing</span>' : ''}</span></div>`).join('')}
+            ${log.periods.map(p => `<div class="oos-period-row"><span>${p.start} → ${p.ongoing ? 'today' : p.end}${p.type ? ` <span style="color:var(--muted);font-size:10px;">(${p.type})</span>` : ''}</span><span>${p.days} day${p.days === 1 ? '' : 's'}${p.ongoing ? ' <span class="oos-pill ongoing" style="margin-left:6px;">Ongoing</span>' : ''}</span></div>`).join('')}
           </div>
         </div>
       `).join('');
