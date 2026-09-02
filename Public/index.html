@@ -2839,6 +2839,7 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
 }
 
 const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const csMonths12Full = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // Replaces the revenue chart on Sales Internal per instruction: no
 // revenue reporting for Cosmette on this chart, units only, combining
@@ -2872,26 +2873,31 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurren
     if (!yearData[y]) yearData[y] = { medaltus: Array(12).fill(null), cosmette: Array(12).fill(null) };
     return yearData[y];
   }
+  // Tracks which (year, month) keys histRows actually populated, so the
+  // syncRows pass below knows which months are still "gaps" it needs to
+  // fill versus months histRows already fully covers.
+  const histCoveredMonths = new Set();
 
-  function addRows(rows, sourceIsSync) {
+  // FIXED — histRows used to be treated as authoritative for literally
+  // every month except the current one, on the assumption the historical
+  // archive is always caught up through the end of last month. Confirmed
+  // directly this isn't always true: right after a month flips over (e.g.
+  // 9/1, current month = September), the just-completed month (August)
+  // can still be missing from histRows if the archival process hasn't
+  // run yet — and since syncRows was hard-restricted to ONLY the literal
+  // current month, that left August with no data source at all, showing
+  // as a gap on the chart. Fixed with a two-pass approach: histRows
+  // populates first for whatever months it actually has; syncRows then
+  // only fills in months histRows has nothing for (a real gap), rather
+  // than being restricted to one single hardcoded "current month" key.
+  // Hist still wins whenever both sources have a month, avoiding the
+  // double-counting the original single-pass split was built to prevent.
+  function addHistRows(rows) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
-      const isCurrentMonth = key === currentMonthKey;
-      // excludeCurrentMonth: used for the PDF export specifically — the
-      // report should only ever show complete months, never a partial
-      // current month sitting on the same trend line as real data. When
-      // set, the current month's point is dropped entirely (not just
-      // switched to a different source), so the line simply ends at the
-      // last complete month instead of dipping to a partial total.
-      if (excludeCurrentMonth && isCurrentMonth) return;
-      // Same current-month split as before: syncRows (rolling 120-day)
-      // only contributes the current month, histRows contributes every
-      // other month — avoids double-counting where the two sources
-      // legitimately overlap in date range.
-      if (sourceIsSync && !isCurrentMonth) return;
-      if (!sourceIsSync && isCurrentMonth) return;
+      histCoveredMonths.add(key);
       const [y, m] = key.split('-').map(Number);
       const entry = ensureYear(y);
       const isMedaltus = r.selling_account === 'Newderm';
@@ -2899,8 +2905,30 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurren
       arr[m-1] = (arr[m-1] || 0) + (parseInt(r.unit_count,10) || 0);
     });
   }
-  addRows(syncRows, true);
-  addRows(histRows, false);
+  function addSyncRows(rows) {
+    rows.forEach(r => {
+      const d = csNormalizeDate(r.date);
+      const key = d.substring(0,7);
+      if (!key || key.length !== 7) return;
+      // excludeCurrentMonth: used for the PDF export specifically — the
+      // report should only ever show complete months, never a partial
+      // current month sitting on the same trend line as real data. When
+      // set, the literal current month's point is dropped entirely (not
+      // just switched to a different source), so the line simply ends at
+      // the last complete month instead of dipping to a partial total.
+      if (excludeCurrentMonth && key === currentMonthKey) return;
+      // Skip any month histRows already fully covers — hist wins on
+      // overlap, sync only fills genuine gaps.
+      if (histCoveredMonths.has(key)) return;
+      const [y, m] = key.split('-').map(Number);
+      const entry = ensureYear(y);
+      const isMedaltus = r.selling_account === 'Newderm';
+      const arr = isMedaltus ? entry.medaltus : entry.cosmette;
+      arr[m-1] = (arr[m-1] || 0) + (parseInt(r.unit_count,10) || 0);
+    });
+  }
+  addHistRows(histRows);
+  addSyncRows(syncRows);
 
   const years = Object.keys(yearData).map(Number).sort((a,b) => a-b);
   if (!years.length) return;
@@ -2944,16 +2972,32 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurren
 
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  if (canvas._csChart) canvas._csChart.destroy();
-  canvas._csChart = new Chart(canvas, {
-    type: 'line',
-    data: { labels: csMonths12, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '—' : ctx.parsed.y.toLocaleString()} units` } } },
-      scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } },
-    },
-  });
+  // FIXED (Case 1 in the PDF playbook) — this function gets called a
+  // second time right before PDF capture, to rebuild the chart excluding
+  // the current month. Destroying and recreating the Chart.js instance
+  // every call meant the PDF export's capture step could run before the
+  // freshly-created chart had completed its own async initial layout
+  // (Chart.js schedules that via requestAnimationFrame, not
+  // synchronously) — confirmed directly this produced a truncated/
+  // garbled captured image, exactly Case 1's documented symptom. Now
+  // updates the existing instance's data in place on every call after
+  // the first; only genuinely creates a new instance the first time this
+  // canvas is ever built.
+  if (canvas._csChart) {
+    canvas._csChart.data.labels = csMonths12;
+    canvas._csChart.data.datasets = datasets;
+    canvas._csChart.update('none');
+  } else {
+    canvas._csChart = new Chart(canvas, {
+      type: 'line',
+      data: { labels: csMonths12, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y == null ? '—' : ctx.parsed.y.toLocaleString()} units` } } },
+        scales: { x: { grid: { color: 'rgba(0,0,0,0.04)' } }, y: { grid: { color: 'rgba(0,0,0,0.04)' }, beginAtZero: true } },
+      },
+    });
+  }
 
   const legendEl = document.getElementById(legendId);
   if (legendEl) {
@@ -3039,7 +3083,23 @@ async function csBuildRevenueChart(canvasId, currentYear, currentMonthRevenueOve
 //    Fetches all four source sheets ONCE and caches the COS-filtered rows;
 //    switching periods only re-aggregates in memory, no re-fetch.
 // ═══════════════════════════════════════════════════════════════════════
-const CS_PERIOD_LABELS = { mtd: 'Month to Date', lastFull: 'Last Month', prior: 'Prior Month', lastYear: 'Last Year' };
+// Dynamic per Jaclyn (2026-09-01) — was a static object ('Last Month',
+// 'Prior Month', etc); now computed fresh each call so the pills always
+// show the real month name/year and shift automatically as the date
+// rolls forward (e.g. "August 2026" becomes "September 2026" once
+// October starts), instead of needing a manual update every month.
+function csGetPeriodLabels() {
+  const now = new Date();
+  const { year, month } = csGetLastFullMonth();
+  let prevMonth = month - 1, prevYear = year;
+  if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+  return {
+    mtd: `${csMonths12[now.getMonth()].toUpperCase()} MTD`,
+    lastFull: `${csMonths12Full[month-1]} ${year}`,
+    prior: `${csMonths12Full[prevMonth-1]} ${prevYear}`,
+    lastYear: `${csMonths12Full[month-1]} ${year-1}`,
+  };
+}
 
 function csAggregateMonthThroughDay(rows, year, month, throughDay) {
   const prefix = `${year}-${String(month).padStart(2,'0')}`;
@@ -3065,6 +3125,7 @@ function csBuildPeriodConfig(key) {
   let prevMonth = month - 1, prevYear = year;
   if (prevMonth === 0) { prevMonth = 12; prevYear--; }
   const yoyYear = year - 1, yoyMonth = month;
+  const labels = csGetPeriodLabels();
 
   if (key === 'lastFull') {
     // Hard defensive check — 'lastFull' must never resolve to the
@@ -3075,12 +3136,12 @@ function csBuildPeriodConfig(key) {
     if (year === now.getFullYear() && month === now.getMonth() + 1) {
       console.error('[csBuildPeriodConfig] lastFull resolved to the CURRENT month — this should never happen. Check csGetLastFullMonth().', { year, month });
     }
-    return { year, month, prevYear, prevMonth, isPartial: false, isHistorical: false, label: CS_PERIOD_LABELS.lastFull };
+    return { year, month, prevYear, prevMonth, isPartial: false, isHistorical: false, label: labels.lastFull };
   }
   if (key === 'prior') {
     let priorPrevMonth = prevMonth - 1, priorPrevYear = prevYear;
     if (priorPrevMonth === 0) { priorPrevMonth = 12; priorPrevYear--; }
-    return { year: prevYear, month: prevMonth, prevYear: priorPrevYear, prevMonth: priorPrevMonth, isPartial: false, isHistorical: false, label: CS_PERIOD_LABELS.prior };
+    return { year: prevYear, month: prevMonth, prevYear: priorPrevYear, prevMonth: priorPrevMonth, isPartial: false, isHistorical: false, label: labels.prior };
   }
   if (key === 'lastYear') {
     // isHistorical: true — SHEET_ORDERS is a rolling ~90-day window (same
@@ -3088,14 +3149,14 @@ function csBuildPeriodConfig(key) {
     // needs SHEET_ORDERS_HISTORICAL instead. NOT VERIFIED for Cosmette that
     // the historical sheet actually reaches back a full year yet — if this
     // period shows no data, that's the first thing to check.
-    return { year: yoyYear, month: yoyMonth, prevYear: null, prevMonth: null, isPartial: false, isHistorical: true, label: CS_PERIOD_LABELS.lastYear };
+    return { year: yoyYear, month: yoyMonth, prevYear: null, prevMonth: null, isPartial: false, isHistorical: true, label: labels.lastYear };
   }
   // mtd
   const now = new Date();
   const mtdYear = now.getFullYear(), mtdMonth = now.getMonth() + 1, mtdDay = now.getDate();
   let mtdPrevMonth = mtdMonth - 1, mtdPrevYear = mtdYear;
   if (mtdPrevMonth === 0) { mtdPrevMonth = 12; mtdPrevYear--; }
-  return { year: mtdYear, month: mtdMonth, throughDay: mtdDay, prevYear: mtdPrevYear, prevMonth: mtdPrevMonth, isPartial: true, isHistorical: false, label: CS_PERIOD_LABELS.mtd };
+  return { year: mtdYear, month: mtdMonth, throughDay: mtdDay, prevYear: mtdPrevYear, prevMonth: mtdPrevMonth, isPartial: true, isHistorical: false, label: labels.mtd };
 }
 
 window.renderCosmettePeriod = function (key) {
@@ -3202,8 +3263,9 @@ const CS_SALES_INTERNAL_PERIOD_KEYS = ['mtd', 'lastFull', 'prior', 'lastYear'];
 function csRenderPeriodPills(activeKey) {
   const container = document.getElementById('sales-period-pills');
   if (!container) return;
+  const labels = csGetPeriodLabels();
   container.innerHTML = CS_SALES_INTERNAL_PERIOD_KEYS.map((key) =>
-    `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectPeriod('${key}')">${CS_PERIOD_LABELS[key]}</button>`
+    `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectPeriod('${key}')">${labels[key]}</button>`
   ).join('');
 }
 window.__cosmetteSelectPeriod = function (key) {
@@ -5746,7 +5808,7 @@ window.initSubscriptions = function () {
 // Adapted from Skinuva's real PPC Blended Context tab, dropped to
 // Amazon-only (no Channel Breakdown table needed with a single channel).
 // Reuses the same period-config system already built for Sales
-// (csBuildPeriodConfig/CS_PERIOD_LABELS are generic, not Sales-specific).
+// (csBuildPeriodConfig/csGetPeriodLabels are generic, not Sales-specific).
 // ══════════════════════════════════════════════════════════════════════════
 (function () {
   'use strict';
@@ -5898,8 +5960,9 @@ window.initSubscriptions = function () {
   function renderPeriodPills(activeKey) {
     const container = document.getElementById('ppc-period-pills');
     if (!container) return;
-    container.innerHTML = Object.entries(CS_PERIOD_LABELS).map(([key, label]) =>
-      `<button class="period-pill${key === activeKey ? ' active' : ''}" onclick="window.__ppcSelectPeriod('${key}')">${label}</button>`
+    const labels = csGetPeriodLabels();
+    container.innerHTML = Object.keys(labels).map((key) =>
+      `<button class="period-pill${key === activeKey ? ' active' : ''}" onclick="window.__ppcSelectPeriod('${key}')">${labels[key]}</button>`
     ).join('');
   }
   window.__ppcSelectPeriod = function (key) {
