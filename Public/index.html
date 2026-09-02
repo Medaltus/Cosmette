@@ -349,6 +349,11 @@ details.inci-toggle[open] summary::before{content:'▾ ';}
 .ppc-alert{display:flex;align-items:flex-start;gap:12px;background:rgba(0,31,96,.05);border:1px solid rgba(0,31,96,.15);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:18px;font-size:12.5px;color:var(--navy);line-height:1.6;}
 .ppc-alert.warn{background:rgba(219,55,45,.06);border-color:rgba(219,55,45,.2);}
 .ppc-alert-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.opp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.opp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.opp-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.opp-subtitle{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:10px;}
+.opp-body{font-size:12.5px;color:var(--muted);line-height:1.6;}
 .ppc-opp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;overflow:hidden;}
 .ppc-opp-card.action-type{border-left:4px solid var(--danger);}
 .ppc-opp-card.action-type .ppc-opp-body{font-weight:600;font-size:13px;}
@@ -1542,15 +1547,25 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 
       <!-- 4 editable opportunity cards — opp1-4 title/subtitle/body,
            already part of MONTHLY_HEADERS in write-report-insights.js.
-           No separate data sheet needed beyond Report Insights. -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div class="card" id="opp-card-1">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0;" id="opp1-title" data-placeholder="Opportunity 1 — click Edit to add a title">Loading…</div>
+           No separate data sheet needed beyond Report Insights.
+           Styling matched to évolis's Future Opportunities section
+           directly (2026-09-02) — outer card + pill header, .opp-grid/
+           .opp-card/.opp-title/.opp-subtitle/.opp-body classes. Kept
+           Cosmette's own per-card Edit/Save (évolis uses one shared
+           editor for all 4) since that's working functionality, not
+           part of the styling mismatch that was reported. -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Future Opportunities</div>
+        </div>
+        <div class="opp-grid">
+        <div class="opp-card" id="opp-card-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div class="opp-title" style="margin-bottom:0;" id="opp1-title" data-placeholder="Opportunity 1 — click Edit to add a title">Loading…</div>
             <button class="btn-edit" id="opp1-edit-btn">✏️ Edit</button>
           </div>
-          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp1-subtitle" data-placeholder=""></div>
-          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp1-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="opp-subtitle" id="opp1-subtitle" data-placeholder=""></div>
+          <div class="opp-body" id="opp1-body" data-placeholder="No content added yet — click Edit to add it."></div>
           <div class="insight-editor" id="opp1-editor">
             <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
             <textarea id="opp1-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
@@ -1565,13 +1580,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
             </div>
           </div>
         </div>
-        <div class="card" id="opp-card-2">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0;" id="opp2-title" data-placeholder="Opportunity 2 — click Edit to add a title">Loading…</div>
+        <div class="opp-card" id="opp-card-2">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div class="opp-title" style="margin-bottom:0;" id="opp2-title" data-placeholder="Opportunity 2 — click Edit to add a title">Loading…</div>
             <button class="btn-edit" id="opp2-edit-btn">✏️ Edit</button>
           </div>
-          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp2-subtitle" data-placeholder=""></div>
-          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp2-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="opp-subtitle" id="opp2-subtitle" data-placeholder=""></div>
+          <div class="opp-body" id="opp2-body" data-placeholder="No content added yet — click Edit to add it."></div>
           <div class="insight-editor" id="opp2-editor">
             <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
             <textarea id="opp2-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
@@ -1586,13 +1601,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
             </div>
           </div>
         </div>
-        <div class="card" id="opp-card-3">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0;" id="opp3-title" data-placeholder="Opportunity 3 — click Edit to add a title">Loading…</div>
+        <div class="opp-card" id="opp-card-3">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div class="opp-title" style="margin-bottom:0;" id="opp3-title" data-placeholder="Opportunity 3 — click Edit to add a title">Loading…</div>
             <button class="btn-edit" id="opp3-edit-btn">✏️ Edit</button>
           </div>
-          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp3-subtitle" data-placeholder=""></div>
-          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp3-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="opp-subtitle" id="opp3-subtitle" data-placeholder=""></div>
+          <div class="opp-body" id="opp3-body" data-placeholder="No content added yet — click Edit to add it."></div>
           <div class="insight-editor" id="opp3-editor">
             <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
             <textarea id="opp3-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
@@ -1607,13 +1622,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
             </div>
           </div>
         </div>
-        <div class="card" id="opp-card-4">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div class="card-title" style="margin-bottom:0;" id="opp4-title" data-placeholder="Opportunity 4 — click Edit to add a title">Loading…</div>
+        <div class="opp-card" id="opp-card-4">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div class="opp-title" style="margin-bottom:0;" id="opp4-title" data-placeholder="Opportunity 4 — click Edit to add a title">Loading…</div>
             <button class="btn-edit" id="opp4-edit-btn">✏️ Edit</button>
           </div>
-          <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;" id="opp4-subtitle" data-placeholder=""></div>
-          <div style="font-size:12.5px;color:var(--muted);line-height:1.7;" id="opp4-body" data-placeholder="No content added yet — click Edit to add it."></div>
+          <div class="opp-subtitle" id="opp4-subtitle" data-placeholder=""></div>
+          <div class="opp-body" id="opp4-body" data-placeholder="No content added yet — click Edit to add it."></div>
           <div class="insight-editor" id="opp4-editor">
             <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
             <textarea id="opp4-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
@@ -1627,6 +1642,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
               <button class="btn-save-stage" id="opp4-save">Save</button>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -7911,15 +7927,20 @@ window.initSubscriptions = function () {
   }
 
   function pdfxOpportunityCardsBlock() {
-    // Cosmette's opportunity cards use direct numbered ids
-    // (opp1-title/opp1-subtitle/opp1-body ... opp4-*) — confirmed
-    // directly, different from Skinuva's class-based .opp-card/.opp-title
-    // structure, so this reads by id rather than by class.
-    const cards = [1, 2, 3, 4].map(function (n) {
-      const title = pdfxText('#opp' + n + '-title');
+    // Matches évolis's pdfxFutureOpportunitiesBlock() exactly — queries
+    // the live .opp-card elements directly rather than numbered ids, now
+    // that Cosmette's live page uses the same .opp-card/.opp-title/
+    // .opp-subtitle/.opp-body classes (styling matched to évolis
+    // 2026-09-02). Kept one improvement over évolis's own version: also
+    // skips a card whose title is still the static "Loading…" placeholder
+    // (not just a blank title), so an export that runs before this
+    // section finishes loading doesn't show "Loading…" as a literal
+    // opportunity title.
+    const cards = Array.prototype.map.call(document.querySelectorAll('#m-opportunities .opp-card'), function (card) {
+      const title = pdfxText('.opp-title', card);
       if (!title || title === 'Loading…') return '';
-      const subtitle = pdfxText('#opp' + n + '-subtitle');
-      const body = pdfxText('#opp' + n + '-body');
+      const subtitle = pdfxText('.opp-subtitle', card);
+      const body = pdfxText('.opp-body', card);
       return '<div>' +
         '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + pdfxEscape(title) + '</div>' +
         (subtitle ? '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">' + pdfxEscape(subtitle) + '</div>' : '') +
