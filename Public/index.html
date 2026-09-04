@@ -154,6 +154,27 @@ nav{flex:1;padding:8px 8px 0;}
 .prod-tab.active{background:var(--navy);color:#fff;}
 .prod-panel{display:none;}
 .prod-panel.active{display:block;}
+/* ── Reviews tab (ported from Vivian Valenty Skincare, 2026-09-02) ── */
+.review-section{margin-bottom:28px;}
+.review-hd{background:var(--navy);border-radius:8px 8px 0 0;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;color:#fff;}
+.review-hd-title{font-size:13px;font-weight:700;}
+.review-hd-right{display:flex;align-items:center;gap:14px;font-size:11px;color:rgba(255,255,255,.7);}
+.review-stars{color:#f5a623;letter-spacing:1px;}
+.review-avg{font-size:14px;font-weight:700;color:var(--green);}
+.review-avg-of{font-size:10px;color:rgba(255,255,255,.55);}
+.review-bars{background:var(--white);border:1px solid var(--border);border-top:none;padding:14px 18px;}
+.review-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.review-bar-row:last-child{margin-bottom:0;}
+.review-bar-label{width:26px;flex-shrink:0;font-size:11px;color:var(--muted);font-weight:600;}
+.review-bar-track{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+.review-bar-fill{height:100%;background:var(--green);border-radius:4px;}
+.review-bar-count{width:32px;flex-shrink:0;font-size:11px;color:var(--muted);text-align:right;font-family:var(--mono);}
+.review-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;background:var(--white);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:14px 18px;}
+.review-card{background:var(--bg);border-left:3px solid var(--green);border-radius:0 6px 6px 0;padding:14px 16px;}
+.review-card-stars{color:#f5a623;font-size:12px;letter-spacing:1px;margin-bottom:6px;}
+.review-card-title{font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:8px;}
+.review-card-text{font-size:11.5px;color:var(--muted);line-height:1.6;}
+
 .ppc-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px;}
 .ppc-card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;}
 .ppc-metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2);font-size:12.5px;}
@@ -666,6 +687,23 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .pdfx-tab{font-size:12px;font-weight:600;color:rgba(255,255,255,.55);padding-bottom:12px;border-bottom:3px solid transparent;}
 .pdfx-tab.on{color:#fff;border-bottom-color:var(--green);}
 .pdfx-header-divider{height:1px;background:var(--border);margin:0 -46px 20px -46px;}
+/* Reviews PDF pages — tighter spacing than standard pages, since 2 full
+   products (bars + cards) per page is dense. Per the doc this was ported
+   from: top/left/right padding kept IDENTICAL to .pdfx-inner (34/46) so
+   .pdfx-topband's existing negative-margin full-bleed math (hardcoded to
+   cancel exactly those values) stays correct without any changes — only
+   bottom padding is reduced, and all the real space savings come from
+   tightening the review-specific child elements below, scoped under this
+   class so the live dashboard's own .review-* styling is never touched. */
+.pdfx-inner-reviews{padding:34px 46px 16px;}
+.pdfx-inner-reviews .review-section{margin-bottom:16px;}
+.pdfx-inner-reviews .review-hd{padding:8px 14px;}
+.pdfx-inner-reviews .review-bars{padding:8px 14px;}
+.pdfx-inner-reviews .review-bar-row{margin-bottom:3px;}
+.pdfx-inner-reviews .review-cards{padding:8px 14px;gap:10px;}
+.pdfx-inner-reviews .review-card{padding:9px 11px;}
+.pdfx-inner-reviews .review-card-text{line-height:1.4;}
+.pdfx-inner-reviews .review-card-title{margin-bottom:4px;}
 .pdfx-chlabel{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-subheader);}
 .pdfx-chrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;}
 .pdfx-chname{font-size:17px;font-weight:600;color:var(--navy);font-family:var(--font-subheader);}
@@ -816,6 +854,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
              same way once it's built. All 3 that exist default checked. -->
         <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-reviews" checked> Reviews</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
@@ -1368,6 +1407,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div class="channel-tabs">
         <button class="ch-tab active" onclick="showChannel('sales','s-overview',this)">Overview</button>
         <button class="ch-tab" onclick="showChannel('sales','s-amazon',this)">Amazon</button>
+        <button class="ch-tab" onclick="showChannel('sales','s-reviews',this)">Reviews</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
       </div>
@@ -1455,6 +1495,24 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
           <button class="btn-cancel" id="tp-insight-cancel">Cancel</button>
           <button class="btn-save-stage" id="tp-insight-save">Save</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ══ REVIEWS — internal Sales tab, ported from Vivian Valenty
+         Skincare's real implementation (2026-09-02). Sourced via
+         Cosmette's own existing SHEET_CFG.SHEET_AMAZON_REVIEWS (dynamic,
+         brand-scoped) rather than a hardcoded gid — VVS's own version
+         hardcodes their tab's gid directly, but Cosmette already has a
+         working per-brand-scoped config for this exact shared spreadsheet
+         (see the null-gid fallback fix from earlier), so reusing that is
+         both safer and more consistent with how the rest of this
+         dashboard sources sheet data. -->
+    <div class="channel-page" id="s-reviews">
+      <div class="page-hd" style="margin-bottom:16px;">
+        <div><div class="page-title" style="font-size:18px;">Reviews &amp; Ratings</div><div class="page-sub">Amazon customer reviews, curated monthly per product</div></div>
+      </div>
+      <div id="cs-reviews-container">
+        <div class="ppc-card" style="color:var(--muted);">Loading…</div>
       </div>
     </div>
   </div>
@@ -2251,6 +2309,7 @@ function showChannel(page, channelId, btn) {
 
   // Per-channel lazy inits — cheap to call repeatedly, each memoizes itself.
   if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
+  if (channelId === 's-reviews' && typeof window.loadCosmetteReviews === 'function') window.loadCosmetteReviews();
   if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
 
   const EVENT_NAME_BY_CHANNEL = { 'ev-bss': 'Big Spring Sale', 'ev-pd': 'Prime Day', 'ev-pbdd': 'Prime Big Deal Days', 'ev-bfcm': 'Black Friday & Cyber Monday' };
@@ -3324,6 +3383,142 @@ window.initAmazonSalesInternal = function () {
   })();
   return window._csInternalPromise;
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// REVIEWS (internal Sales tab) — ported from Vivian Valenty Skincare's real
+// loadVVSReviews() (2026-09-02). Logic/rendering kept faithful to VVS's
+// version; adapted to reuse Cosmette's own established CSV helpers
+// (csSheetCsvUrl/csIsCsv/csParseCsv) and sheet-config source
+// (window.SHEET_CFG.SHEET_AMAZON_REVIEWS — dynamic, brand-scoped) instead
+// of VVS's own hardcoded gid, matching how every other sheet is sourced
+// elsewhere on this dashboard. Also carries the same null-gid defensive
+// fallback already applied to Cosmette's external reviews section, since
+// this is the same shared multi-brand spreadsheet.
+(function () {
+  'use strict';
+  let _csReviewsRows = null; // cached once per session
+
+  function findKey(row, name) {
+    const target = name.toLowerCase();
+    return Object.keys(row).find(k => k.toLowerCase() === target);
+  }
+  function reviewStarsHtml(rating) {
+    const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    return '★'.repeat(r) + '☆'.repeat(5 - r);
+  }
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  async function fetchReviewsCsvRows() {
+    const cfg = window.SHEET_CFG.SHEET_AMAZON_REVIEWS;
+    if (!cfg) throw new Error('SHEET_AMAZON_REVIEWS missing from SHEET_CONFIG');
+    // Same null-gid fallback as the external reviews section — this sheet
+    // is shared across every Medaltus brand; if the gid ever comes back
+    // empty, fall back to fetching the tab by name (brand slug) via gviz.
+    const url = (cfg.gid != null && cfg.gid !== '')
+      ? csSheetCsvUrl(cfg.fileId, cfg.gid)
+      : `https://docs.google.com/spreadsheets/d/${cfg.fileId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(window.SHEET_CFG.BRAND_SLUG || 'cosmette')}`;
+    const csv = await fetch(url + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+    return csIsCsv(csv) ? csParseCsv(csv) : [];
+  }
+
+  window.loadCosmetteReviews = async function () {
+    if (window._csReviewsLoaded) return;
+    window._csReviewsLoaded = true;
+    const container = document.getElementById('cs-reviews-container');
+    if (!container) return;
+    try {
+      if (!_csReviewsRows) _csReviewsRows = await fetchReviewsCsvRows();
+      const rows = _csReviewsRows;
+      if (!rows.length) throw new Error('Empty sheet');
+
+      const yearKey = findKey(rows[0], 'year');
+      const monthKey = findKey(rows[0], 'month');
+      if (!yearKey || !monthKey) {
+        container.innerHTML = '<div class="ppc-card" style="color:var(--muted);">Waiting on YEAR and MONTH columns in the reviews sheet — once added and populated, this tab activates automatically.</div>';
+        window._csReviewsLoaded = false; // allow retry once columns exist
+        return;
+      }
+      const nameKey = findKey(rows[0], 'product_name') || 'product_name';
+      const ratingKey = findKey(rows[0], 'star_rating') || 'star_rating';
+      const titleKey = findKey(rows[0], 'review_title') || 'review_title';
+      const textKey = findKey(rows[0], 'review_text') || 'review_text';
+
+      // Target the last FULL month — reviews are tagged by month after the
+      // month closes, so the current (open) month never has tagged
+      // reviews yet. Same reasoning VVS's own version documents.
+      const now = new Date();
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const targetYear = String(lastMonth.getFullYear());
+      const targetMonth = String(lastMonth.getMonth() + 1); // 1-indexed
+
+      // All-time stats per product (count, average, 1-5 distribution).
+      const statsByProduct = {};
+      rows.forEach(r => {
+        const name = (r[nameKey] || '').trim();
+        if (!name) return;
+        const rating = Math.round(Number(r[ratingKey]) || 0);
+        if (!statsByProduct[name]) statsByProduct[name] = { count: 0, sum: 0, dist: {1:0,2:0,3:0,4:0,5:0} };
+        const s = statsByProduct[name];
+        s.count++;
+        s.sum += (Number(r[ratingKey]) || 0);
+        if (rating >= 1 && rating <= 5) s.dist[rating]++;
+      });
+
+      // Featured (YEAR/MONTH-tagged) reviews for the target period, grouped
+      // by product, preserving sheet order.
+      const featuredByProduct = {};
+      const productOrder = [];
+      rows.forEach(r => {
+        if (String(r[yearKey] || '').trim() !== targetYear) return;
+        if (String(Number(r[monthKey]) || '') !== String(Number(targetMonth))) return;
+        const name = (r[nameKey] || '').trim();
+        if (!name) return;
+        if (!featuredByProduct[name]) { featuredByProduct[name] = []; productOrder.push(name); }
+        featuredByProduct[name].push(r);
+      });
+
+      if (!productOrder.length) {
+        container.innerHTML = `<div class="ppc-card" style="color:var(--muted);">No reviews tagged for ${csMonths12Full[Number(targetMonth)-1]} ${targetYear} yet — tag rows in the sheet with YEAR=${targetYear} and MONTH=${targetMonth} to feature them here.</div>`;
+        return;
+      }
+
+      container.innerHTML = productOrder.map(name => {
+        const stats = statsByProduct[name] || { count: 0, sum: 0, dist: {1:0,2:0,3:0,4:0,5:0} };
+        const avg = stats.count ? (stats.sum / stats.count) : 0;
+        const maxDist = Math.max(1, ...Object.values(stats.dist));
+        const barsHtml = [5,4,3,2,1].map(n => {
+          const c = stats.dist[n] || 0;
+          const pct = Math.round((c / maxDist) * 100);
+          return `<div class="review-bar-row"><div class="review-bar-label">${n}★</div><div class="review-bar-track"><div class="review-bar-fill" style="width:${pct}%"></div></div><div class="review-bar-count">${c}</div></div>`;
+        }).join('');
+        const cardsHtml = featuredByProduct[name].map(r => `
+          <div class="review-card">
+            <div class="review-card-stars">${reviewStarsHtml(r[ratingKey])}</div>
+            <div class="review-card-title">${escapeHtml((r[titleKey]||'').trim())}</div>
+            <div class="review-card-text">${escapeHtml((r[textKey]||'').trim())}</div>
+          </div>`).join('');
+        return `<div class="review-section">
+          <div class="review-hd">
+            <div class="review-hd-title">${escapeHtml(name)}</div>
+            <div class="review-hd-right">
+              <span>${Math.round(stats.count).toLocaleString()} Reviews</span>
+              <span class="review-stars">${reviewStarsHtml(avg)}</span>
+              <span class="review-avg">${avg.toFixed(1)}<span class="review-avg-of"> /5</span></span>
+            </div>
+          </div>
+          <div class="review-bars">${barsHtml}</div>
+          <div class="review-cards">${cardsHtml}</div>
+        </div>`;
+      }).join('');
+    } catch (err) {
+      console.error('[CosmetteReviews]', err);
+      window._csReviewsLoaded = false; // allow retry
+      if (container) container.innerHTML = '<div class="ppc-card" style="color:var(--muted);">Could not load — ' + escapeHtml(err.message||'') + '</div>';
+    }
+  };
+})();
 
 // ── Shared report-insights save/approve module ──────────────────────────
 // Requires /api/write-report-insights to exist in this Vercel project —
@@ -7810,9 +8005,13 @@ window.initSubscriptions = function () {
     return full + ' ' + m[2];
   }
 
+  // Set once per export run (see exportPartnerPDF), read by every
+  // pdfxHeaderBand() call across all the page builders below — avoids
+  // threading an extra parameter through every single buildXPage() call.
+  let PDFX_NAV_TABS = ['Sales', 'Reviews', 'Brand Stewardship', 'Opportunities'];
+
   function pdfxHeaderBand(monthYear, activeTab) {
-    const tabs = ['Sales', 'Brand Stewardship', 'Opportunities'];
-    const tabsHtml = tabs.map(function (t) {
+    const tabsHtml = PDFX_NAV_TABS.map(function (t) {
       return '<span class="pdfx-tab' + (t === activeTab ? ' on' : '') + '">' + t + '</span>';
     }).join('');
     return '<div class="pdfx-topband">' +
@@ -7841,7 +8040,7 @@ window.initSubscriptions = function () {
     return '' +
       '<div class="pdfx-page pdfx-cover">' +
         '<div class="pdfx-cover-navy">' +
-          (PDFX_WATERMARK_SRC ? '<img src="' + PDFX_WATERMARK_SRC + '" alt="" style="position:absolute;right:20px;top:20px;width:460px;height:auto;opacity:0.16;pointer-events:none;">' : '') +
+          (PDFX_WATERMARK_SRC ? '<img src="' + PDFX_WATERMARK_SRC + '" alt="" style="position:absolute;right:16px;bottom:16px;width:280px;height:auto;opacity:0.14;pointer-events:none;">' : '') +
           '<div class="pdfx-cover-toprow">' +
             '<span class="pdfx-logo-white" style="display:inline-block;">' + pdfxLogoHtml('height:40px;width:auto;') + '</span>' +
             '<div class="pdfx-hdr-right"><div class="pdfx-hdr-tag">Brand Performance Report</div><div class="pdfx-hdr-month">' + pdfxEscape(monthYear) + '</div></div>' +
@@ -7954,6 +8153,39 @@ window.initSubscriptions = function () {
       '</div>';
   }
 
+  // Reviews — 2 products per PDF page, page count genuinely variable
+  // depending on how many products have featured reviews that month.
+  // Per the doc this was ported from: tightened spacing lives entirely in
+  // .pdfx-inner-reviews's own CSS scope (never edits the shared
+  // .review-* base classes), and these pages carry no footer — long
+  // reviews were pushing page height past the ~2112px threshold that
+  // distorts the whole page; dropping the footer was the first fix for
+  // that, on top of the spacing tightening itself.
+  function buildReviewsPages(monthYear) {
+    const sections = Array.prototype.slice.call(document.querySelectorAll('#cs-reviews-container .review-section'));
+    if (!sections.length) return '';
+    const pages = [];
+    for (let i = 0; i < sections.length; i += 2) {
+      const chunk = sections.slice(i, i + 2);
+      // Reused verbatim — the tightened spacing above is scoped by
+      // ancestor class (.pdfx-inner-reviews .review-section etc.), so
+      // copying the live markup as-is picks up the right sizing
+      // automatically without needing to rebuild it field by field.
+      const productsHtml = chunk.map(function (section) { return section.outerHTML; }).join('');
+      pages.push(
+        '<div class="pdfx-page">' +
+          '<div class="pdfx-inner-reviews">' +
+            pdfxHeaderBand(monthYear, 'Reviews') +
+            '<div class="pdfx-chlabel">Customer Reviews</div>' +
+            '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span></div>' +
+            productsHtml +
+          '</div>' +
+        '</div>'
+      );
+    }
+    return pages.join('');
+  }
+
   function buildOpportunitiesPage(monthYear) {
     const kpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
     return '' +
@@ -8014,6 +8246,7 @@ window.initSubscriptions = function () {
       // here once it's built, same as the 3 below.
       const includeSections = {
         amazon:        !!document.getElementById('pdf-include-amazon')        && document.getElementById('pdf-include-amazon').checked,
+        reviews:       !!document.getElementById('pdf-include-reviews')       && document.getElementById('pdf-include-reviews').checked,
         stewardship:   !!document.getElementById('pdf-include-stewardship')   && document.getElementById('pdf-include-stewardship').checked,
         opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
         bss:  !!document.getElementById('pdf-include-bss')  && document.getElementById('pdf-include-bss').checked,
@@ -8021,6 +8254,18 @@ window.initSubscriptions = function () {
         pbdd: !!document.getElementById('pdf-include-pbdd') && document.getElementById('pdf-include-pbdd').checked,
         bfcm: !!document.getElementById('pdf-include-bfcm') && document.getElementById('pdf-include-bfcm').checked,
       };
+      // Dynamic nav tabs for the PDF header band, per the doc this was
+      // ported from — each core tab shows if its own checkbox is
+      // checked (Sales/Reviews/Brand Stewardship/Opportunities), Events
+      // shows if any of the 4 event checkboxes is checked (Cosmette has
+      // no single unified Events checkbox the way "Strategy" was one on
+      // the reference brand).
+      PDFX_NAV_TABS = [];
+      if (includeSections.amazon) PDFX_NAV_TABS.push('Sales');
+      if (includeSections.reviews) PDFX_NAV_TABS.push('Reviews');
+      if (includeSections.stewardship) PDFX_NAV_TABS.push('Brand Stewardship');
+      if (includeSections.opportunities) PDFX_NAV_TABS.push('Opportunities');
+      if (includeSections.bss || includeSections.pd || includeSections.pbdd || includeSections.bfcm) PDFX_NAV_TABS.push('Events');
 
       // Case 8 (race conditions) — wait for real completion signals
       // (each page's own init promise), never a fixed timeout alone.
@@ -8030,6 +8275,7 @@ window.initSubscriptions = function () {
       // than Skinuva's 4 separately-named init functions.
       const initPromises = [
         (includeSections.amazon        && typeof window.initAmazonSalesInternal === 'function')  ? window.initAmazonSalesInternal()  : null,
+        (includeSections.reviews       && typeof window.loadCosmetteReviews === 'function')       ? window.loadCosmetteReviews()      : null,
         (includeSections.stewardship   && typeof window.initStewardshipInternal === 'function')  ? window.initStewardshipInternal()  : null,
         (includeSections.opportunities && typeof window.initSubscriptions === 'function')         ? window.initSubscriptions()        : null,
         (includeSections.bss  && typeof window.initEventReport === 'function') ? window.initEventReport('ev-bss')  : null,
@@ -8111,6 +8357,7 @@ window.initSubscriptions = function () {
       // exactly.
       const pagesHtml = [
         includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
+        includeSections.reviews       ? buildReviewsPages(monthYear)      : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
         includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
         includeSections.bss  ? buildEventPage('bss',  'Big Spring Sale',             monthYear) : '',
