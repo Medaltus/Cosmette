@@ -22,7 +22,15 @@ async function getSheetsToken() {
   }
 
   const email = process.env.GOOGLE_CLIENT_EMAIL;
-  const rawKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  const rawPrivateKey = process.env.GOOGLE_PRIVATE_KEY;
+  if (!email || !rawPrivateKey) {
+    throw new Error(
+      '[_sheets_client] Missing required env vars: ' +
+      [!email ? 'GOOGLE_CLIENT_EMAIL' : null, !rawPrivateKey ? 'GOOGLE_PRIVATE_KEY' : null].filter(Boolean).join(', ') +
+      ' — set these in the Vercel project before this can authenticate with Google Sheets.'
+    );
+  }
+  const rawKey = rawPrivateKey.replace(/\\n/g, '\n');
 
   const header  = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const iat     = Math.floor(now / 1000);
