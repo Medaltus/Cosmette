@@ -1408,6 +1408,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <button class="ch-tab active" onclick="showChannel('sales','s-overview',this)">Overview</button>
         <button class="ch-tab" onclick="showChannel('sales','s-amazon',this)">Amazon</button>
         <button class="ch-tab" onclick="showChannel('sales','s-reviews',this)">Reviews</button>
+        <button class="ch-tab" onclick="showChannel('sales','s-momentum',this)">Brand Momentum</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
       </div>
@@ -1514,6 +1515,34 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div id="cs-reviews-container">
         <div class="ppc-card" style="color:var(--muted);">Loading…</div>
       </div>
+    </div>
+
+    <!-- ══ BRAND MOMENTUM — internal Sales tab, ported from Skinside
+         Seoul's real implementation (2026-09-02), built in phases.
+         Sessions by Product done first per Jaclyn's explicit request —
+         MoM comparison instead of vs-launch (Cosmette has no launch-date
+         baseline the way that was originally scoped), with Vine-skew
+         flagging added per Jaclyn: Vine enrollment can inflate a
+         product's session count for up to 3 months from reviewers, not
+         real shoppers, so a product still in that window gets flagged
+         rather than presented as a clean MoM trend. Remaining sections
+         (Keyword Indexing, Subcategory BSR, Review Velocity, Tracking
+         Next) still to come in a later pass. -->
+    <div class="channel-page" id="s-momentum">
+      <div class="page-hd" style="margin-bottom:16px;">
+        <div><div class="page-title" style="font-size:18px;">Brand Momentum</div><div class="page-sub" id="momentum-page-sub">Last month</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Sessions by Product</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Products still within their first 3 months of Vine enrollment are flagged — Vine can inflate session counts from reviewers rather than real shoppers during that window.</div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th>Sessions</th><th>MoM</th><th></th></tr></thead>
+          <tbody id="momentum-sessions-tbody"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="ppc-card" style="color:var(--muted);font-style:italic;">Keyword Indexing Progress, Subcategory BSR, Review Velocity &amp; Quality, and "What We're Tracking Next" are still to come in a later pass.</div>
     </div>
   </div>
 
@@ -2310,6 +2339,7 @@ function showChannel(page, channelId, btn) {
   // Per-channel lazy inits — cheap to call repeatedly, each memoizes itself.
   if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (channelId === 's-reviews' && typeof window.loadCosmetteReviews === 'function') window.loadCosmetteReviews();
+  if (channelId === 's-momentum' && typeof window.initBrandMomentum === 'function') window.initBrandMomentum();
   if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
 
   const EVENT_NAME_BY_CHANNEL = { 'ev-bss': 'Big Spring Sale', 'ev-pd': 'Prime Day', 'ev-pbdd': 'Prime Big Deal Days', 'ev-bfcm': 'Black Friday & Cyber Monday' };
@@ -2815,15 +2845,27 @@ let _csProductNamesPromise = null;
 function csFetchProductNames() {
   if (_csProductNamesPromise) return _csProductNamesPromise;
   _csProductNamesPromise = (async () => {
-    const nameByAsin = {}, nameBySku = {}, skuByAsin = {}, categoryBySku = {}, priceBySku = {};
+    const nameByAsin = {}, nameBySku = {}, skuByAsin = {}, categoryBySku = {}, priceBySku = {}, vineDateBySku = {};
     const cfg = window.SHEET_CFG.SHEET_MASTER_SKU_LIST;
-    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku }; }
+    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku }; }
     try {
       const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku }; }
+      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku }; }
       const rows = csParseCsv(csv);
       console.log('[CosmetteProductNames] rows loaded:', rows.length, '— columns:', rows.length ? Object.keys(rows[0]) : '(none)');
-      rows.forEach(r => {
+      // Vine enrollment date — per Jaclyn 2026-09-02, lives in column F on
+      // this sheet (the date each SKU enrolled in Vine; can skew session
+      // traffic up to 3 months from reviewers, not real shoppers). Read
+      // positionally rather than by header name, since the exact header
+      // text on column F hasn't been confirmed the way the other named
+      // columns here have (ASIN/SKU/Product Short Name/Brand/Price/...
+      // Product Category col K) — a raw positional read matches what was
+      // actually specified ("column F") without guessing a name that
+      // might not match.
+      const records = csParseCsvRecords(csv.trim() + '\n');
+      const dataRecords = records.slice(1); // records[0] is the header row
+      console.log('[CosmetteProductNames] column F (Vine date) header text:', records[0] ? records[0][5] : '(no header row)');
+      rows.forEach((r, i) => {
         // Column names confirmed from the sheet header: ASIN, SKU, Product Short Name, Brand, Price, ..., Product Category (col K), ...
         const asin = (r.ASIN || r.asin || '').trim().toUpperCase();
         const sku = csBaseSku(r.SKU || r.sku);
@@ -2838,13 +2880,15 @@ function csFetchProductNames() {
         if (asin && sku) skuByAsin[asin] = sku;
         if (sku && category) categoryBySku[sku] = category;
         if (sku && price) priceBySku[sku] = price;
+        const vineDateRaw = dataRecords[i] ? (dataRecords[i][5] || '').trim() : '';
+        if (sku && vineDateRaw) vineDateBySku[sku] = csNormalizeDate(vineDateRaw);
         if (!name) return;
         if (asin) nameByAsin[asin] = name;
         if (sku) nameBySku[sku] = name;
       });
-      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names,', Object.keys(skuByAsin).length, 'ASIN→SKU mappings,', Object.keys(categoryBySku).length, 'SKU categories:', [...new Set(Object.values(categoryBySku))]);
+      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names,', Object.keys(skuByAsin).length, 'ASIN→SKU mappings,', Object.keys(categoryBySku).length, 'SKU categories:', [...new Set(Object.values(categoryBySku))], ',', Object.keys(vineDateBySku).length, 'Vine dates.');
     } catch (e) { console.warn('[CosmetteProductNames] fetch failed:', e.message); }
-    return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku };
+    return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku };
   })();
   return _csProductNamesPromise;
 }
@@ -3517,6 +3561,90 @@ window.initAmazonSalesInternal = function () {
       window._csReviewsLoaded = false; // allow retry
       if (container) container.innerHTML = '<div class="ppc-card" style="color:var(--muted);">Could not load — ' + escapeHtml(err.message||'') + '</div>';
     }
+  };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// BRAND MOMENTUM (internal Sales tab) — ported from Skinside Seoul's real
+// implementation, built in phases. This pass: Sessions by Product only, per
+// Jaclyn's explicit request (2026-09-02) — MoM comparison instead of
+// vs-launch, plus Vine-skew flagging (Vine enrollment can inflate session
+// counts up to 3 months from reviewers, not real shoppers; enrollment date
+// read positionally from column F on the Master SKU List — see
+// csFetchProductNames). Remaining sections (Keyword Indexing, Subcategory
+// BSR, Review Velocity, Tracking Next) come in a later pass.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+
+  // Is `reportYear`/`reportMonth` within the first 3 months (enrollment
+  // month + the following 2) after `vineDate`? Per Jaclyn: Vine can skew
+  // session traffic for up to 3 months.
+  function isWithinVineWindow(vineDate, reportYear, reportMonth) {
+    if (!vineDate) return false;
+    const vy = parseInt(vineDate.substring(0,4), 10), vm = parseInt(vineDate.substring(5,7), 10);
+    if (!vy || !vm) return false;
+    const monthsSince = (reportYear * 12 + reportMonth) - (vy * 12 + vm);
+    return monthsSince >= 0 && monthsSince <= 2;
+  }
+
+  window.initBrandMomentum = function () {
+    if (window._csMomentumPromise) return window._csMomentumPromise;
+    window._csMomentumPromise = (async function () {
+      const tbody = document.getElementById('momentum-sessions-tbody');
+      if (!tbody) return;
+      const cfg = window.SHEET_CFG;
+      if (!cfg.SHEET_BUSINESS_REPORT) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Missing SHEET_BUSINESS_REPORT from SHEET_CONFIG.</td></tr>';
+        return;
+      }
+      try {
+        const { year, month } = csGetLastFullMonth();
+        let prevMonth = month - 1, prevYear = year;
+        if (prevMonth === 0) { prevMonth = 12; prevYear--; }
+
+        const subEl = document.getElementById('momentum-page-sub');
+        if (subEl) subEl.textContent = `${csMonths12Full[month-1]} ${year}`;
+
+        const [bizCsv, names] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          csFetchProductNames(),
+        ]);
+        const bizRows = csIsCsv(bizCsv) ? csParseCsv(bizCsv) : [];
+        if (!bizRows.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Business Report data found.</td></tr>'; return; }
+
+        const rowsThis = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===month && parseInt(r.YEAR||r.year,10)===year);
+        const rowsPrev = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===prevMonth && parseInt(r.YEAR||r.year,10)===prevYear);
+        const prevByAsin = {};
+        rowsPrev.forEach(r => { prevByAsin[(r.ASIN||r.asin||'').toUpperCase()] = parseInt(r.SESSIONS||r.sessions,10) || 0; });
+
+        if (!rowsThis.length) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Business Report data for ${csMonths12Full[month-1]} ${year} yet.</td></tr>`; return; }
+
+        const sorted = [...rowsThis].sort((a,b) => (parseInt(b.SESSIONS||b.sessions,10)||0) - (parseInt(a.SESSIONS||a.sessions,10)||0));
+        tbody.innerHTML = sorted.map(r => {
+          const asin = (r.ASIN||r.asin||'').toUpperCase();
+          const sku = names.skuByAsin[asin] || '';
+          const productName = names.nameBySku[sku] || names.nameByAsin[asin] || asin;
+          const sessions = parseInt(r.SESSIONS||r.sessions,10) || 0;
+          const prevSessions = prevByAsin[asin];
+          const momHtml = (prevSessions != null) ? csMomSpan(sessions, prevSessions) : '<span class="tp-mom-flat">—</span>';
+          const vineFlag = sku && isWithinVineWindow(names.vineDateBySku[sku], year, month);
+          return `<tr>
+            <td><strong>${escapeHtml(productName)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(sku)}</span></td>
+            <td>${sessions.toLocaleString()}</td>
+            <td>${momHtml}</td>
+            <td>${vineFlag ? '<span class="rank-pill rank-low" title="Within first 3 months of Vine enrollment — sessions may be inflated by reviewers, not real shoppers.">Vine period</span>' : ''}</td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        console.error('[CosmetteBrandMomentum]', err);
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Error loading — ' + escapeHtml(err.message||'') + '</td></tr>';
+      }
+    })();
+    return window._csMomentumPromise;
   };
 })();
 
