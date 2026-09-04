@@ -1533,6 +1533,12 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div><div class="page-title" style="font-size:18px;">Brand Momentum</div><div class="page-sub" id="momentum-page-sub">Last month</div></div>
       </div>
 
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="momentum-kpi-reviews"><div class="kpi-label">Reviews Collected</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="momentum-kpi-indexed"><div class="kpi-label">Keywords with Organic Rank</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="momentum-kpi-sessions"><div class="kpi-label">Sessions</div><div class="kpi-value">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+
       <div class="card" style="margin-bottom:16px;">
         <div class="card-title">Sessions by Product</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Products still within their first 3 months of Vine enrollment are flagged — Vine can inflate session counts from reviewers rather than real shoppers during that window.</div>
@@ -1542,7 +1548,43 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         </table>
       </div>
 
-      <div class="ppc-card" style="color:var(--muted);font-style:italic;">Keyword Indexing Progress, Subcategory BSR, Review Velocity &amp; Quality, and "What We're Tracking Next" are still to come in a later pass.</div>
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Targeted Keyword Indexing Progress</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Keywords with real rank movement shown first, then by rank — top 10.</div>
+        <table class="data-table">
+          <thead><tr><th>Keyword</th><th>Product</th><th>Organic Rank</th><th>Search Volume</th></tr></thead>
+          <tbody id="momentum-indexing-tbody"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+          <div class="card-title" style="margin-bottom:0;">Subcategory BSR by Product</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;"><input type="checkbox" id="momentum-hide-negative-bsr"> Hide negative changes</label>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">BSR shown against its category; change is since the previous recorded value.</div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th>BSR</th><th>Subcategory BSR</th></tr></thead>
+          <tbody id="momentum-bsr-tbody"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title">Review Velocity &amp; Quality</div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th>Reviews</th><th>Avg. Rating</th></tr></thead>
+          <tbody id="momentum-velocity-tbody"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">What We're Tracking Next</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
+          <p style="margin-bottom:8px;"><strong style="color:var(--navy);">Search-to-sale conversion by keyword</strong> — connecting which specific search terms are actually driving purchases, not just clicks or impressions.</p>
+          <p style="margin-bottom:8px;"><strong style="color:var(--navy);">Review sentiment themes</strong> — categorizing what customers are actually praising or flagging in review text, beyond the star rating alone.</p>
+          <p><strong style="color:var(--navy);">Competitive share of voice</strong> — how Cosmette's organic and sponsored presence compares against category leaders for the same target keywords.</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -3440,7 +3482,10 @@ window.initAmazonSalesInternal = function () {
 // this is the same shared multi-brand spreadsheet.
 (function () {
   'use strict';
-  let _csReviewsRows = null; // cached once per session
+  // window-scoped (not a local IIFE variable) so Brand Momentum's Review
+  // Velocity & Quality section can reuse this exact fetch — per the doc,
+  // no second fetch of the same reviews sheet.
+  window._csReviewsRowsCache = window._csReviewsRowsCache || null;
 
   function findKey(row, name) {
     const target = name.toLowerCase();
@@ -3454,7 +3499,10 @@ window.initAmazonSalesInternal = function () {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
 
-  async function fetchReviewsCsvRows() {
+  // Exposed on window so Brand Momentum's Review Velocity section can
+  // trigger this same fetch independently if Reviews hasn't loaded yet
+  // this session, rather than duplicating the fetch/fallback logic.
+  window.csFetchReviewsCsvRows = async function fetchReviewsCsvRows() {
     const cfg = window.SHEET_CFG.SHEET_AMAZON_REVIEWS;
     if (!cfg) throw new Error('SHEET_AMAZON_REVIEWS missing from SHEET_CONFIG');
     // Same null-gid fallback as the external reviews section — this sheet
@@ -3465,7 +3513,8 @@ window.initAmazonSalesInternal = function () {
       : `https://docs.google.com/spreadsheets/d/${cfg.fileId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(window.SHEET_CFG.BRAND_SLUG || 'cosmette')}`;
     const csv = await fetch(url + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
     return csIsCsv(csv) ? csParseCsv(csv) : [];
-  }
+  };
+  const fetchReviewsCsvRows = window.csFetchReviewsCsvRows;
 
   window.loadCosmetteReviews = async function () {
     if (window._csReviewsLoaded) return;
@@ -3473,8 +3522,8 @@ window.initAmazonSalesInternal = function () {
     const container = document.getElementById('cs-reviews-container');
     if (!container) return;
     try {
-      if (!_csReviewsRows) _csReviewsRows = await fetchReviewsCsvRows();
-      const rows = _csReviewsRows;
+      if (!window._csReviewsRowsCache) window._csReviewsRowsCache = await fetchReviewsCsvRows();
+      const rows = window._csReviewsRowsCache;
       if (!rows.length) throw new Error('Empty sheet');
 
       const yearKey = findKey(rows[0], 'year');
@@ -3579,6 +3628,20 @@ window.initAmazonSalesInternal = function () {
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   }
+  function pctChange(curr, prevVal) { if (!prevVal) return null; return Math.round(((curr - prevVal) / prevVal) * 100); }
+  function setKpi(cardId, value, pctVal) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const valEl = card.querySelector('.kpi-value');
+    const momEl = card.querySelector('.kpi-mom');
+    if (valEl) valEl.textContent = value;
+    if (momEl) {
+      if (pctVal == null) { momEl.className = 'kpi-mom flat'; momEl.textContent = '—'; return; }
+      const cls = pctVal === 0 ? 'flat' : pctVal > 0 ? 'up' : 'dn';
+      momEl.className = 'kpi-mom ' + cls;
+      momEl.textContent = `${pctVal > 0 ? '▲ ' : pctVal < 0 ? '▼ ' : ''}${Math.abs(pctVal)}% vs prior month`;
+    }
+  }
 
   // Is `reportYear`/`reportMonth` within the first 3 months (enrollment
   // month + the following 2) after `vineDate`? Per Jaclyn: Vine can skew
@@ -3590,6 +3653,76 @@ window.initAmazonSalesInternal = function () {
     const monthsSince = (reportYear * 12 + reportMonth) - (vy * 12 + vm);
     return monthsSince >= 0 && monthsSince <= 2;
   }
+
+  // Local copies of the BSR helpers already proven working in the
+  // Insights Products page (pickSummaryRowForAsin / bsrTrendHtml) — same
+  // logic, duplicated locally per this file's established per-IIFE
+  // convention rather than reaching into that other IIFE's scope.
+  function pickSummaryRowForAsin(rows, asin) {
+    const matches = rows.filter(r => (r.asin||'').trim().toUpperCase() === asin.toUpperCase());
+    if (!matches.length) return null;
+    return matches.reduce((best,r) => (!best || (r.date||'') > (best.date||'')) ? r : best, null);
+  }
+  function pickPreviousSummaryRowForAsin(rows, asin, currentDate) {
+    const matches = rows.filter(r => (r.asin||'').trim().toUpperCase() === asin.toUpperCase() && (r.date||'') < currentDate);
+    if (!matches.length) return null;
+    return matches.reduce((best,r) => (!best || (r.date||'') > (best.date||'')) ? r : best, null);
+  }
+  // improved: true when the change is a genuine improvement (lower BSR
+  // number = better rank). Returns null (no span at all) when there's
+  // nothing to compare against or values are unchanged.
+  function bsrTrendInfo(curValue, prevRow, field) {
+    if (!prevRow || !prevRow[field]) return null;
+    const cur = Number(curValue) || 0, prev = Number(prevRow[field]) || 0;
+    if (!cur || !prev || cur === prev) return null;
+    const improved = cur < prev;
+    const delta = Math.abs(prev - cur);
+    return { improved, delta };
+  }
+  function bsrTrendHtml(curValue, prevRow, field, hideNegative) {
+    const info = bsrTrendInfo(curValue, prevRow, field);
+    if (!info) return '';
+    // Hides the change number + arrow entirely for a negative (worsened)
+    // move when the checkbox is checked — the BSR value itself and its
+    // category label always stay visible regardless, only this trend
+    // span is conditional.
+    if (!info.improved && hideNegative) return '';
+    return ` <span class="bsr-trend ${info.improved?'bsr-trend-improved':'bsr-trend-worsened'}">${info.improved?'▼':'▲'} ${info.delta.toLocaleString()}</span>`;
+  }
+
+  let _momentumCache = null; // fetched once, re-rendered on checkbox toggle without re-fetching
+
+  function renderBsrSection(hideNegative) {
+    const c = _momentumCache;
+    if (!c) return;
+    const tbody = document.getElementById('momentum-bsr-tbody');
+    if (!tbody) return;
+    if (!c.skusWithData.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Keyword Tracker Summary data found.</td></tr>'; return; }
+    tbody.innerHTML = c.skusWithData.map(sku => {
+      const asin = c.asinBySku[sku] || '';
+      const row = asin ? pickSummaryRowForAsin(c.summaryRows, asin) : null;
+      const prevRow = row ? pickPreviousSummaryRowForAsin(c.summaryRows, asin, row.date||'') : null;
+      const productName = c.names.nameBySku[sku] || sku;
+
+      let bsrText = '—';
+      if (row && row.bsr) {
+        bsrText = '#' + (Number(row.bsr)||0).toLocaleString();
+        if (row.category) bsrText += ` (${escapeHtml(row.category)})`;
+        bsrText += bsrTrendHtml(row.bsr, prevRow, 'bsr', hideNegative);
+      }
+      let subBsrText = '—';
+      if (row && row.subcategory_bsr) {
+        subBsrText = '#' + (Number(row.subcategory_bsr)||0).toLocaleString();
+        if (row.subcategory) subBsrText += ` (${escapeHtml(row.subcategory)})`;
+        subBsrText += bsrTrendHtml(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
+      }
+      return `<tr><td><strong>${escapeHtml(productName)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(sku)}</span></td><td>${bsrText}</td><td>${subBsrText}</td></tr>`;
+    }).join('');
+  }
+
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'momentum-hide-negative-bsr') renderBsrSection(e.target.checked);
+  });
 
   window.initBrandMomentum = function () {
     if (window._csMomentumPromise) return window._csMomentumPromise;
@@ -3609,36 +3742,137 @@ window.initAmazonSalesInternal = function () {
         const subEl = document.getElementById('momentum-page-sub');
         if (subEl) subEl.textContent = `${csMonths12Full[month-1]} ${year}`;
 
-        const [bizCsv, names] = await Promise.all([
+        const [bizCsv, kwCsv, summaryCsv, names, reviewsRows] = await Promise.all([
           fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          cfg.SHEET_KEYWORD_TRACKER ? fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER.fileId, cfg.SHEET_KEYWORD_TRACKER.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
+          cfg.SHEET_KEYWORD_TRACKER_SUMMARY ? fetch(csSheetCsvUrl(cfg.SHEET_KEYWORD_TRACKER_SUMMARY.fileId, cfg.SHEET_KEYWORD_TRACKER_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r=>r.ok?r.text():'').catch(()=>'') : Promise.resolve(''),
           csFetchProductNames(),
+          window._csReviewsRowsCache || (typeof window.csFetchReviewsCsvRows === 'function' ? window.csFetchReviewsCsvRows() : Promise.resolve([])),
         ]);
-        const bizRows = csIsCsv(bizCsv) ? csParseCsv(bizCsv) : [];
-        if (!bizRows.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Business Report data found.</td></tr>'; return; }
+        if (!window._csReviewsRowsCache && reviewsRows && reviewsRows.length) window._csReviewsRowsCache = reviewsRows;
 
+        const bizRows = csIsCsv(bizCsv) ? csParseCsv(bizCsv) : [];
         const rowsThis = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===month && parseInt(r.YEAR||r.year,10)===year);
         const rowsPrev = bizRows.filter(r => parseInt(r.MONTH||r.month,10)===prevMonth && parseInt(r.YEAR||r.year,10)===prevYear);
         const prevByAsin = {};
         rowsPrev.forEach(r => { prevByAsin[(r.ASIN||r.asin||'').toUpperCase()] = parseInt(r.SESSIONS||r.sessions,10) || 0; });
 
-        if (!rowsThis.length) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Business Report data for ${csMonths12Full[month-1]} ${year} yet.</td></tr>`; return; }
+        // ── Sessions by Product ──────────────────────────────────────
+        if (!rowsThis.length) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Business Report data for ${csMonths12Full[month-1]} ${year} yet.</td></tr>`;
+        } else {
+          const sorted = [...rowsThis].sort((a,b) => (parseInt(b.SESSIONS||b.sessions,10)||0) - (parseInt(a.SESSIONS||a.sessions,10)||0));
+          tbody.innerHTML = sorted.map(r => {
+            const asin = (r.ASIN||r.asin||'').toUpperCase();
+            const sku = names.skuByAsin[asin] || '';
+            const productName = names.nameBySku[sku] || names.nameByAsin[asin] || asin;
+            const sessions = parseInt(r.SESSIONS||r.sessions,10) || 0;
+            const prevSessions = prevByAsin[asin];
+            const momHtml = (prevSessions != null) ? csMomSpan(sessions, prevSessions) : '<span class="tp-mom-flat">—</span>';
+            const vineFlag = sku && isWithinVineWindow(names.vineDateBySku[sku], year, month);
+            return `<tr>
+              <td><strong>${escapeHtml(productName)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(sku)}</span></td>
+              <td>${sessions.toLocaleString()}</td>
+              <td>${momHtml}</td>
+              <td>${vineFlag ? '<span class="rank-pill rank-low" title="Within first 3 months of Vine enrollment — sessions may be inflated by reviewers, not real shoppers.">Vine period</span>' : ''}</td>
+            </tr>`;
+          }).join('');
+        }
 
-        const sorted = [...rowsThis].sort((a,b) => (parseInt(b.SESSIONS||b.sessions,10)||0) - (parseInt(a.SESSIONS||a.sessions,10)||0));
-        tbody.innerHTML = sorted.map(r => {
-          const asin = (r.ASIN||r.asin||'').toUpperCase();
-          const sku = names.skuByAsin[asin] || '';
-          const productName = names.nameBySku[sku] || names.nameByAsin[asin] || asin;
-          const sessions = parseInt(r.SESSIONS||r.sessions,10) || 0;
-          const prevSessions = prevByAsin[asin];
-          const momHtml = (prevSessions != null) ? csMomSpan(sessions, prevSessions) : '<span class="tp-mom-flat">—</span>';
-          const vineFlag = sku && isWithinVineWindow(names.vineDateBySku[sku], year, month);
-          return `<tr>
-            <td><strong>${escapeHtml(productName)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(sku)}</span></td>
-            <td>${sessions.toLocaleString()}</td>
-            <td>${momHtml}</td>
-            <td>${vineFlag ? '<span class="rank-pill rank-low" title="Within first 3 months of Vine enrollment — sessions may be inflated by reviewers, not real shoppers.">Vine period</span>' : ''}</td>
-          </tr>`;
-        }).join('');
+        // ── KPI: Sessions (MoM) ──────────────────────────────────────
+        const totalSessions = rowsThis.reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
+        const totalSessionsPrev = rowsPrev.reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
+        setKpi('momentum-kpi-sessions', totalSessions.toLocaleString(), totalSessionsPrev ? pctChange(totalSessions, totalSessionsPrev) : null);
+
+        // ── Targeted Keyword Indexing Progress (top 10, movement-first
+        // then rank ascending) ───────────────────────────────────────
+        const kwRows = csIsCsv(kwCsv) ? csParseCsv(kwCsv).filter(r => r.date && r.asin && r.keyword) : [];
+        const kwIndexingTbody = document.getElementById('momentum-indexing-tbody');
+        let keywordsWithRank = 0;
+        if (kwIndexingTbody) {
+          const byKey = {};
+          kwRows.forEach(r => {
+            const key = r.asin.toUpperCase() + '||' + r.keyword.toLowerCase();
+            if (!byKey[key]) byKey[key] = [];
+            byKey[key].push(r);
+          });
+          const entries = Object.values(byKey).map(rowsForKey => {
+            const sorted = [...rowsForKey].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+            const latest = sorted[0];
+            const prev = sorted.find(r => (r.date||'') < (latest.date||''));
+            const rank = parseInt(latest.organic_rank, 10);
+            if (!rank || rank <= 0) return null;
+            const prevRank = prev ? parseInt(prev.organic_rank, 10) : null;
+            const movement = (prevRank && prevRank !== rank) ? (prevRank - rank) : 0; // positive = improved
+            const sku = names.skuByAsin[latest.asin.toUpperCase()] || '';
+            return {
+              keyword: latest.keyword, rank, movement,
+              searchVolume: parseInt(latest.search_volume, 10) || 0,
+              productName: names.nameBySku[sku] || names.nameByAsin[latest.asin.toUpperCase()] || latest.asin,
+            };
+          }).filter(Boolean);
+          keywordsWithRank = entries.length;
+          entries.sort((a,b) => {
+            const aMoved = a.movement !== 0, bMoved = b.movement !== 0;
+            if (aMoved !== bMoved) return aMoved ? -1 : 1;
+            return a.rank - b.rank;
+          });
+          const top10 = entries.slice(0, 10);
+          kwIndexingTbody.innerHTML = top10.length ? top10.map(e => `<tr>
+            <td>${escapeHtml(e.keyword)}</td>
+            <td>${escapeHtml(e.productName)}</td>
+            <td>#${e.rank}${e.movement !== 0 ? ` <span class="${e.movement>0?'bsr-trend-improved':'bsr-trend-worsened'}" style="font-size:11px;">${e.movement>0?'▲':'▼'} ${Math.abs(e.movement)}</span>` : ''}</td>
+            <td>${e.searchVolume.toLocaleString()}</td>
+          </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No tracked keywords with a real organic rank yet.</td></tr>';
+        }
+        setKpi('momentum-kpi-indexed', keywordsWithRank.toLocaleString(), null);
+
+        // ── Subcategory BSR by Product — cached for the checkbox
+        // toggle to re-render without re-fetching ────────────────────
+        const brandSlug = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
+        const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv).filter(r => (r.brand||'').trim().toLowerCase() === brandSlug) : [];
+        const skusWithData = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))];
+        const asinBySku = {};
+        Object.entries(names.skuByAsin).forEach(([asin, sku]) => { asinBySku[sku] = asin; });
+        _momentumCache = { summaryRows, skusWithData, asinBySku, names };
+        renderBsrSection(!!document.getElementById('momentum-hide-negative-bsr')?.checked);
+
+        // ── Review Velocity & Quality (reuses the reviews fetch above,
+        // no second fetch of that sheet) ─────────────────────────────
+        const velocityTbody = document.getElementById('momentum-velocity-tbody');
+        const rRows = window._csReviewsRowsCache || [];
+        if (velocityTbody) {
+          if (!rRows.length) {
+            velocityTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No review data found.</td></tr>';
+          } else {
+            const nameKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'product_name') || 'product_name';
+            const ratingKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'star_rating') || 'star_rating';
+            const statsByName = {};
+            rRows.forEach(r => {
+              const nm = (r[nameKey]||'').trim();
+              if (!nm) return;
+              if (!statsByName[nm]) statsByName[nm] = { count: 0, sum: 0 };
+              statsByName[nm].count++;
+              statsByName[nm].sum += (Number(r[ratingKey]) || 0);
+            });
+            const statEntries = Object.entries(statsByName).sort((a,b) => b[1].count - a[1].count);
+            velocityTbody.innerHTML = statEntries.length ? statEntries.map(([nm, s]) => {
+              const avg = s.count ? (s.sum/s.count) : 0;
+              return `<tr><td><strong>${escapeHtml(nm)}</strong></td><td>${s.count.toLocaleString()}</td><td>${avg.toFixed(1)} ★</td></tr>`;
+            }).join('') : '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No review data found.</td></tr>';
+
+            // ── KPI: Reviews Collected — rows tagged for the last full
+            // month specifically (same YEAR/MONTH targeting convention
+            // as the Reviews tab), not an all-time total.
+            const yearKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'year');
+            const monthKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'month');
+            let collectedCount = null;
+            if (yearKey && monthKey) {
+              collectedCount = rRows.filter(r => String(r[yearKey]||'').trim() === String(year) && String(Number(r[monthKey])||'') === String(Number(month))).length;
+            }
+            setKpi('momentum-kpi-reviews', collectedCount != null ? collectedCount.toLocaleString() : rRows.length.toLocaleString(), null);
+          }
+        }
       } catch (err) {
         console.error('[CosmetteBrandMomentum]', err);
         tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Error loading — ' + escapeHtml(err.message||'') + '</td></tr>';
