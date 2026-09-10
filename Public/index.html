@@ -3023,12 +3023,12 @@ let _csProductNamesPromise = null;
 function csFetchProductNames() {
   if (_csProductNamesPromise) return _csProductNamesPromise;
   _csProductNamesPromise = (async () => {
-    const nameByAsin = {}, nameBySku = {}, skuByAsin = {}, categoryBySku = {}, priceBySku = {}, vineDateBySku = {};
+    const nameByAsin = {}, nameBySku = {}, skuByAsin = {}, categoryBySku = {}, priceBySku = {}, vineDateBySku = {}, skuTypeBySku = {};
     const cfg = window.SHEET_CFG.SHEET_MASTER_SKU_LIST;
-    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku }; }
+    if (!cfg) { console.warn('[CosmetteProductNames] Missing SHEET_MASTER_SKU_LIST in SHEET_CONFIG.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku, skuTypeBySku }; }
     try {
       const csv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku }; }
+      if (!csIsCsv(csv)) { console.warn('[CosmetteProductNames] Master SKU List did not return CSV.'); return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku, skuTypeBySku }; }
       const rows = csParseCsv(csv);
       console.log('[CosmetteProductNames] rows loaded:', rows.length, '— columns:', rows.length ? Object.keys(rows[0]) : '(none)');
       // Vine enrollment date — per Jaclyn 2026-09-02, lives in column F on
@@ -3043,6 +3043,11 @@ function csFetchProductNames() {
       const records = csParseCsvRecords(csv.trim() + '\n');
       const dataRecords = records.slice(1); // records[0] is the header row
       console.log('[CosmetteProductNames] column F (Vine date) header text:', records[0] ? records[0][5] : '(no header row)');
+      // SKU type ("BUNDLE" vs a real catalog product) — per Jaclyn
+      // 2026-09-04, lives in column J. Same positional-read reasoning as
+      // column F above; also logs the header text found there so this
+      // can be verified once live.
+      console.log('[CosmetteProductNames] column J (SKU type) header text:', records[0] ? records[0][9] : '(no header row)');
       rows.forEach((r, i) => {
         // Column names confirmed from the sheet header: ASIN, SKU, Product Short Name, Brand, Price, ..., Product Category (col K), ...
         const asin = (r.ASIN || r.asin || '').trim().toUpperCase();
@@ -3060,13 +3065,15 @@ function csFetchProductNames() {
         if (sku && price) priceBySku[sku] = price;
         const vineDateRaw = dataRecords[i] ? (dataRecords[i][5] || '').trim() : '';
         if (sku && vineDateRaw) vineDateBySku[sku] = csNormalizeDate(vineDateRaw);
+        const skuTypeRaw = dataRecords[i] ? (dataRecords[i][9] || '').trim() : '';
+        if (sku && skuTypeRaw) skuTypeBySku[sku] = skuTypeRaw.toUpperCase();
         if (!name) return;
         if (asin) nameByAsin[asin] = name;
         if (sku) nameBySku[sku] = name;
       });
-      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names,', Object.keys(skuByAsin).length, 'ASIN→SKU mappings,', Object.keys(categoryBySku).length, 'SKU categories:', [...new Set(Object.values(categoryBySku))], ',', Object.keys(vineDateBySku).length, 'Vine dates.');
+      console.log('[CosmetteProductNames] built', Object.keys(nameByAsin).length, 'ASIN names,', Object.keys(nameBySku).length, 'SKU names,', Object.keys(skuByAsin).length, 'ASIN→SKU mappings,', Object.keys(categoryBySku).length, 'SKU categories:', [...new Set(Object.values(categoryBySku))], ',', Object.keys(vineDateBySku).length, 'Vine dates,', Object.keys(skuTypeBySku).length, 'SKU types:', [...new Set(Object.values(skuTypeBySku))]);
     } catch (e) { console.warn('[CosmetteProductNames] fetch failed:', e.message); }
-    return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku };
+    return { nameByAsin, nameBySku, skuByAsin, categoryBySku, priceBySku, vineDateBySku, skuTypeBySku };
   })();
   return _csProductNamesPromise;
 }
@@ -3947,9 +3954,12 @@ window.initAmazonSalesInternal = function () {
           sessionsBySku[sku] = { value, prev: prev != null ? prev : null };
         });
 
-        // ── KPI: Sessions (MoM) ──────────────────────────────────────
-        const totalSessions = rowsThis.reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
-        const totalSessionsPrev = rowsPrev.reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
+        // ── KPI: Sessions (MoM) — excludes bundle-sourced sessions, same
+        // as the product cards below, so this total stays consistent
+        // with what's actually shown on the page.
+        const isNotBundleRow = r => names.skuTypeBySku[names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]] !== 'BUNDLE';
+        const totalSessions = rowsThis.filter(isNotBundleRow).reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
+        const totalSessionsPrev = rowsPrev.filter(isNotBundleRow).reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
         setKpi('momentum-kpi-sessions', totalSessions.toLocaleString(), totalSessionsPrev ? pctChange(totalSessions, totalSessionsPrev) : null);
 
         // ── Targeted Keyword Indexing Progress (top 10, movement-first
@@ -3973,6 +3983,7 @@ window.initAmazonSalesInternal = function () {
             const prevRank = prev ? parseInt(prev.organic_rank, 10) : null;
             const movement = (prevRank && prevRank !== rank) ? (prevRank - rank) : 0; // positive = improved
             const sku = names.skuByAsin[latest.asin.toUpperCase()] || '';
+            if (names.skuTypeBySku[sku] === 'BUNDLE') return null; // bundles excluded per Jaclyn, same as the rest of this page
             return {
               keyword: latest.keyword, rank, movement,
               searchVolume: parseInt(latest.search_volume, 10) || 0,
@@ -4043,7 +4054,12 @@ window.initAmazonSalesInternal = function () {
         setKpi('momentum-kpi-reviews', collectedCount != null ? collectedCount.toLocaleString() : rRows.length.toLocaleString(), null);
 
         // ── Consolidate + render one card per product ─────────────────
-        const skus = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))];
+        // Bundles excluded per Jaclyn (2026-09-04) — column J on the
+        // Master SKU List (skuTypeBySku, read positionally same as
+        // vineDateBySku above) marks a SKU as "BUNDLE"; those are left
+        // out of Brand Momentum's per-product cards entirely.
+        const skus = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))]
+          .filter(sku => names.skuTypeBySku[sku] !== 'BUNDLE');
         _momentumCache = { skus, asinBySku, names, summaryRows, sessionsBySku, reviewStatsBySku, year, month };
         renderProductCards(!!document.getElementById('momentum-hide-negative-bsr')?.checked);
       } catch (err) {
