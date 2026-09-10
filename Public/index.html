@@ -128,6 +128,41 @@ nav{flex:1;padding:8px 8px 0;}
 .pd-legend{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted);}
 .pd-legend span{display:inline-flex;align-items:center;gap:5px;}
 .pd-legend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+/* ── Event Strategy tab (ported from Skinuva, 2026-09-04) ── */
+.evs-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:28px;flex-wrap:wrap;}
+.evs-eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.evs-eyebrow::before{content:'— ';}
+.evs-headline{font-family:var(--font-subheader);font-size:32px;font-weight:700;color:var(--navy);line-height:1.15;margin-bottom:6px;}
+.evs-dates{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.02em;}
+.evs-badge{background:linear-gradient(135deg,var(--navy) 0%,#0d3494 100%);border-radius:var(--radius);padding:16px 20px;min-width:230px;flex-shrink:0;}
+.evs-badge-pct{font-size:30px;font-weight:800;color:var(--green);line-height:1;}
+.evs-badge-pct span{font-size:16px;font-weight:700;color:#fff;margin-left:4px;}
+.evs-badge-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5);margin:8px 0 3px;}
+.evs-badge-desc{font-size:11.5px;color:rgba(255,255,255,.85);font-weight:600;}
+.evs-phase{margin-bottom:24px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px;}
+.evs-phase-hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:2px solid var(--border);margin-bottom:18px;flex-wrap:wrap;}
+.evs-phase-hd-left{display:flex;align-items:baseline;gap:14px;}
+.evs-phase-num{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.evs-phase-title{font-family:var(--font-subheader);font-size:26px;font-weight:700;line-height:1;}
+.evs-phase.lead-up .evs-phase-title{color:#1db88a;}
+.evs-phase.during .evs-phase-title{color:var(--navy);}
+.evs-phase.lead-out .evs-phase-title{color:var(--warn);}
+.evs-phase-pill{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 14px;border-radius:999px;white-space:nowrap;}
+.evs-phase.lead-up .evs-phase-pill{background:rgba(36,233,163,.13);color:#1db88a;}
+.evs-phase.during .evs-phase-pill{background:var(--bg2);color:var(--muted);}
+.evs-phase.lead-out .evs-phase-pill{background:rgba(200,125,47,.12);color:var(--warn);}
+.evs-items{display:grid;grid-template-columns:1fr 1fr;gap:16px 28px;}
+.evs-item{display:flex;gap:12px;}
+.evs-item-num{font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;padding-top:1px;}
+.evs-item-title{font-size:14.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+.evs-item-text{font-size:14px;color:var(--muted);line-height:1.6;}
+.evs-item-text strong{color:var(--navy);font-weight:700;}
+.evs-outlook{background:var(--success-tint,rgba(36,233,163,.08));border-left:3px solid #1db88a;border-radius:6px;padding:18px 22px;margin-top:6px;}
+.evs-outlook-lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#1db88a;margin-bottom:8px;}
+.evs-outlook-lbl::before{content:'— ';}
+.evs-outlook-text{font-size:14.5px;color:var(--navy);line-height:1.7;}
+.evs-outlook-text strong{font-weight:700;}
 .rev-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
 .rev-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
 .rev-name{font-weight:600;font-size:12px;color:var(--navy);}
@@ -704,6 +739,31 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .pdfx-inner-reviews .review-card{padding:9px 11px;}
 .pdfx-inner-reviews .review-card-text{line-height:1.4;}
 .pdfx-inner-reviews .review-card-title{margin-bottom:4px;}
+/* Brand Momentum page 2 — distributes BSR/Review Velocity/Tracking Next
+   evenly down the page instead of clustering near the top with a big
+   empty gap, per the doc this was ported from. Explicit height matches
+   the real usable content area (11in page minus .pdfx-inner's own
+   padding minus the header band's real height), not guessed. */
+.pdfx-momentum-page2{display:flex;flex-direction:column;justify-content:space-between;height:840px;}
+/* Brand Momentum — per-product cards (2026-09-04), replacing the earlier
+   3 separate tables (Sessions/BSR/Review Velocity) per Jaclyn: with this
+   many products, one card per product reads better than 3 tables each
+   re-listing every product. Header styled like the PPC Strategy page's
+   product header; metric rows below with MoM/trend made visually
+   prominent via colored pills rather than plain inline text. */
+.momentum-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.momentum-pcard-hd{background:var(--navy);padding:12px 16px;color:#fff;}
+.momentum-pcard-name{font-size:13px;font-weight:700;}
+.momentum-pcard-sku{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--mono);margin-top:2px;}
+.momentum-pcard-body{padding:4px 16px;}
+.momentum-pcard-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border2);font-size:12px;}
+.momentum-pcard-row:last-child{border-bottom:none;}
+.momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+.momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);}
+.momentum-pill{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.momentum-pill-up{background:rgba(36,233,163,.15);color:#1db88a;}
+.momentum-pill-dn{background:rgba(219,55,45,.12);color:var(--danger);}
 .pdfx-chlabel{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-subheader);}
 .pdfx-chrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;}
 .pdfx-chname{font-size:17px;font-weight:600;color:var(--navy);font-family:var(--font-subheader);}
@@ -855,8 +915,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-reviews" checked> Reviews</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-momentum" checked> Brand Momentum</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-strategy"> Event Strategy</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pd"> Prime Day</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pbdd"> PBDD</label>
@@ -1540,12 +1602,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
 
       <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">Sessions by Product</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Products still within their first 3 months of Vine enrollment are flagged — Vine can inflate session counts from reviewers rather than real shoppers during that window.</div>
-        <table class="data-table">
-          <thead><tr><th>Product</th><th>Sessions</th><th>MoM</th><th></th></tr></thead>
-          <tbody id="momentum-sessions-tbody"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
-        </table>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+          <div class="card-title" style="margin-bottom:0;">Performance by Product</div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;"><input type="checkbox" id="momentum-hide-negative-bsr"> Hide negative BSR changes</label>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Products still within their first 3 months of Vine enrollment are flagged — Vine can inflate session counts from reviewers rather than real shoppers during that window.</div>
+        <div class="momentum-cards-grid" id="momentum-cards-grid">
+          <div class="ppc-card" style="color:var(--muted);font-style:italic;grid-column:1/-1;">Loading…</div>
+        </div>
       </div>
 
       <div class="card" style="margin-bottom:16px;">
@@ -1554,26 +1618,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <table class="data-table">
           <thead><tr><th>Keyword</th><th>Product</th><th>Organic Rank</th><th>Search Volume</th></tr></thead>
           <tbody id="momentum-indexing-tbody"><tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
-        </table>
-      </div>
-
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-          <div class="card-title" style="margin-bottom:0;">Subcategory BSR by Product</div>
-          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;"><input type="checkbox" id="momentum-hide-negative-bsr"> Hide negative changes</label>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">BSR shown against its category; change is since the previous recorded value.</div>
-        <table class="data-table">
-          <thead><tr><th>Product</th><th>BSR</th><th>Subcategory BSR</th></tr></thead>
-          <tbody id="momentum-bsr-tbody"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
-        </table>
-      </div>
-
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-title">Review Velocity &amp; Quality</div>
-        <table class="data-table">
-          <thead><tr><th>Product</th><th>Reviews</th><th>Avg. Rating</th></tr></thead>
-          <tbody id="momentum-velocity-tbody"><tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
         </table>
       </div>
 
@@ -1794,7 +1838,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
     <div class="channel-tabs-row">
       <div class="channel-tabs">
-        <button class="ch-tab active" onclick="showChannel('events','ev-bss',this)">Big Spring Sale</button>
+        <button class="ch-tab active" onclick="showChannel('events','ev-strategy',this)">Strategy</button>
+        <button class="ch-tab" onclick="showChannel('events','ev-bss',this)">Big Spring Sale</button>
         <button class="ch-tab" onclick="showChannel('events','ev-pd',this)">Prime Day</button>
         <button class="ch-tab" onclick="showChannel('events','ev-pbdd',this)">Prime Big Deal Days</button>
         <button class="ch-tab" onclick="showChannel('events','ev-bfcm',this)">BFCM</button>
@@ -1805,7 +1850,80 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
     </div>
 
-    <div class="channel-page active" id="ev-bss">
+    <!-- ══ STRATEGY — ported from Skinuva's real #ev-strategy tab
+         (2026-09-04), first tab on Events. Dynamic "what's coming up
+         next" logic below (search "EVENTS STRATEGY TAB") swaps the
+         headline/dates to whichever of the 4 events is next on the
+         calendar, reusing Cosmette's own already-confirmed
+         EVENTS_SHEET_ID/EVENTS_GID (same shared, non-brand-specific
+         sheet already used by the BSS/PD/PBDD/BFCM tabs — not a new
+         gid). Static text below is the correct fallback if JS hasn't
+         run yet. -->
+    <div class="channel-page active" id="ev-strategy">
+
+      <div class="evs-hero">
+        <div>
+          <div class="evs-eyebrow">Event Strategy</div>
+          <div class="evs-headline" id="evs-event-headline">Amazon Prime Big Deal Days</div>
+          <div class="evs-dates" id="evs-event-dates">Dates TBD</div>
+        </div>
+        <div class="evs-badge">
+          <div class="evs-badge-pct">20%<span>OFF</span></div>
+          <div class="evs-badge-lbl">Promotional Strategy</div>
+          <div class="evs-badge-desc">Full catalog · Prime Exclusive Discount</div>
+        </div>
+      </div>
+
+      <div class="evs-phase lead-up">
+        <div class="evs-phase-hd">
+          <div class="evs-phase-hd-left"><span class="evs-phase-num">Phase 01</span><span class="evs-phase-title">Lead Up</span></div>
+          <span class="evs-phase-pill">Prepare</span>
+        </div>
+        <div class="evs-items">
+          <div class="evs-item"><span class="evs-item-num">01</span><div><div class="evs-item-title">Listings &amp; SEO</div><div class="evs-item-text">Refresh listing content, images, and A+ Content to ensure <strong>maximum search visibility and conversion readiness</strong> before traffic surges.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">02</span><div><div class="evs-item-title">Advertising</div><div class="evs-item-text">Gradually <strong>increase budgets 1.5–3x and bids 10%+</strong> in the 7–14 days prior to warm the algorithm and activate event-specific campaigns.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">03</span><div><div class="evs-item-title">Promotions &amp; Pricing</div><div class="evs-item-text">Finalize Prime Exclusive Discounts and <strong>confirm all deals are submitted, eligible, and approved</strong> with sufficient lead time.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">04</span><div><div class="evs-item-title">Inventory &amp; Operations</div><div class="evs-item-text">Confirm FBA stock coverage, inbound timelines, and <strong>buffer inventory levels to prevent sell-outs</strong> during peak demand.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">05</span><div><div class="evs-item-title">Creative &amp; Storefront</div><div class="evs-item-text">Upload refreshed imagery and <strong>add promotional banners and curated storefront landing pages</strong> optimized for high-traffic event conditions.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">06</span><div><div class="evs-item-title">Content Health Check</div><div class="evs-item-text" id="evs-contenthealth-text">Resolve any listing suppressions, Q&amp;A gaps, and negative review flags <strong>before traffic surges</strong> — a suppressed listing during Prime Big Deal Days is a direct missed opportunity.</div></div></div>
+        </div>
+      </div>
+
+      <div class="evs-phase during">
+        <div class="evs-phase-hd">
+          <div class="evs-phase-hd-left"><span class="evs-phase-num">Phase 02</span><span class="evs-phase-title">During</span></div>
+          <span class="evs-phase-pill">Execute</span>
+        </div>
+        <div class="evs-items">
+          <div class="evs-item"><span class="evs-item-num">01</span><div><div class="evs-item-title">Real-Time Ad Optimization</div><div class="evs-item-text"><strong>Increase budgets 2–4x and bids 20%+</strong> as CPCs rise. Reallocate spend to top performers in real time across all ad placements.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">02</span><div><div class="evs-item-title">Deal &amp; Buy Box Monitoring</div><div class="evs-item-text">Ensure all discounts are active and the <strong>Buy Box is stable</strong>. Resolve any pricing issues immediately — lost Buy Box is direct lost revenue.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">03</span><div><div class="evs-item-title">Listing &amp; Inventory Health</div><div class="evs-item-text">Monitor for suppressed listings and <strong>low-inventory alerts in real time</strong> to prevent conversion interruptions across the event window.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">04</span><div><div class="evs-item-title">Performance Tracking</div><div class="evs-item-text">Watch sessions, conversion rate, ACOS, and sell-through velocity continuously. <strong>Make decisions from live data</strong>, not post-event analysis.</div></div></div>
+        </div>
+      </div>
+
+      <div class="evs-phase lead-out">
+        <div class="evs-phase-hd">
+          <div class="evs-phase-hd-left"><span class="evs-phase-num">Phase 03</span><span class="evs-phase-title">Lead Out</span></div>
+          <span class="evs-phase-pill">Capitalize</span>
+        </div>
+        <div class="evs-items">
+          <div class="evs-item"><span class="evs-item-num">01</span><div><div class="evs-item-title">Retargeting &amp; Display</div><div class="evs-item-text">Run Sponsored Display ads to <strong>re-engage shoppers who viewed but didn't convert</strong> during the event window.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">02</span><div><div class="evs-item-title">Listing Refinement</div><div class="evs-item-text">Update keywords and creatives using <strong>what actually converted</strong> during the event — real data is the best optimization input.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">03</span><div><div class="evs-item-title">Brand Halo Expansion</div><div class="evs-item-text">Capitalize on new-to-brand traffic with <strong>cross-sell and complementary product campaigns</strong> to increase basket size.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">04</span><div><div class="evs-item-title">Inventory Replenishment</div><div class="evs-item-text">Adjust restock strategies based on <strong>post-event velocity and new customer acquisition rates</strong>.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">05</span><div><div class="evs-item-title">Review Acceleration</div><div class="evs-item-text">Activate follow-up sequences to drive <strong>organic review growth from event purchasers</strong> — the highest-quality acquisition window of the year.</div></div></div>
+          <div class="evs-item"><span class="evs-item-num">06</span><div><div class="evs-item-title">Comprehensive Reporting</div><div class="evs-item-text">Deliver clear post-event analysis — <strong>what worked, what didn't, and how to capitalize</strong> on gains for the next event cycle.</div></div></div>
+        </div>
+      </div>
+
+      <div class="evs-outlook">
+        <div class="evs-outlook-lbl">Strategic Outlook</div>
+        <div class="evs-outlook-text" id="evs-outlook-body">Prime Big Deal Days is one of the highest-traffic sales events of the year on Amazon. The brands that win invest in the 2–3 weeks prior and capitalize in the week after. <strong>Preparation, real-time agility, and disciplined follow-through are the three variables we control.</strong></div>
+      </div>
+    </div>
+
+    <div class="channel-page" id="ev-bss">
       <div class="page-hd" style="margin-bottom:4px;">
         <div><div class="page-title" style="font-size:18px;" id="bss-event-title">Big Spring Sale</div></div>
       </div>
@@ -2321,8 +2439,11 @@ function showPage(id, btn) {
   if (id === 'marketing' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
   if (id === 'marketing' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
   if (id === 'events') {
-    window._csActiveEventName = 'Big Spring Sale'; // matches the default-active ev-bss tab
-    if (typeof window.initEventReport === 'function') window.initEventReport('ev-bss');
+    // Strategy is now the default-active tab (ev-strategy) — it's
+    // self-initializing via its own DOMContentLoaded listener and has no
+    // event report data of its own, so no eager init call needed here.
+    // BSS/PD/PBDD/BFCM still lazy-load correctly via showChannel's own
+    // dispatch the moment their tab is actually clicked.
     if (typeof window._refreshEventsApproveBtn === 'function') window._refreshEventsApproveBtn();
   }
   if (id === 'inventory-external' && typeof window.initExternalReviews === 'function') window.initExternalReviews();
@@ -3679,59 +3800,90 @@ window.initAmazonSalesInternal = function () {
     const delta = Math.abs(prev - cur);
     return { improved, delta };
   }
-  function bsrTrendHtml(curValue, prevRow, field, hideNegative) {
-    const info = bsrTrendInfo(curValue, prevRow, field);
-    if (!info) return '';
-    // Hides the change number + arrow entirely for a negative (worsened)
-    // move when the checkbox is checked — the BSR value itself and its
-    // category label always stay visible regardless, only this trend
-    // span is conditional.
-    if (!info.improved && hideNegative) return '';
-    return ` <span class="bsr-trend ${info.improved?'bsr-trend-improved':'bsr-trend-worsened'}">${info.improved?'▼':'▲'} ${info.delta.toLocaleString()}</span>`;
-  }
 
   let _momentumCache = null; // fetched once, re-rendered on checkbox toggle without re-fetching
 
-  function renderBsrSection(hideNegative) {
+  function renderProductCards(hideNegative) {
     const c = _momentumCache;
-    if (!c) return;
-    const tbody = document.getElementById('momentum-bsr-tbody');
-    if (!tbody) return;
-    if (!c.skusWithData.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Keyword Tracker Summary data found.</td></tr>'; return; }
-    tbody.innerHTML = c.skusWithData.map(sku => {
+    const grid = document.getElementById('momentum-cards-grid');
+    if (!grid || !c) return;
+    if (!c.skus.length) { grid.innerHTML = '<div class="ppc-card" style="color:var(--muted);font-style:italic;grid-column:1/-1;">No product data found.</div>'; return; }
+
+    grid.innerHTML = c.skus.map(sku => {
       const asin = c.asinBySku[sku] || '';
-      const row = asin ? pickSummaryRowForAsin(c.summaryRows, asin) : null;
-      const prevRow = row ? pickPreviousSummaryRowForAsin(c.summaryRows, asin, row.date||'') : null;
       const productName = c.names.nameBySku[sku] || sku;
 
-      let bsrText = '—';
+      // Sessions + MoM
+      const sess = c.sessionsBySku[sku];
+      const sessionsHtml = sess
+        ? `${sess.value.toLocaleString()}${sess.prev != null ? ' ' + momentumMomPill(sess.value, sess.prev) : ''}`
+        : '—';
+
+      // BSR / Subcategory BSR + trend
+      const row = asin ? pickSummaryRowForAsin(c.summaryRows, asin) : null;
+      const prevRow = row ? pickPreviousSummaryRowForAsin(c.summaryRows, asin, row.date||'') : null;
+      let bsrHtml = '—';
       if (row && row.bsr) {
-        bsrText = '#' + (Number(row.bsr)||0).toLocaleString();
-        if (row.category) bsrText += ` (${escapeHtml(row.category)})`;
-        bsrText += bsrTrendHtml(row.bsr, prevRow, 'bsr', hideNegative);
+        bsrHtml = '#' + (Number(row.bsr)||0).toLocaleString() + (row.category ? ` <span style="font-weight:400;color:var(--muted);">(${escapeHtml(row.category)})</span>` : '');
+        bsrHtml += bsrTrendPill(row.bsr, prevRow, 'bsr', hideNegative);
       }
-      let subBsrText = '—';
+      let subBsrHtml = '—';
       if (row && row.subcategory_bsr) {
-        subBsrText = '#' + (Number(row.subcategory_bsr)||0).toLocaleString();
-        if (row.subcategory) subBsrText += ` (${escapeHtml(row.subcategory)})`;
-        subBsrText += bsrTrendHtml(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
+        subBsrHtml = '#' + (Number(row.subcategory_bsr)||0).toLocaleString() + (row.subcategory ? ` <span style="font-weight:400;color:var(--muted);">(${escapeHtml(row.subcategory)})</span>` : '');
+        subBsrHtml += bsrTrendPill(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
       }
-      return `<tr><td><strong>${escapeHtml(productName)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(sku)}</span></td><td>${bsrText}</td><td>${subBsrText}</td></tr>`;
+
+      // Reviews + rating
+      const rv = c.reviewStatsBySku[sku];
+      const reviewsHtml = rv ? `${rv.count.toLocaleString()} <span style="font-weight:400;color:var(--muted);">(${rv.avg.toFixed(1)} ★)</span>` : '—';
+
+      const vineFlag = sku && isWithinVineWindow(c.names.vineDateBySku[sku], c.year, c.month);
+
+      return `<div class="momentum-pcard">
+        <div class="momentum-pcard-hd">
+          <div class="momentum-pcard-name">${escapeHtml(productName)}</div>
+          <div class="momentum-pcard-sku">${escapeHtml(sku)}${vineFlag ? ' · <span style="color:var(--sand);">Vine period</span>' : ''}</div>
+        </div>
+        <div class="momentum-pcard-body">
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Sessions</span><span class="momentum-pcard-value">${sessionsHtml}</span></div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">BSR</span><span class="momentum-pcard-value">${bsrHtml}</span></div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Subcategory BSR</span><span class="momentum-pcard-value">${subBsrHtml}</span></div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Reviews</span><span class="momentum-pcard-value">${reviewsHtml}</span></div>
+        </div>
+      </div>`;
     }).join('');
   }
 
+  // MoM pill for Sessions — same up/down logic as csMomSpan but styled as
+  // a colored pill instead of plain colored text, so it "pops" per Jaclyn.
+  function momentumMomPill(curr, prev) {
+    if (!prev) return '<span class="momentum-pill" style="background:var(--bg2);color:var(--muted);">—</span>';
+    const pct = Math.round(((curr - prev) / prev) * 100);
+    if (pct === 0) return '<span class="momentum-pill" style="background:var(--bg2);color:var(--muted);">flat</span>';
+    const cls = pct > 0 ? 'momentum-pill-up' : 'momentum-pill-dn';
+    return `<span class="momentum-pill ${cls}">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span>`;
+  }
+  // Same BSR trend logic as before, restyled as a colored pill.
+  function bsrTrendPill(curValue, prevRow, field, hideNegative) {
+    const info = bsrTrendInfo(curValue, prevRow, field);
+    if (!info) return '';
+    if (!info.improved && hideNegative) return '';
+    const cls = info.improved ? 'momentum-pill-up' : 'momentum-pill-dn';
+    return ` <span class="momentum-pill ${cls}">${info.improved?'▼':'▲'} ${info.delta.toLocaleString()}</span>`;
+  }
+
   document.addEventListener('change', function (e) {
-    if (e.target && e.target.id === 'momentum-hide-negative-bsr') renderBsrSection(e.target.checked);
+    if (e.target && e.target.id === 'momentum-hide-negative-bsr') renderProductCards(e.target.checked);
   });
 
   window.initBrandMomentum = function () {
     if (window._csMomentumPromise) return window._csMomentumPromise;
     window._csMomentumPromise = (async function () {
-      const tbody = document.getElementById('momentum-sessions-tbody');
-      if (!tbody) return;
+      const grid = document.getElementById('momentum-cards-grid');
+      if (!grid) return;
       const cfg = window.SHEET_CFG;
       if (!cfg.SHEET_BUSINESS_REPORT) {
-        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Missing SHEET_BUSINESS_REPORT from SHEET_CONFIG.</td></tr>';
+        grid.innerHTML = '<div class="ppc-card" style="color:var(--muted);grid-column:1/-1;">Missing SHEET_BUSINESS_REPORT from SHEET_CONFIG.</div>';
         return;
       }
       try {
@@ -3757,27 +3909,16 @@ window.initAmazonSalesInternal = function () {
         const prevByAsin = {};
         rowsPrev.forEach(r => { prevByAsin[(r.ASIN||r.asin||'').toUpperCase()] = parseInt(r.SESSIONS||r.sessions,10) || 0; });
 
-        // ── Sessions by Product ──────────────────────────────────────
-        if (!rowsThis.length) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Business Report data for ${csMonths12Full[month-1]} ${year} yet.</td></tr>`;
-        } else {
-          const sorted = [...rowsThis].sort((a,b) => (parseInt(b.SESSIONS||b.sessions,10)||0) - (parseInt(a.SESSIONS||a.sessions,10)||0));
-          tbody.innerHTML = sorted.map(r => {
-            const asin = (r.ASIN||r.asin||'').toUpperCase();
-            const sku = names.skuByAsin[asin] || '';
-            const productName = names.nameBySku[sku] || names.nameByAsin[asin] || asin;
-            const sessions = parseInt(r.SESSIONS||r.sessions,10) || 0;
-            const prevSessions = prevByAsin[asin];
-            const momHtml = (prevSessions != null) ? csMomSpan(sessions, prevSessions) : '<span class="tp-mom-flat">—</span>';
-            const vineFlag = sku && isWithinVineWindow(names.vineDateBySku[sku], year, month);
-            return `<tr>
-              <td><strong>${escapeHtml(productName)}</strong> <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">${escapeHtml(sku)}</span></td>
-              <td>${sessions.toLocaleString()}</td>
-              <td>${momHtml}</td>
-              <td>${vineFlag ? '<span class="rank-pill rank-low" title="Within first 3 months of Vine enrollment — sessions may be inflated by reviewers, not real shoppers.">Vine period</span>' : ''}</td>
-            </tr>`;
-          }).join('');
-        }
+        // ── Sessions by SKU ────────────────────────────────────────────
+        const sessionsBySku = {};
+        rowsThis.forEach(r => {
+          const asin = (r.ASIN||r.asin||'').toUpperCase();
+          const sku = names.skuByAsin[asin];
+          if (!sku) return;
+          const value = parseInt(r.SESSIONS||r.sessions,10) || 0;
+          const prev = prevByAsin[asin];
+          sessionsBySku[sku] = { value, prev: prev != null ? prev : null };
+        });
 
         // ── KPI: Sessions (MoM) ──────────────────────────────────────
         const totalSessions = rowsThis.reduce((s,r) => s + (parseInt(r.SESSIONS||r.sessions,10)||0), 0);
@@ -3827,59 +3968,151 @@ window.initAmazonSalesInternal = function () {
         }
         setKpi('momentum-kpi-indexed', keywordsWithRank.toLocaleString(), null);
 
-        // ── Subcategory BSR by Product — cached for the checkbox
-        // toggle to re-render without re-fetching ────────────────────
+        // ── Subcategory BSR summary rows ──────────────────────────────
         const brandSlug = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
         const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv).filter(r => (r.brand||'').trim().toLowerCase() === brandSlug) : [];
-        const skusWithData = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))];
         const asinBySku = {};
         Object.entries(names.skuByAsin).forEach(([asin, sku]) => { asinBySku[sku] = asin; });
-        _momentumCache = { summaryRows, skusWithData, asinBySku, names };
-        renderBsrSection(!!document.getElementById('momentum-hide-negative-bsr')?.checked);
 
-        // ── Review Velocity & Quality (reuses the reviews fetch above,
-        // no second fetch of that sheet) ─────────────────────────────
-        const velocityTbody = document.getElementById('momentum-velocity-tbody');
+        // ── Review stats — reuses the reviews fetch above, no second
+        // fetch of that sheet. NOTE: this reviews sheet has no ASIN/SKU
+        // column (confirmed directly), only its own product_name text —
+        // matched to a SKU by substring on the product's short name,
+        // same best-effort approach the Reviews tab itself already uses
+        // since there's no reliable join key available.
         const rRows = window._csReviewsRowsCache || [];
-        if (velocityTbody) {
-          if (!rRows.length) {
-            velocityTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No review data found.</td></tr>';
-          } else {
-            const nameKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'product_name') || 'product_name';
-            const ratingKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'star_rating') || 'star_rating';
-            const statsByName = {};
-            rRows.forEach(r => {
-              const nm = (r[nameKey]||'').trim();
-              if (!nm) return;
-              if (!statsByName[nm]) statsByName[nm] = { count: 0, sum: 0 };
-              statsByName[nm].count++;
-              statsByName[nm].sum += (Number(r[ratingKey]) || 0);
-            });
-            const statEntries = Object.entries(statsByName).sort((a,b) => b[1].count - a[1].count);
-            velocityTbody.innerHTML = statEntries.length ? statEntries.map(([nm, s]) => {
-              const avg = s.count ? (s.sum/s.count) : 0;
-              return `<tr><td><strong>${escapeHtml(nm)}</strong></td><td>${s.count.toLocaleString()}</td><td>${avg.toFixed(1)} ★</td></tr>`;
-            }).join('') : '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No review data found.</td></tr>';
-
-            // ── KPI: Reviews Collected — rows tagged for the last full
-            // month specifically (same YEAR/MONTH targeting convention
-            // as the Reviews tab), not an all-time total.
-            const yearKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'year');
-            const monthKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'month');
-            let collectedCount = null;
-            if (yearKey && monthKey) {
-              collectedCount = rRows.filter(r => String(r[yearKey]||'').trim() === String(year) && String(Number(r[monthKey])||'') === String(Number(month))).length;
+        const reviewStatsBySku = {};
+        let collectedCount = null;
+        if (rRows.length) {
+          const nameKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'product_name') || 'product_name';
+          const ratingKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'star_rating') || 'star_rating';
+          const statsByReviewName = {};
+          rRows.forEach(r => {
+            const nm = (r[nameKey]||'').trim();
+            if (!nm) return;
+            if (!statsByReviewName[nm]) statsByReviewName[nm] = { count: 0, sum: 0 };
+            statsByReviewName[nm].count++;
+            statsByReviewName[nm].sum += (Number(r[ratingKey]) || 0);
+          });
+          Object.keys(names.nameBySku).forEach(sku => {
+            const shortName = (names.nameBySku[sku] || '').toLowerCase();
+            if (!shortName) return;
+            const matchName = Object.keys(statsByReviewName).find(rn => rn.toLowerCase().includes(shortName) || shortName.includes(rn.toLowerCase()));
+            if (matchName) {
+              const s = statsByReviewName[matchName];
+              reviewStatsBySku[sku] = { count: s.count, avg: s.count ? s.sum / s.count : 0 };
             }
-            setKpi('momentum-kpi-reviews', collectedCount != null ? collectedCount.toLocaleString() : rRows.length.toLocaleString(), null);
+          });
+
+          // KPI: Reviews Collected — rows tagged for the last full month
+          // specifically (same YEAR/MONTH targeting convention as the
+          // Reviews tab), not an all-time total.
+          const yearKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'year');
+          const monthKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'month');
+          if (yearKey && monthKey) {
+            collectedCount = rRows.filter(r => String(r[yearKey]||'').trim() === String(year) && String(Number(r[monthKey])||'') === String(Number(month))).length;
           }
         }
+        setKpi('momentum-kpi-reviews', collectedCount != null ? collectedCount.toLocaleString() : rRows.length.toLocaleString(), null);
+
+        // ── Consolidate + render one card per product ─────────────────
+        const skus = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))];
+        _momentumCache = { skus, asinBySku, names, summaryRows, sessionsBySku, reviewStatsBySku, year, month };
+        renderProductCards(!!document.getElementById('momentum-hide-negative-bsr')?.checked);
       } catch (err) {
         console.error('[CosmetteBrandMomentum]', err);
-        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Error loading — ' + escapeHtml(err.message||'') + '</td></tr>';
+        grid.innerHTML = '<div class="ppc-card" style="color:var(--muted);grid-column:1/-1;">Error loading — ' + escapeHtml(err.message||'') + '</div>';
       }
     })();
     return window._csMomentumPromise;
   };
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// EVENTS STRATEGY TAB — ported from Skinuva's real renderEventsStrategyTab()
+// (2026-09-04). Picks whichever of the 4 events is chronologically next
+// from today ("next" judged by typical season month/day, not an exact
+// date — Amazon doesn't announce most events' real dates until 4-6 weeks
+// out), stays "current" for 14 days past its anchor date so this doesn't
+// flip mid-event. Real dates only show once Cosmette's own Events tab has
+// a row for that year (otherwise "Dates TBD" rather than a stale/made-up
+// date). Reuses Cosmette's own already-confirmed EVENTS_SHEET_ID/GID (same
+// shared, non-brand-specific sheet the BSS/PD/PBDD/BFCM tabs already use)
+// and Cosmette's own global csIsCsv/csParseCsv/csSheetCsvUrl helpers
+// instead of Skinuva's separate local copies.
+//
+// NOT dynamic, same as Skinuva's version: the promotional badge ("20% OFF
+// / Prime Exclusive Discount"). That happens to be correct for both Prime
+// Day and Prime Big Deal Days, but there's no confirmed source for Big
+// Spring Sale's or BFCM's actual promo mechanics — flag to Jaclyn if this
+// badge should also switch per event once confirmed.
+// ══════════════════════════════════════════════════════════════════════════
+(function () {
+  const STRATEGY_EVENTS_SHEET_ID = '1NNRTRQxQl2r4XivAvH700CC39p49GD2xfZlyRNqahGA';
+  const STRATEGY_EVENTS_GID = '347530381';
+  const BUFFER_DAYS = 14; // keep showing an event as "current" this long past its anchor date
+
+  const EVENT_CALENDAR = [
+    { eventName: 'Big Spring Sale',             displayName: 'Amazon Big Spring Sale',            shortName: 'Big Spring Sale',             anchorMonth: 3,  anchorDay: 25 },
+    { eventName: 'Prime Day',                   displayName: 'Amazon Prime Day',                  shortName: 'Prime Day',                   anchorMonth: 6,  anchorDay: 23 },
+    { eventName: 'Prime Big Deal Days',         displayName: 'Amazon Prime Big Deal Days',         shortName: 'Prime Big Deal Days',         anchorMonth: 10, anchorDay: 7  },
+    { eventName: 'Black Friday & Cyber Monday', displayName: 'Amazon Black Friday & Cyber Monday', shortName: 'Black Friday & Cyber Monday', anchorMonth: 11, anchorDay: 28 },
+  ];
+
+  function relevantOccurrence(anchorMonth, anchorDay, today) {
+    const year = today.getFullYear();
+    let start = new Date(year, anchorMonth - 1, anchorDay);
+    const cutoff = new Date(start);
+    cutoff.setDate(cutoff.getDate() + BUFFER_DAYS);
+    if (cutoff < today) start = new Date(year + 1, anchorMonth - 1, anchorDay);
+    return start;
+  }
+  function pickUpcomingEvent(today) {
+    let best = null;
+    EVENT_CALENDAR.forEach(ev => {
+      const occ = relevantOccurrence(ev.anchorMonth, ev.anchorDay, today);
+      if (!best || occ < best.occ) best = Object.assign({ occ }, ev);
+    });
+    return best;
+  }
+  function fmtStrategyDate(iso) {
+    if (!iso) return '';
+    const [y,m,d] = iso.split('-').map(Number);
+    return `${csMonths12[m-1]} ${d}, ${y}`;
+  }
+
+  async function renderEventsStrategyTab() {
+    const today = new Date();
+    const upcoming = pickUpcomingEvent(today);
+    const occYear = upcoming.occ.getFullYear();
+
+    const headlineEl = document.getElementById('evs-event-headline');
+    const datesEl = document.getElementById('evs-event-dates');
+    const contentHealthEl = document.getElementById('evs-contenthealth-text');
+    const outlookEl = document.getElementById('evs-outlook-body');
+
+    if (headlineEl) headlineEl.textContent = upcoming.displayName;
+    if (contentHealthEl) {
+      contentHealthEl.innerHTML = `Resolve any listing suppressions, Q&amp;A gaps, and negative review flags <strong>before traffic surges</strong> — a suppressed listing during ${upcoming.shortName} is a direct missed opportunity.`;
+    }
+    if (outlookEl) {
+      outlookEl.innerHTML = `${upcoming.shortName} is one of the highest-traffic sales events of the year on Amazon. The brands that win invest in the 2–3 weeks prior and capitalize in the week after. <strong>Preparation, real-time agility, and disciplined follow-through are the three variables we control.</strong>`;
+    }
+
+    let datesText = 'Dates TBD';
+    try {
+      const csv = await fetch(csSheetCsvUrl(STRATEGY_EVENTS_SHEET_ID, STRATEGY_EVENTS_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      if (csIsCsv(csv)) {
+        const row = csParseCsv(csv).find(r => (r['Event Name'] || '').trim() === upcoming.eventName && String(r.year).trim() === String(occYear));
+        if (row && row.start_date && row.end_date) datesText = `${fmtStrategyDate(row.start_date)} – ${fmtStrategyDate(row.end_date)}`;
+      }
+    } catch (e) {
+      console.warn('[EventsStrategy] date lookup failed:', e.message);
+    }
+    if (datesEl) datesEl.textContent = datesText;
+  }
+
+  document.addEventListener('DOMContentLoaded', renderEventsStrategyTab);
 })();
 
 // ── Shared report-insights save/approve module ──────────────────────────
@@ -8548,6 +8781,58 @@ window.initSubscriptions = function () {
     return pages.join('');
   }
 
+  // Brand Momentum — ported from Skinside Seoul's real implementation.
+  // Restyled 2026-09-04 per Jaclyn: Sessions/BSR/Review Velocity are no
+  // longer 3 separate tables, each re-listing every product — now one
+  // card per product (.momentum-pcard), reused verbatim from the live
+  // DOM the same way Reviews' cards are (scoped CSS handles any PDF-
+  // specific tightening, no need to rebuild field by field). Page split
+  // restructured accordingly: page 1 is the product cards (the part
+  // that scales with catalog size), page 2 is Keyword Indexing + Tracking
+  // Next (fixed-size regardless of product count).
+  function buildMomentumPage1(monthYear) {
+    const kpis = ['momentum-kpi-reviews', 'momentum-kpi-indexed', 'momentum-kpi-sessions'].map(pdfxKpi);
+    const cards = Array.prototype.slice.call(document.querySelectorAll('#momentum-cards-grid .momentum-pcard'));
+    const cardsHtml = cards.length
+      ? cards.map(function (c) { return c.outerHTML; }).join('')
+      : '<div style="grid-column:1/-1;color:var(--muted);font-style:italic;font-size:12px;">No product data found.</div>';
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner">' +
+          pdfxHeaderBand(monthYear, 'Brand Momentum') +
+          '<div class="pdfx-chlabel">Brand Momentum</div>' +
+          '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span></div>' +
+          '<div class="pdfx-kpis n3">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+          '<div class="pdfx-card-title" style="margin-bottom:10px;">Performance by Product</div>' +
+          '<div class="momentum-cards-grid">' + cardsHtml + '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function buildMomentumPage2(monthYear) {
+    const indexingRows = pdfxTableRows('momentum-indexing-tbody');
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner pdfx-momentum-page2">' +
+          '<div>' +
+            pdfxHeaderBand(monthYear, 'Brand Momentum') +
+          '</div>' +
+          '<div class="pdfx-card" style="margin-bottom:0;"><div class="pdfx-card-title">Targeted Keyword Indexing Progress <span style="font-weight:400;color:var(--muted);">(Top 10)</span></div>' +
+            pdfxTableHtml(['Keyword', 'Product', 'Organic Rank', 'Search Volume'], indexingRows) +
+          '</div>' +
+          '<div class="pdfx-card" style="margin-bottom:0;">' +
+            '<div class="pdfx-card-title">What We\'re Tracking Next</div>' +
+            '<div style="font-size:11px;color:#48557a;line-height:1.6;">' +
+              '<p style="margin-bottom:6px;"><strong style="color:var(--navy);">Search-to-sale conversion by keyword</strong> — connecting which specific search terms are actually driving purchases, not just clicks or impressions.</p>' +
+              '<p style="margin-bottom:6px;"><strong style="color:var(--navy);">Review sentiment themes</strong> — categorizing what customers are actually praising or flagging in review text, beyond the star rating alone.</p>' +
+              '<p><strong style="color:var(--navy);">Competitive share of voice</strong> — how Cosmette\'s organic and sponsored presence compares against category leaders for the same target keywords.</p>' +
+            '</div>' +
+          '</div>' +
+          pdfxFooter(monthYear) +
+        '</div>' +
+      '</div>';
+  }
+
   function buildOpportunitiesPage(monthYear) {
     const kpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
     return '' +
@@ -8561,6 +8846,70 @@ window.initSubscriptions = function () {
           pdfxFooter(monthYear) +
         '</div>' +
       '</div>';
+  }
+
+  // Strategy page — ported from Skinuva's real buildStrategyPage()
+  // (2026-09-04). Static content mirroring the live #ev-strategy tab's
+  // own text (fixed playbook, not data) — colors/fonts match the live
+  // tab exactly (per-phase color coding: lead-up green, during navy,
+  // lead-out orange/warn), sizes compacted from the live page's own
+  // (26px titles, 14.5px item text) to fit one page, same deliberate
+  // tradeoff as Skinuva's version. Outlook block uses generic "events"
+  // wording rather than naming whichever specific event is next, same
+  // as Skinuva's PDF version — the live tab is dynamic, this stays
+  // static year-round.
+  const EVS_PHASE_COLORS = {
+    'lead-up':  { title: '#1db88a', pillBg: 'rgba(36,233,163,.13)', pillColor: '#1db88a' },
+    'during':   { title: 'var(--navy)', pillBg: 'var(--bg2)', pillColor: 'var(--muted)' },
+    'lead-out': { title: 'var(--warn)', pillBg: 'rgba(200,125,47,.12)', pillColor: 'var(--warn)' },
+  };
+  function pdfxStrategyItem(title, text) {
+    return '<div style="margin-bottom:6px;"><div style="font-size:10.5px;font-weight:700;color:var(--navy);margin-bottom:1px;">' + pdfxEscape(title) + '</div>' +
+      '<div style="font-size:9.5px;color:var(--muted);line-height:1.35;">' + text + '</div></div>';
+  }
+  function pdfxStrategyPhase(variant, numLabel, title, pillLabel, itemsHtml) {
+    const c = EVS_PHASE_COLORS[variant];
+    return '<div class="pdfx-card" style="margin-bottom:8px;padding:12px 14px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+        '<div><span style="font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;">' + pdfxEscape(numLabel) + '</span> ' +
+        '<span style="font-family:var(--font-subheader);font-size:15px;font-weight:700;color:' + c.title + ';">' + pdfxEscape(title) + '</span></div>' +
+        '<span style="font-size:9px;font-weight:700;text-transform:uppercase;color:' + c.pillColor + ';background:' + c.pillBg + ';border-radius:999px;padding:3px 10px;">' + pdfxEscape(pillLabel) + '</span>' +
+      '</div>' + itemsHtml + '</div>';
+  }
+  function buildStrategyPage(monthYear) {
+    const leadUp = pdfxStrategyPhase('lead-up', 'Phase 01', 'Lead Up', 'Prepare',
+      pdfxStrategyItem('Listings &amp; SEO', 'Refresh listing content, images, and A+ Content to ensure <strong>maximum search visibility and conversion readiness</strong> before traffic surges.') +
+      pdfxStrategyItem('Advertising', 'Gradually <strong>increase budgets 1.5–3x and bids 10%+</strong> in the 7–14 days prior to warm the algorithm and activate event-specific campaigns.') +
+      pdfxStrategyItem('Promotions &amp; Pricing', 'Finalize Prime Exclusive Discounts and <strong>confirm all deals are submitted, eligible, and approved</strong> with sufficient lead time.') +
+      pdfxStrategyItem('Inventory &amp; Operations', 'Confirm FBA stock coverage, inbound timelines, and <strong>buffer inventory levels to prevent sell-outs</strong> during peak demand.') +
+      pdfxStrategyItem('Creative &amp; Storefront', 'Upload refreshed imagery and <strong>add promotional banners and curated storefront landing pages</strong> optimized for high-traffic event conditions.') +
+      pdfxStrategyItem('Content Health Check', 'Resolve any listing suppressions, Q&amp;A gaps, and negative review flags <strong>before traffic surges</strong> — a suppressed listing during an event is a direct missed opportunity.')
+    );
+    const during = pdfxStrategyPhase('during', 'Phase 02', 'During', 'Execute',
+      pdfxStrategyItem('Real-Time Ad Optimization', '<strong>Increase budgets 2–4x and bids 20%+</strong> as CPCs rise. Reallocate spend to top performers in real time across all ad placements.') +
+      pdfxStrategyItem('Deal &amp; Buy Box Monitoring', 'Ensure all discounts are active and the <strong>Buy Box is stable</strong>. Resolve any pricing issues immediately — lost Buy Box is direct lost revenue.') +
+      pdfxStrategyItem('Listing &amp; Inventory Health', 'Monitor for suppressed listings and <strong>low-inventory alerts in real time</strong> to prevent conversion interruptions across the event window.') +
+      pdfxStrategyItem('Performance Tracking', 'Watch sessions, conversion rate, ACOS, and sell-through velocity continuously. <strong>Make decisions from live data</strong>, not post-event analysis.')
+    );
+    const leadOut = pdfxStrategyPhase('lead-out', 'Phase 03', 'Lead Out', 'Capitalize',
+      pdfxStrategyItem('Retargeting &amp; Display', 'Run Sponsored Display ads to <strong>re-engage shoppers who viewed but didn\u2019t convert</strong> during the event window.') +
+      pdfxStrategyItem('Listing Refinement', 'Update keywords and creatives using <strong>what actually converted</strong> during the event — real data is the best optimization input.') +
+      pdfxStrategyItem('Brand Halo Expansion', 'Capitalize on new-to-brand traffic with <strong>cross-sell and complementary product campaigns</strong> to increase basket size.') +
+      pdfxStrategyItem('Inventory Replenishment', 'Adjust restock strategies based on <strong>post-event velocity and new customer acquisition rates</strong>.') +
+      pdfxStrategyItem('Review Acceleration', 'Activate follow-up sequences to drive <strong>organic review growth from event purchasers</strong> — the highest-quality acquisition window of the year.') +
+      pdfxStrategyItem('Comprehensive Reporting', 'Deliver clear post-event analysis — <strong>what worked, what didn\u2019t, and how to capitalize</strong> on gains for the next event cycle.')
+    );
+    const outlook = '<div class="pdfx-card" style="background:rgba(36,233,163,.08);border:none;border-left:3px solid #1db88a;border-radius:6px;padding:10px 14px;margin-bottom:0;">' +
+      '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#1db88a;margin-bottom:4px;">Strategic Outlook</div>' +
+      '<div style="font-size:9.5px;color:var(--navy);line-height:1.4;">Promotional events are the highest-traffic sales windows of the year. The brands that win invest in the 2–3 weeks prior and capitalize in the week after. <strong>Preparation, real-time agility, and disciplined follow-through are the three variables we control.</strong></div>' +
+      '</div>';
+
+    return '<div class="pdfx-page"><div class="pdfx-inner">' +
+      pdfxHeaderBand(monthYear, 'Events') +
+      '<div class="pdfx-chlabel">Event Strategy</div>' +
+      leadUp + during + leadOut + outlook +
+      pdfxFooter(monthYear) +
+      '</div></div>';
   }
 
   // Event pages (Big Spring Sale / Prime Day / PBDD / BFCM) — confirmed
@@ -8609,8 +8958,10 @@ window.initSubscriptions = function () {
       const includeSections = {
         amazon:        !!document.getElementById('pdf-include-amazon')        && document.getElementById('pdf-include-amazon').checked,
         reviews:       !!document.getElementById('pdf-include-reviews')       && document.getElementById('pdf-include-reviews').checked,
+        momentum:      !!document.getElementById('pdf-include-momentum')      && document.getElementById('pdf-include-momentum').checked,
         stewardship:   !!document.getElementById('pdf-include-stewardship')   && document.getElementById('pdf-include-stewardship').checked,
         opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
+        strategy: !!document.getElementById('pdf-include-strategy') && document.getElementById('pdf-include-strategy').checked,
         bss:  !!document.getElementById('pdf-include-bss')  && document.getElementById('pdf-include-bss').checked,
         pd:   !!document.getElementById('pdf-include-pd')   && document.getElementById('pdf-include-pd').checked,
         pbdd: !!document.getElementById('pdf-include-pbdd') && document.getElementById('pdf-include-pbdd').checked,
@@ -8619,15 +8970,20 @@ window.initSubscriptions = function () {
       // Dynamic nav tabs for the PDF header band, per the doc this was
       // ported from — each core tab shows if its own checkbox is
       // checked (Sales/Reviews/Brand Stewardship/Opportunities), Events
-      // shows if any of the 4 event checkboxes is checked (Cosmette has
-      // no single unified Events checkbox the way "Strategy" was one on
-      // the reference brand).
+      // shows if Strategy OR any of the 4 event checkboxes is checked
+      // (Cosmette has no single unified Events checkbox the way
+      // "Strategy" gated the whole Events nav label on the reference
+      // brand — here Strategy is its own real content page, one of
+      // several things that can put "Events" in the nav). Brand
+      // Momentum added as its own tab too, same as Reviews — it's a
+      // distinct ch-tab on the live dashboard, not nested under Amazon.
       PDFX_NAV_TABS = [];
       if (includeSections.amazon) PDFX_NAV_TABS.push('Sales');
       if (includeSections.reviews) PDFX_NAV_TABS.push('Reviews');
+      if (includeSections.momentum) PDFX_NAV_TABS.push('Brand Momentum');
       if (includeSections.stewardship) PDFX_NAV_TABS.push('Brand Stewardship');
       if (includeSections.opportunities) PDFX_NAV_TABS.push('Opportunities');
-      if (includeSections.bss || includeSections.pd || includeSections.pbdd || includeSections.bfcm) PDFX_NAV_TABS.push('Events');
+      if (includeSections.strategy || includeSections.bss || includeSections.pd || includeSections.pbdd || includeSections.bfcm) PDFX_NAV_TABS.push('Events');
 
       // Case 8 (race conditions) — wait for real completion signals
       // (each page's own init promise), never a fixed timeout alone.
@@ -8638,6 +8994,7 @@ window.initSubscriptions = function () {
       const initPromises = [
         (includeSections.amazon        && typeof window.initAmazonSalesInternal === 'function')  ? window.initAmazonSalesInternal()  : null,
         (includeSections.reviews       && typeof window.loadCosmetteReviews === 'function')       ? window.loadCosmetteReviews()      : null,
+        (includeSections.momentum      && typeof window.initBrandMomentum === 'function')          ? window.initBrandMomentum()         : null,
         (includeSections.stewardship   && typeof window.initStewardshipInternal === 'function')  ? window.initStewardshipInternal()  : null,
         (includeSections.opportunities && typeof window.initSubscriptions === 'function')         ? window.initSubscriptions()        : null,
         (includeSections.bss  && typeof window.initEventReport === 'function') ? window.initEventReport('ev-bss')  : null,
@@ -8720,8 +9077,10 @@ window.initSubscriptions = function () {
       const pagesHtml = [
         includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
         includeSections.reviews       ? buildReviewsPages(monthYear)      : '',
+        includeSections.momentum      ? buildMomentumPage1(monthYear) + buildMomentumPage2(monthYear) : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
         includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
+        includeSections.strategy ? buildStrategyPage(monthYear) : '',
         includeSections.bss  ? buildEventPage('bss',  'Big Spring Sale',             monthYear) : '',
         includeSections.pd   ? buildEventPage('pd',   'Prime Day',                   monthYear) : '',
         includeSections.pbdd ? buildEventPage('pbdd', 'Prime Big Deal Days',         monthYear) : '',
