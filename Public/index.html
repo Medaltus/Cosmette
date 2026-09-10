@@ -2899,6 +2899,21 @@ function csFilterNewderm(rows) {
 function csFilterCosmetteHistorical(rows) {
   return rows.filter(r => r.selling_account === 'Cosmette_Historical');
 }
+// Returns Newderm-only rows for one specific (year, month), checking
+// histRows first and only falling back to syncRows if histRows has none
+// for that month — same "hist wins per month, sync only fills a genuine
+// gap" pattern already established for the Units Sold chart (see
+// csBuildUnitsChart), applied here to KPI/MoM aggregation. Never
+// combines both sources for the same month, so there's no risk of
+// double-counting an order that happens to exist in both (the same
+// overlap risk the chart logic was built to avoid).
+function csNewdermRowsForMonth(cache, year, month) {
+  const prefix = `${year}-${String(month).padStart(2,'0')}`;
+  const histMatch = csFilterNewderm(cache.histRows).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+  if (histMatch.length) return histMatch;
+  return csFilterNewderm(cache.syncRows).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+}
+
 function csAggregateMonth(rows, year, month) {
   const prefix = `${year}-${String(month).padStart(2,'0')}`;
   const filtered = rows.filter(r => csNormalizeDate(r.date).substring(0, 7) === prefix);
@@ -3473,8 +3488,8 @@ window.renderCosmettePeriod = function (key) {
     if (historicalNoteEl) historicalNoteEl.style.display = cfg.isHistorical ? '' : 'none';
 
     const curr = cfg.isPartial
-      ? csAggregateMonthThroughDay(orderRows, cfg.year, cfg.month, cfg.throughDay)
-      : csAggregateMonth(orderRows, cfg.year, cfg.month);
+      ? csAggregateMonthThroughDay(csNewdermRowsForMonth(cache, cfg.year, cfg.month), cfg.year, cfg.month, cfg.throughDay)
+      : csAggregateMonth(csNewdermRowsForMonth(cache, cfg.year, cfg.month), cfg.year, cfg.month);
     if (!curr) {
       console.warn(`[CosmetteSalesInternal] No Newderm rows found for ${cfg.year}-${cfg.month} (period: ${key}) — expected if this month predates the partnership.`);
       csSetKpiValue('kpi-total-units', '—'); csSetKpiValue('kpi-total-orders', '—');
@@ -3484,15 +3499,22 @@ window.renderCosmettePeriod = function (key) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Newderm-account data for this period.</td></tr>';
       return;
     }
-    // MoM/prior-period comparison — per instruction, for MTD/Last Full
-    // Month/Prior Month specifically, the COMPARISON baseline pulls from
-    // Cosmette's own historical seller account, not the live Newderm sync.
-    // The partnership is too new for a meaningful Newderm-vs-Newderm prior
-    // month to exist yet. Last Year has no further "prior" of its own.
+    // FIXED per Jaclyn (2026-09-04) — this used to always pull the prior
+    // period from Cosmette's own historical seller account, on the
+    // assumption there wasn't yet enough real Newderm history to compare
+    // against. That's now stale: once a real Newderm prior month exists
+    // (checked here via the same hist-then-sync lookup used for curr),
+    // MoM should compare Newderm against Newderm, never against the old
+    // pre-partnership account — comparing August's real Newderm total
+    // against July's much larger historical total was producing a
+    // misleading negative MoM despite real Newderm growth month over
+    // month. Last Year (cfg.isHistorical) is unaffected — that period is
+    // explicitly meant to show Cosmette's own prior account and has no
+    // further "prior" of its own.
     const prev = (cfg.prevYear && !cfg.isHistorical)
       ? (cfg.isPartial
-          ? csAggregateMonthThroughDay(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth, cfg.throughDay)
-          : csAggregateMonth(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth))
+          ? csAggregateMonthThroughDay(csNewdermRowsForMonth(cache, cfg.prevYear, cfg.prevMonth), cfg.prevYear, cfg.prevMonth, cfg.throughDay)
+          : csAggregateMonth(csNewdermRowsForMonth(cache, cfg.prevYear, cfg.prevMonth), cfg.prevYear, cfg.prevMonth))
       : null;
 
     let adUnitsKpi = 0, prevAdUnitsKpi = 0;
@@ -3527,12 +3549,17 @@ window.renderCosmettePeriod = function (key) {
     const tbody = document.getElementById('tp-tbody');
     if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);font-style:italic;">Error loading this period — see console.</td></tr>`;
   } finally {
-    // Units chart is period-independent — always shows the full combined
-    // Newderm + Cosmette_Historical timeline, not scoped to whatever period
-    // pill is selected. Guaranteed to re-run even if the KPI computation
-    // above returned early (no data) or threw, so switching periods can
-    // never leave the chart showing stale data from a prior period.
-    csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows);
+    // FIXED per Jaclyn (2026-09-04) — this chart used to always show
+    // the current (possibly incomplete) month regardless of which
+    // period pill was selected, so viewing "Last Month" while mid-way
+    // through the next month would still show that next month's
+    // partial data bleeding onto the end of the line. Now excludes the
+    // current month for every period except MTD specifically, where
+    // seeing the current month is the entire point of that view.
+    // Guaranteed to re-run even if the KPI computation above returned
+    // early (no data) or threw, so switching periods can never leave
+    // the chart showing stale data from a prior period.
+    csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows, key !== 'mtd');
   }
 };
 
@@ -4414,7 +4441,14 @@ window.csResolveApprovedMonth = function () {
           fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
           fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
         ]);
-        const syncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
+        // FIXED per Jaclyn (2026-09-04) — was csFilterRows (brand +
+        // validity only), which silently let Cosmette_Historical rows
+        // into the same total alongside real Newderm rows whenever
+        // SHEET_ORDERS' rolling window happens to still contain some
+        // (confirmed it does for the April–July 2026 range). MoM should
+        // only ever compare Newderm against Newderm, same principle
+        // already applied to the internal Sales page.
+        const syncRows = csIsCsv(syncCsv) ? csFilterNewderm(csFilterRows(csParseCsv(syncCsv))) : [];
         const curr = csAggregateMonth(syncRows, key.year, key.month);
         const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
         if (!curr) { showEmptyState(`This month's report isn't ready yet — check back soon.`); return; }
