@@ -2955,7 +2955,7 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, maxYear, maxM
   }
 }
 
-async function csBuildRevenueChart(canvasId, currentYear, currentMonthRevenueOverride) {
+async function csBuildRevenueChart(canvasId, currentYear, currentMonthRevenueOverride, maxMonth) {
   const cfg = window.SHEET_CFG.SHEET_REVENUE;
   if (!cfg) return;
   const revCsv = await fetch(csSheetCsvUrl(cfg.fileId, cfg.gid)).then(r => r.ok ? r.text() : '').catch(() => '');
@@ -2972,7 +2972,16 @@ async function csBuildRevenueChart(canvasId, currentYear, currentMonthRevenueOve
     const rev = parseFloat((cols[revIdx]||'').replace(/^"|"$/g,'').replace(/[$,]/g,'')) || 0;
     if (yr && mo >= 1 && mo <= 12 && yr >= 2015 && yr <= 2035) parsed.push({ year: yr, month: mo, revenue: rev });
   }
-  const now = new Date(), stopYear = now.getFullYear(), stopMonth = now.getMonth();
+  // When maxMonth is supplied (the external replica, locked to a specific
+  // Approved period) cap the current-year line at that reporting month
+  // instead of at today's real calendar date — otherwise this chart would
+  // leak a later month's data once today's real date moves past whatever
+  // month was actually approved for the report. Other callers (e.g. the
+  // Overview trend chart) don't pass maxMonth and keep the original
+  // "today" behavior.
+  const now = new Date();
+  const stopYear = maxMonth != null ? currentYear : now.getFullYear();
+  const stopMonth = maxMonth != null ? maxMonth : now.getMonth();
   const COLORS = {
     0: { border:'#24e9a3', bg:'rgba(36,233,163,0.08)', fill:true },
     1: { border:'#001f60', bg:'transparent', fill:false },
@@ -3535,8 +3544,17 @@ window.csResolveApprovedMonth = function () {
           fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
         ]);
         const syncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
-        const curr = csAggregateMonth(syncRows, key.year, key.month);
-        const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
+        // MoM % change must only ever compare Newderm-managed performance
+        // against Newderm-managed performance — same fix already applied
+        // on the internal Sales → Amazon tab (see csFilterNewderm /
+        // renderCosmettePeriod). Total Units, Total Orders, Average Order,
+        // and Units (Organic) are all derived from curr/prev below, so
+        // filtering here fixes all of them at once; Units (Ads) comes from
+        // a separate ad-summary sheet that has no Cosmette-Historical rows
+        // mixed in, so it needs no filtering (matches the internal tab).
+        const newdermRows = csFilterNewderm(syncRows);
+        const curr = csAggregateMonth(newdermRows, key.year, key.month);
+        const prev = csAggregateMonth(newdermRows, prevYear, prevMonth);
         if (!curr) { showEmptyState(`This month's report isn't ready yet — check back soon.`); return; }
 
         let adUnitsKpi = 0, prevAdUnitsKpi = 0;
@@ -3549,8 +3567,11 @@ window.csResolveApprovedMonth = function () {
         csRenderKPIs('x-', curr, prev, adUnitsKpi, prevAdUnitsKpi);
         const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===key.year && parseInt(r.month,10)===key.month) : [];
         const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
-        await csBuildTopProducts('x-tp-tbody', 'x-amazon-products-source', syncRows, key.year, key.month, adOrderRows, prevYear, prevMonth, syncRows, prevAdOrderRows);
-        csBuildRevenueChart('x-chart-amazon', key.year).catch(e => console.warn('[SalesExternal] revenue chart failed:', e.message));
+        await csBuildTopProducts('x-tp-tbody', 'x-amazon-products-source', newdermRows, key.year, key.month, adOrderRows, prevYear, prevMonth, newdermRows, prevAdOrderRows);
+        // maxMonth = key.month caps this chart at the Approved reporting
+        // period, same principle as the internal tab's chart — no data
+        // from months after the selected period should ever show.
+        csBuildRevenueChart('x-chart-amazon', key.year, undefined, key.month).catch(e => console.warn('[SalesExternal] revenue chart failed:', e.message));
       } catch (err) {
         console.error('[SalesExternal] error:', err);
         showEmptyState('Something went wrong loading this report — check back soon.');
