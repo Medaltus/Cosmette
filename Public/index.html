@@ -2852,7 +2852,7 @@ const csMonths12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
 // both Julys at the same x-position and one would silently overwrite
 // the other the moment they're merged into a single color/series. Same
 // rounded-line styling as the original chart throughout.
-function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
+function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, maxYear, maxMonth) {
   const monthMap = new Map(); // key "YYYY-MM" -> { medaltus: units|null, cosmette: units|null }
   // Current month (YYYY-MM, local) — the one month histRows won't have
   // complete data for yet, so it must come from the rolling 120-day
@@ -2886,7 +2886,18 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows) {
 
   if (!monthMap.size) return;
 
-  const sortedKeys = [...monthMap.keys()].sort();
+  // The selected dashboard period (e.g. "August 2026") is the maximum
+  // month shown — nothing after it should ever appear on the chart, even
+  // though monthMap may contain later months from the rolling sync data.
+  // "YYYY-MM" keys sort/compare correctly as plain strings since both
+  // parts are zero-padded, so a lexical <= comparison works here.
+  let sortedKeys = [...monthMap.keys()].sort();
+  if (maxYear != null && maxMonth != null) {
+    const maxKey = `${maxYear}-${String(maxMonth).padStart(2,'0')}`;
+    sortedKeys = sortedKeys.filter(key => key <= maxKey);
+  }
+  if (!sortedKeys.length) return;
+
   const labels = sortedKeys.map(key => {
     const [y,m] = key.split('-').map(Number);
     return `${csMonths12[m-1]} '${String(y).slice(2)}`;
@@ -3067,8 +3078,9 @@ window.renderCosmettePeriod = function (key) {
   const cache = window._csDataCache;
   if (!cache) { console.warn('[CosmetteSalesInternal] renderCosmettePeriod called before data loaded.'); return; }
   window._csActivePeriod = key;
+  let cfg;
   try {
-    const cfg = csBuildPeriodConfig(key);
+    cfg = csBuildPeriodConfig(key);
     const monthNames = csMonths12;
     // Current-period figures must only ever count Medaltus's own "Newderm"
     // seller account — Cosmette's own pre-partnership sales are real, but
@@ -3106,15 +3118,20 @@ window.renderCosmettePeriod = function (key) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No Newderm-account data for this period.</td></tr>';
       return;
     }
-    // MoM/prior-period comparison — per instruction, for MTD/Last Full
-    // Month/Prior Month specifically, the COMPARISON baseline pulls from
-    // Cosmette's own historical seller account, not the live Newderm sync.
-    // The partnership is too new for a meaningful Newderm-vs-Newderm prior
-    // month to exist yet. Last Year has no further "prior" of its own.
+    // MoM/prior-period comparison — per instruction, MoM % change must
+    // always compare Newderm data against Newderm data only. FIXED — this
+    // previously pulled the comparison baseline from Cosmette's own
+    // historical seller account (Cosmette_Historical), which mixed two
+    // different seller accounts into a single % change and produced
+    // misleading swings (e.g. July's real Newderm total — 1 order, 1 unit
+    // — was being compared against a much larger Cosmette_Historical
+    // figure instead). `orderRows` is already Newderm-only for every
+    // non-historical period (see above), so reuse it here for the prior
+    // period too. Last Year has no further "prior" of its own.
     const prev = (cfg.prevYear && !cfg.isHistorical)
       ? (cfg.isPartial
-          ? csAggregateMonthThroughDay(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth, cfg.throughDay)
-          : csAggregateMonth(csFilterCosmetteHistorical(cache.histRows), cfg.prevYear, cfg.prevMonth))
+          ? csAggregateMonthThroughDay(orderRows, cfg.prevYear, cfg.prevMonth, cfg.throughDay)
+          : csAggregateMonth(orderRows, cfg.prevYear, cfg.prevMonth))
       : null;
 
     let adUnitsKpi = 0, prevAdUnitsKpi = 0;
@@ -3149,12 +3166,17 @@ window.renderCosmettePeriod = function (key) {
     const tbody = document.getElementById('tp-tbody');
     if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);font-style:italic;">Error loading this period — see console.</td></tr>`;
   } finally {
-    // Units chart is period-independent — always shows the full combined
-    // Newderm + Cosmette_Historical timeline, not scoped to whatever period
-    // pill is selected. Guaranteed to re-run even if the KPI computation
+    // FIXED — the chart previously ignored the selected period entirely
+    // and always drew the full combined Newderm + Cosmette_Historical
+    // timeline through the real current month, so e.g. selecting
+    // "August 2026" would still show September's partial data. It now
+    // caps at the selected period's year/month (cfg), so the chart's
+    // right edge always matches whatever period pill is active. Falls
+    // back to no cap only if cfg never got set (csBuildPeriodConfig
+    // itself threw). Guaranteed to re-run even if the KPI computation
     // above returned early (no data) or threw, so switching periods can
     // never leave the chart showing stale data from a prior period.
-    csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows);
+    csBuildUnitsChart('chart-amazon', 'legend-amazon', cache.syncRows, cache.histRows, cfg && cfg.year, cfg && cfg.month);
   }
 };
 
