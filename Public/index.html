@@ -924,6 +924,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-momentum" checked> Brand Momentum</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-left:14px;font-size:11px;color:var(--muted);"><input type="checkbox" id="pdf-include-subscribe-save" checked> Subscribe &amp; Save</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-strategy"> Event Strategy</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pd"> Prime Day</label>
@@ -2891,6 +2892,11 @@ function csIsValidOrder(row) {
   if (status === 'cancelled' || status === 'pending') return false;
   const promos = (row.promotion_ids || '').toLowerCase();
   if (promos.includes('vine')) return false;
+  // Removal orders (order_id starts with "702") are inventory removals,
+  // not real sales — per Jaclyn (2026-09-11), excluded everywhere this
+  // filter is used (the graph, KPI cards, tables), not just the chart
+  // specifically, since they were never sales to begin with.
+  if ((row.order_id || '').trim().startsWith('702')) return false;
   return true;
 }
 function csFilterRows(rows) {
@@ -4644,22 +4650,22 @@ window.csResolveApprovedMonth = function () {
       if (prevMonth === 0) { prevMonth = 12; prevYear--; }
 
       try {
-        const summaryCsv = await fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const [summaryCsv, feesCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(STEWARDSHIP_FEES_SHEET_ID, STEWARDSHIP_FEES_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        ]);
         const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv) : [];
         if (!summaryRows.length) { console.warn('[CosmetteStewardship] Summary sheet returned no rows — check the cosmette tab exists and has data.'); return; }
+        const feesRows = csIsCsv(feesCsv) ? csParseCsv(feesCsv) : [];
 
         const findRow = (y, m) => summaryRows.find(r => parseInt(r.year,10) === y && parseInt(r.month,10) === m);
 
         // Investments chart — 13 trailing months
         const invMonths = trailingMonths(year, month, 13);
-        const investLabels = [], adsData = [], vineData = [], promosData = [];
-        invMonths.forEach(({ year: y, month: m }) => {
-          investLabels.push(`${monthAbbr[m-1]} '${String(y).slice(2)}`);
-          const row = findRow(y, m);
-          adsData.push(row ? csParseAmt(row.ads_spend) : 0);
-          vineData.push(row ? csParseAmt(row.vine_total) : 0);
-          promosData.push(row ? csParseAmt(row.promos_total) : 0);
-        });
+        const investLabels = invMonths.map(({year: y, month: m}) => `${monthAbbr[m-1]} '${String(y).slice(2)}`);
+        const adsData = invMonths.map(({year: y, month: m}) => { const row = findRow(y, m); return row ? csParseAmt(row.ads_spend) : 0; });
+        const vineData = invMonths.map(({year: y, month: m}) => { const row = findRow(y, m); return row ? csParseAmt(row.vine_total) : 0; });
+        const promosData = invMonths.map(({year: y, month: m}) => { const row = findRow(y, m); return row ? csParseAmt(row.promos_total) : 0; });
 
         // Ad Impressions chart — Jan-Dec, this year vs last year
         const impMonthNums = [1,2,3,4,5,6,7,8,9,10,11,12];
@@ -4719,8 +4725,6 @@ window.csResolveApprovedMonth = function () {
         // already established for every other "our performance" figure
         // on this dashboard (see the MoM fix from 2026-09-04).
         try {
-          const feesCsv = await fetch(csSheetCsvUrl(STEWARDSHIP_FEES_SHEET_ID, STEWARDSHIP_FEES_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-          const feesRows = csIsCsv(feesCsv) ? csParseCsv(feesCsv) : [];
           const sumFeesForMonth = (y, m) => {
             const prefix = `${y}-${String(m).padStart(2,'0')}`;
             return feesRows
@@ -5950,14 +5954,10 @@ window.initSubscriptions = function () {
         const findRow = (y, m) => summaryRows.find(r => parseInt(r.year,10) === y && parseInt(r.month,10) === m);
 
         const invMonths = trailingMonths(year, month, 13);
-        const investLabels = [], adsData = [], vineData = [], promosData = [];
-        invMonths.forEach(({ year: y, month: m }) => {
-          investLabels.push(`${csMonths12[m-1]} '${String(y).slice(2)}`);
-          const row = findRow(y, m);
-          adsData.push(row ? csParseAmt(row.ads_spend) : 0);
-          vineData.push(row ? csParseAmt(row.vine_total) : 0);
-          promosData.push(row ? csParseAmt(row.promos_total) : 0);
-        });
+        const investLabels = invMonths.map(({year: y, month: m}) => `${csMonths12[m-1]} '${String(y).slice(2)}`);
+        const adsData = invMonths.map(({year: y, month: m}) => { const row = findRow(y, m); return row ? csParseAmt(row.ads_spend) : 0; });
+        const vineData = invMonths.map(({year: y, month: m}) => { const row = findRow(y, m); return row ? csParseAmt(row.vine_total) : 0; });
+        const promosData = invMonths.map(({year: y, month: m}) => { const row = findRow(y, m); return row ? csParseAmt(row.promos_total) : 0; });
 
         const impMonthNums = [1,2,3,4,5,6,7,8,9,10,11,12];
         const impLabels = impMonthNums.map(m => csMonths12[m-1]);
@@ -8977,15 +8977,20 @@ window.initSubscriptions = function () {
       '</div>';
   }
 
-  function buildOpportunitiesPage(monthYear) {
-    const kpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
+  function buildOpportunitiesPage(monthYear, includeSubscribeSave) {
+    const subscribeSaveHtml = includeSubscribeSave
+      ? (function () {
+          const kpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
+          return '<div class="pdfx-chlabel">Subscribe &amp; Save</div>' +
+            '<div class="pdfx-kpis n2" style="margin-top:6px;">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+            '<div class="pdfx-card"><div class="pdfx-card-title">Active Subscriptions by Month</div>' + pdfxChartBlock('_snsChart') + '</div>';
+        })()
+      : '';
     return '' +
       '<div class="pdfx-page">' +
         '<div class="pdfx-inner">' +
           pdfxHeaderBand(monthYear, 'Opportunities') +
-          '<div class="pdfx-chlabel">Subscribe &amp; Save</div>' +
-          '<div class="pdfx-kpis n2" style="margin-top:6px;">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
-          '<div class="pdfx-card"><div class="pdfx-card-title">Active Subscriptions by Month</div>' + pdfxChartBlock('_snsChart') + '</div>' +
+          subscribeSaveHtml +
           pdfxOpportunityCardsBlock() +
           pdfxFooter(monthYear) +
         '</div>' +
@@ -9105,6 +9110,7 @@ window.initSubscriptions = function () {
         momentum:      !!document.getElementById('pdf-include-momentum')      && document.getElementById('pdf-include-momentum').checked,
         stewardship:   !!document.getElementById('pdf-include-stewardship')   && document.getElementById('pdf-include-stewardship').checked,
         opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
+        subscribeSave: !!document.getElementById('pdf-include-subscribe-save') && document.getElementById('pdf-include-subscribe-save').checked,
         strategy: !!document.getElementById('pdf-include-strategy') && document.getElementById('pdf-include-strategy').checked,
         bss:  !!document.getElementById('pdf-include-bss')  && document.getElementById('pdf-include-bss').checked,
         pd:   !!document.getElementById('pdf-include-pd')   && document.getElementById('pdf-include-pd').checked,
@@ -9140,7 +9146,7 @@ window.initSubscriptions = function () {
         (includeSections.reviews       && typeof window.loadCosmetteReviews === 'function')       ? window.loadCosmetteReviews()      : null,
         (includeSections.momentum      && typeof window.initBrandMomentum === 'function')          ? window.initBrandMomentum()         : null,
         (includeSections.stewardship   && typeof window.initStewardshipInternal === 'function')  ? window.initStewardshipInternal()  : null,
-        (includeSections.opportunities && typeof window.initSubscriptions === 'function')         ? window.initSubscriptions()        : null,
+        (includeSections.opportunities && includeSections.subscribeSave && typeof window.initSubscriptions === 'function') ? window.initSubscriptions() : null,
         (includeSections.bss  && typeof window.initEventReport === 'function') ? window.initEventReport('ev-bss')  : null,
         (includeSections.pd   && typeof window.initEventReport === 'function') ? window.initEventReport('ev-pd')   : null,
         (includeSections.pbdd && typeof window.initEventReport === 'function') ? window.initEventReport('ev-pbdd') : null,
@@ -9181,12 +9187,13 @@ window.initSubscriptions = function () {
       // otherwise this polls the full 12s waiting on a chart that was
       // never going to render because its page got excluded.
       const chartsBySection = {
-        amazon: ['_amazonChart'], stewardship: ['_investChart', '_impressChart'], opportunities: ['_snsChart'],
+        amazon: ['_amazonChart'], stewardship: ['_investChart', '_impressChart'],
         bss: ['_csbssTopSellersChart'], pd: ['_cspdTopSellersChart'], pbdd: ['_cspbddTopSellersChart'], bfcm: ['_csbfcmTopSellersChart'],
       };
       const expectedCharts = Object.keys(chartsBySection)
         .filter(sec => includeSections[sec])
         .reduce((arr, sec) => arr.concat(chartsBySection[sec]), []);
+      if (includeSections.opportunities && includeSections.subscribeSave) expectedCharts.push('_snsChart');
       const pollStart = Date.now();
       while (Date.now() - pollStart < 12000 && expectedCharts.some(v => !window[v])) {
         await new Promise(r => setTimeout(r, 150));
@@ -9223,7 +9230,7 @@ window.initSubscriptions = function () {
         includeSections.reviews       ? buildReviewsPages(monthYear)      : '',
         includeSections.momentum      ? buildMomentumProductsPages(monthYear) + buildMomentumPage2(monthYear) : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
-        includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
+        includeSections.opportunities ? buildOpportunitiesPage(monthYear, includeSections.subscribeSave) : '',
         includeSections.strategy ? buildStrategyPage(monthYear) : '',
         includeSections.bss  ? buildEventPage('bss',  'Big Spring Sale',             monthYear) : '',
         includeSections.pd   ? buildEventPage('pd',   'Prime Day',                   monthYear) : '',
