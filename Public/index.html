@@ -766,6 +766,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .momentum-pill{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;}
 .momentum-pill-up{background:rgba(36,233,163,.15);color:#1db88a;}
 .momentum-pill-dn{background:rgba(219,55,45,.12);color:var(--danger);}
+
+/* Ad Spend by Type (SP/SB/SD) — ported from évolis, 2026-09-11. Chart
+   fixed-width, table takes remaining space, wraps to stacked only if
+   the container gets too narrow for both. */
+.adtype-row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+.adtype-chart-wrap{flex:0 0 280px;width:280px;height:220px;position:relative;}
+.adtype-table-wrap{flex:1;min-width:280px;}
+.adtype-note{background:var(--bg2);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--muted);margin-top:10px;}
 /* PDF-only tightening for Brand Momentum's product cards — per Jaclyn
    (2026-09-11), pages were running too tall (Case 6 in the playbook:
    total rendered height past the ~2112px threshold distorts the whole
@@ -1378,6 +1386,20 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <thead><tr><th>Channel</th><th>Ad Spend</th><th>Ad Sales</th><th>Units</th><th>Total Orders</th><th>Revenue</th><th>AOV</th></tr></thead>
         <tbody id="ov-channel-breakdown-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
       </table>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Ad Spend by Type</div>
+      <div class="adtype-row">
+        <div class="adtype-chart-wrap"><canvas id="ov-adtype-chart"></canvas></div>
+        <div class="adtype-table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Ad Type</th><th># Campaigns</th><th>ACOS</th><th>Spend</th><th>Sales</th></tr></thead>
+            <tbody id="ov-adtype-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="adtype-note" id="ov-adtype-note" style="display:none;"></div>
     </div>
 
     <div class="card" style="margin-bottom:20px;">
@@ -2326,6 +2348,20 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
 
       <div class="ppc-card">
+        <div class="ppc-card-title">Ad Spend by Type</div>
+        <div class="adtype-row">
+          <div class="adtype-chart-wrap"><canvas id="ppc-adtype-chart"></canvas></div>
+          <div class="adtype-table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Ad Type</th><th># Campaigns</th><th>ACOS</th><th>Spend</th><th>Sales</th></tr></thead>
+              <tbody id="ppc-adtype-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="adtype-note" id="ppc-adtype-note" style="display:none;"></div>
+      </div>
+
+      <div class="ppc-card">
         <div class="ppc-card-title">Product Performance — Last Month</div>
         <div style="overflow-x:auto;">
           <table class="data-table">
@@ -2932,6 +2968,74 @@ function csFilterNewderm(rows) {
 function csFilterCosmetteHistorical(rows) {
   return rows.filter(r => r.selling_account === 'Cosmette_Historical');
 }
+
+// Ad Spend by Type (SP/SB/SD) — ported from évolis, 2026-09-11. Reused
+// identically on Overview and PPC (same brand-wide breakdown on both —
+// SHEET_AD_ORDERS, the ASIN-level sheet, has no SP/SB/SD split to build
+// a per-product version from). NOT CONFIRMED for Cosmette: whether
+// SHEET_ADVERTISING's sp_*/sb_*/sd_* columns (15 total) actually exist
+// with real data — Cosmette's code never referenced these before this
+// feature, so this runs on the same assumption évolis's own build
+// started from, gracefully defaulting to 0 if a field is missing. If
+// Sponsored Brands/Display show a permanent 0 here, confirm directly
+// whether that's real (Cosmette genuinely doesn't run those campaign
+// types) or just unbuilt ingestion — those look identical from this
+// chart alone.
+function csRenderAdTypeCard(row, canvasId, tbodyId, noteId, chartVarKey) {
+  const spSpend = row ? csParseAmt(row.sp_spend) : 0, spSales = row ? csParseAmt(row.sp_sales) : 0;
+  const sbSpend = row ? csParseAmt(row.sb_spend) : 0, sbSales = row ? csParseAmt(row.sb_sales) : 0;
+  const sdSpend = row ? csParseAmt(row.sd_spend) : 0, sdSales = row ? csParseAmt(row.sd_sales) : 0;
+  const totalSpend = spSpend + sbSpend + sdSpend;
+
+  const canvas = document.getElementById(canvasId);
+  if (canvas) {
+    if (window[chartVarKey]) { window[chartVarKey].destroy(); window[chartVarKey] = null; }
+    window[chartVarKey] = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Sponsored Products', 'Sponsored Brands', 'Sponsored Display'],
+        datasets: [{ data: [spSpend, sbSpend, sdSpend], backgroundColor: ['#001f60', '#24e9a3', '#c87d2f'], borderWidth: 0 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${(ctx.parsed||0).toLocaleString(undefined,{maximumFractionDigits:0})}` } },
+        },
+      },
+    });
+  }
+
+  const tbody = document.getElementById(tbodyId);
+  if (tbody) {
+    const rowsHtml = [
+      { label: 'Sponsored Products', spend: spSpend, sales: spSales, campaigns: row ? parseInt(row.sp_campaigns_running,10)||0 : 0, acos: row ? parseFloat(row.sp_acos)||0 : 0 },
+      { label: 'Sponsored Brands',   spend: sbSpend, sales: sbSales, campaigns: row ? parseInt(row.sb_campaigns_running,10)||0 : 0, acos: row ? parseFloat(row.sb_acos)||0 : 0 },
+      { label: 'Sponsored Display',  spend: sdSpend, sales: sdSales, campaigns: row ? parseInt(row.sd_campaigns_running,10)||0 : 0, acos: row ? parseFloat(row.sd_acos)||0 : 0 },
+    ].map(r => `<tr>
+      <td>${r.label}</td>
+      <td>${r.campaigns.toLocaleString()}</td>
+      <td>${r.acos > 0 ? r.acos.toFixed(1)+'%' : '<span style="color:var(--muted);">—</span>'}</td>
+      <td>$${r.spend.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+      <td>$${r.sales.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+    </tr>`).join('');
+    tbody.innerHTML = rowsHtml;
+  }
+
+  const noteEl = document.getElementById(noteId);
+  if (noteEl) {
+    if (totalSpend === 0) {
+      noteEl.style.display = 'block';
+      noteEl.textContent = 'No ad spend recorded for this period yet.';
+    } else if (spSpend > 0 && sbSpend === 0 && sdSpend === 0) {
+      noteEl.style.display = 'block';
+      noteEl.textContent = 'ℹ 100% Sponsored Products this period — no active Sponsored Brands or Sponsored Display spend.';
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+}
+
 // Returns Newderm-only rows for one specific (year, month), checking
 // histRows first and only falling back to syncRows if histRows has none
 // for that month — same "hist wins per month, sync only fills a genuine
@@ -5513,6 +5617,7 @@ window.initSubscriptions = function () {
     // directly (spend/acos columns), same month-bucketed convention
     // already used for ad_units on the Sales page.
     const adRowCurr = cache.adRows.find(r => parseInt(r.year,10) === refYear && parseInt(r.month,10) === refMonth);
+    csRenderAdTypeCard(adRowCurr, 'ov-adtype-chart', 'ov-adtype-tbody', 'ov-adtype-note', '_csOvAdTypeChart');
     const adRowPrev = cache.adRows.find(r => parseInt(r.year,10) === prevYear && parseInt(r.month,10) === prevMonth);
     const adSpend = adRowCurr ? csParseAmt(adRowCurr.spend) : 0;
     const adSpendPrev = adRowPrev ? csParseAmt(adRowPrev.spend) : null;
@@ -6833,6 +6938,11 @@ window.initSubscriptions = function () {
       ? computeMetrics(cfg.prevYear, cfg.prevMonth, cfg.isPartial, cfg.throughDay) // same throughDay cutoff for apples-to-apples MTD comparison
       : null;
     const prevForBadge = (periodKey === 'lastFull' && prev && prev.hasAnyData) ? prev : null;
+
+    // Ad Spend by Type — reuses cache.adSummaryRows, already fetched for
+    // the KPI cards above; no new data source.
+    const adTypeRow = cache.adSummaryRows.find(r => parseInt(r.year,10) === cfg.year && parseInt(r.month,10) === cfg.month);
+    csRenderAdTypeCard(adTypeRow, 'ppc-adtype-chart', 'ppc-adtype-tbody', 'ppc-adtype-note', '_csPpcAdTypeChart');
 
     // MTD gets its own comparison, not just blank — per Jaclyn directly.
     // Total Sales is real order-level data (day-granular), so `prev`
