@@ -757,7 +757,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .momentum-pcard-name{font-size:14px;font-weight:700;}
 .momentum-pcard-sku{font-size:10.5px;color:rgba(255,255,255,.6);font-family:var(--mono);}
 .momentum-pcard-body{padding:0;display:flex;}
-.momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:26px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
+.momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:42px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
 .momentum-pcard-row:last-child{border-right:none;}
 .momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
 .momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);font-size:13px;}
@@ -766,7 +766,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .momentum-pill-dn{background:rgba(219,55,45,.12);color:var(--danger);}
 .momentum-tracking-card{background:var(--navy);border-radius:var(--radius);padding:20px 24px;}
 .momentum-tracking-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;}
-.momentum-tracking-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.momentum-tracking-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
 .momentum-tracking-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px 16px;}
 .momentum-tracking-item-title{font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;}
 .momentum-tracking-item-text{font-size:11.5px;color:rgba(255,255,255,.65);line-height:1.55;}
@@ -1627,7 +1627,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         </table>
       </div>
 
-      <div class="momentum-tracking-card">
+      <div class="momentum-tracking-card" style="margin-top:22px;">
         <div class="momentum-tracking-title">What We're Tracking Next</div>
         <div class="momentum-tracking-grid">
           <div class="momentum-tracking-item">
@@ -3878,10 +3878,11 @@ window.initAmazonSalesInternal = function () {
       // Personal Care overall) removed.
       const row = asin ? pickSummaryRowForAsin(c.summaryRows, asin) : null;
       const prevRow = row ? pickPreviousSummaryRowForAsin(c.summaryRows, asin, row.date||'') : null;
-      let subBsrHtml = '—';
+      let subBsrValueHtml = '—', subBsrCategoryHtml = '';
       if (row && row.subcategory_bsr) {
-        subBsrHtml = '#' + (Number(row.subcategory_bsr)||0).toLocaleString() + (row.subcategory ? ` <span style="font-weight:400;color:var(--muted);">(${escapeHtml(row.subcategory)})</span>` : '');
-        subBsrHtml += bsrTrendPill(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
+        subBsrValueHtml = '#' + (Number(row.subcategory_bsr)||0).toLocaleString();
+        subBsrValueHtml += bsrTrendPill(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
+        if (row.subcategory) subBsrCategoryHtml = `<div style="font-weight:400;color:var(--muted);font-size:10.5px;margin-top:2px;">${escapeHtml(row.subcategory)}</div>`;
       }
 
       // Organic Keywords (count with a real organic rank) + % change,
@@ -3907,7 +3908,7 @@ window.initAmazonSalesInternal = function () {
         <div class="momentum-pcard-body">
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Sessions</span><span class="momentum-pcard-value">${sessionsHtml}</span></div>
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Organic Keywords</span><span class="momentum-pcard-value">${organicKwHtml}</span></div>
-          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Subcategory BSR</span><span class="momentum-pcard-value">${subBsrHtml}</span></div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Subcategory BSR</span><span class="momentum-pcard-value">${subBsrValueHtml}</span>${subBsrCategoryHtml}</div>
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Reviews</span><span class="momentum-pcard-value">${reviewsHtml}</span></div>
         </div>
       </div>`;
@@ -8926,8 +8927,11 @@ window.initSubscriptions = function () {
         '<div style="color:var(--muted);font-style:italic;font-size:12px;">No product data found.</div>' +
         '</div></div>';
     }
-    const half = Math.ceil(cards.length / 2);
-    const firstHalf = cards.slice(0, half), secondHalf = cards.slice(half);
+    // Fixed at 4 products on the first page specifically (not half the
+    // total) — per Jaclyn (2026-09-11), even the roughly-half split was
+    // still too tight with the increased card height.
+    const firstPageCount = 4;
+    const firstHalf = cards.slice(0, firstPageCount), secondHalf = cards.slice(firstPageCount);
 
     const page1 = '<div class="pdfx-page"><div class="pdfx-inner">' +
       pdfxHeaderBand(monthYear, 'Brand Momentum') +
@@ -8960,7 +8964,7 @@ window.initSubscriptions = function () {
           '<div class="pdfx-card" style="margin-bottom:0;"><div class="pdfx-card-title">Targeted Keyword Indexing Progress <span style="font-weight:400;color:var(--muted);">(Top 10)</span></div>' +
             pdfxTableHtml(['Keyword', 'Product', 'Organic Rank', 'Search Volume'], indexingRows) +
           '</div>' +
-          '<div class="momentum-tracking-card" style="margin-bottom:0;">' +
+          '<div class="momentum-tracking-card" style="margin-bottom:0;margin-top:22px;">' +
             '<div class="momentum-tracking-title">What We\'re Tracking Next</div>' +
             '<div class="momentum-tracking-grid">' +
               '<div class="momentum-tracking-item"><div class="momentum-tracking-item-title">Search-to-Sale Conversion</div><div class="momentum-tracking-item-text">Connecting which specific search terms are actually driving purchases, not just clicks or impressions.</div></div>' +
