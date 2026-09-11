@@ -752,26 +752,30 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    product header; metric rows below with MoM/trend made visually
    prominent via colored pills rather than plain inline text. */
 .momentum-cards-grid{display:grid;grid-template-columns:1fr;gap:28px;}
-.momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.momentum-pcard-hd{background:var(--navy);padding:12px 18px;color:#fff;display:flex;align-items:baseline;gap:8px;}
-.momentum-pcard-name{font-size:14px;font-weight:700;}
-.momentum-pcard-sku{font-size:10.5px;color:rgba(255,255,255,.6);font-family:var(--mono);}
-.momentum-pcard-body{padding:0;display:flex;}
-.momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:42px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
-/* PDF-only tightening for Brand Momentum's product cards — per Jaclyn
-   (2026-09-11), the page was running too tall (Case 6 in the playbook:
-   total rendered height past the ~2112px threshold distorts the whole
-   page during capture, including the logo — not a logo-specific bug).
-   Live dashboard spacing above stays untouched; this only applies
-   inside the PDF via the .pdfx-momentum-tight wrapper. */
-.pdfx-momentum-tight .momentum-cards-grid{gap:14px;}
-.pdfx-momentum-tight .momentum-pcard-row{padding:18px 20px;}
-.momentum-pcard-row:last-child{border-right:none;}
-.momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
-.momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);font-size:13px;}
-.momentum-pill{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.momentum-pcard{background:var(--white);border:1.5px solid var(--navy);border-radius:var(--radius);overflow:hidden;}
+.momentum-pcard-hd{background:var(--navy);padding:14px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.momentum-pcard-name{font-size:16px;font-weight:600;}
+.momentum-pcard-rating{display:flex;align-items:center;gap:6px;font-size:13px;}
+.momentum-pcard-rating-stars{color:#f5a623;letter-spacing:1px;}
+.momentum-pcard-rating-num{color:var(--green);font-weight:700;}
+.momentum-pcard-body{padding:26px 20px;display:flex;justify-content:space-between;}
+.momentum-pcard-row{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;text-align:center;}
+.momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+.momentum-pcard-value{font-weight:700;color:var(--navy);font-size:26px;font-family:var(--font-subheader);line-height:1;}
+.momentum-pcard-subcategory{font-size:11px;color:var(--muted);}
+.momentum-pill{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap;}
 .momentum-pill-up{background:rgba(36,233,163,.15);color:#1db88a;}
 .momentum-pill-dn{background:rgba(219,55,45,.12);color:var(--danger);}
+/* PDF-only tightening for Brand Momentum's product cards — per Jaclyn
+   (2026-09-11), pages were running too tall (Case 6 in the playbook:
+   total rendered height past the ~2112px threshold distorts the whole
+   page during capture, including the logo — not a logo-specific bug).
+   The redesigned card above is already more compact than the previous
+   version, but this still trims a bit further for the PDF specifically.
+   Live dashboard spacing stays untouched; only applies inside the PDF
+   via the .pdfx-momentum-tight wrapper. */
+.pdfx-momentum-tight .momentum-cards-grid{gap:14px;}
+.pdfx-momentum-tight .momentum-pcard-body{padding:16px 20px;}
 .momentum-tracking-card{background:var(--navy);border-radius:var(--radius);padding:20px 24px;}
 .momentum-tracking-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;}
 .momentum-tracking-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
@@ -3872,6 +3876,14 @@ window.initAmazonSalesInternal = function () {
 
   let _momentumCache = null; // fetched once, re-rendered on checkbox toggle without re-fetching
 
+  function reviewStarsHalfHtml(rating) {
+    const r = Math.max(0, Math.min(5, Number(rating) || 0));
+    const full = Math.floor(r);
+    const half = (r - full) >= 0.25 && (r - full) < 0.75 ? 1 : 0;
+    const roundedUp = (r - full) >= 0.75 ? 1 : 0;
+    return '★'.repeat(full + roundedUp) + (half ? '½' : '');
+  }
+
   function renderProductCards(hideNegative) {
     const c = _momentumCache;
     const grid = document.getElementById('momentum-cards-grid');
@@ -3884,27 +3896,27 @@ window.initAmazonSalesInternal = function () {
 
       // Sessions + MoM
       const sess = c.sessionsBySku[sku];
-      const sessionsHtml = sess
-        ? `${sess.value.toLocaleString()}${sess.prev != null ? ' ' + momentumMomPill(sess.value, sess.prev) : ''}`
-        : '—';
+      const sessionsMomHtml = sess && sess.prev != null ? momentumMomPill(sess.value, sess.prev) : '';
+      const sessionsHtml = sess ? sess.value.toLocaleString() : '—';
 
       // Subcategory BSR only, per Jaclyn (2026-09-11) — BSR (Beauty &
-      // Personal Care overall) removed.
+      // Personal Care overall) removed. Labeled "BSR" to match the
+      // reference styling exactly, even though the value shown is
+      // subcategory-specific.
       const row = asin ? pickSummaryRowForAsin(c.summaryRows, asin) : null;
       const prevRow = row ? pickPreviousSummaryRowForAsin(c.summaryRows, asin, row.date||'') : null;
-      let subBsrValueHtml = '—', subBsrCategoryHtml = '';
+      let subBsrValueHtml = '—', subBsrMomHtml = '', subBsrCategoryHtml = '';
       if (row && row.subcategory_bsr) {
         subBsrValueHtml = '#' + (Number(row.subcategory_bsr)||0).toLocaleString();
-        subBsrValueHtml += bsrTrendPill(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
-        if (row.subcategory) subBsrCategoryHtml = `<div style="font-weight:400;color:var(--muted);font-size:10.5px;margin-top:2px;">${escapeHtml(row.subcategory)}</div>`;
+        subBsrMomHtml = bsrTrendPill(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
+        if (row.subcategory) subBsrCategoryHtml = `<div class="momentum-pcard-subcategory">${escapeHtml(row.subcategory)}</div>`;
       }
 
       // Organic Keywords (count with a real organic rank) + % change,
       // styled with the same pill as Sessions per Jaclyn (2026-09-11).
       const okw = c.organicKwBySku[sku];
-      const organicKwHtml = okw
-        ? `${okw.value.toLocaleString()}${okw.prev != null ? ' ' + momentumMomPill(okw.value, okw.prev) : ''}`
-        : '—';
+      const organicKwMomHtml = okw && okw.prev != null ? momentumMomPill(okw.value, okw.prev) : '';
+      const organicKwHtml = okw ? okw.value.toLocaleString() : '—';
 
       // Reviews — total row count matching this product's ASIN on the
       // reviews sheet, per Jaclyn (2026-09-11) — not a name-substring
@@ -3912,17 +3924,25 @@ window.initAmazonSalesInternal = function () {
       const rv = c.reviewCountByAsin[asin];
       const reviewsHtml = rv != null ? rv.toLocaleString() : '—';
 
+      // Average rating — shown as a star badge in the header, per the
+      // 2026-09-11 restyle, replacing the earlier inline "(4.7 ★)" next
+      // to the review count in the body.
+      const avgRating = c.reviewAvgByAsin[asin];
+      const ratingBadgeHtml = avgRating != null
+        ? `<div class="momentum-pcard-rating"><span class="momentum-pcard-rating-stars">${reviewStarsHalfHtml(avgRating)}</span><span class="momentum-pcard-rating-num">${avgRating.toFixed(1)}</span></div>`
+        : '';
+
       const vineFlag = sku && isWithinVineWindow(c.names.vineDateBySku[sku], c.year, c.month);
 
       return `<div class="momentum-pcard">
         <div class="momentum-pcard-hd">
-          <div class="momentum-pcard-name">${escapeHtml(productName)}</div>
-          <div class="momentum-pcard-sku">${escapeHtml(sku)}${vineFlag ? ' · <span style="color:var(--sand);">Vine period</span>' : ''}</div>
+          <div class="momentum-pcard-name">${escapeHtml(productName)}${vineFlag ? ' <span style="color:var(--sand);font-size:11px;font-weight:400;">· Vine period</span>' : ''}</div>
+          ${ratingBadgeHtml}
         </div>
         <div class="momentum-pcard-body">
-          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Sessions</span><span class="momentum-pcard-value">${sessionsHtml}</span></div>
-          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Organic Keywords</span><span class="momentum-pcard-value">${organicKwHtml}</span></div>
-          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Subcategory BSR</span><span class="momentum-pcard-value">${subBsrValueHtml}</span>${subBsrCategoryHtml}</div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Sessions</span><span class="momentum-pcard-value">${sessionsHtml}</span>${sessionsMomHtml}</div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Organic Keywords</span><span class="momentum-pcard-value">${organicKwHtml}</span>${organicKwMomHtml}</div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">BSR</span><span class="momentum-pcard-value">${subBsrValueHtml}</span>${subBsrMomHtml}${subBsrCategoryHtml}</div>
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Reviews</span><span class="momentum-pcard-value">${reviewsHtml}</span></div>
         </div>
       </div>`;
@@ -4080,13 +4100,18 @@ window.initAmazonSalesInternal = function () {
         // key, replacing the earlier best-effort name-substring match.
         const rRows = window._csReviewsRowsCache || [];
         const reviewCountByAsin = {};
+        const reviewAvgByAsin = {};
         if (rRows.length) {
           const asinKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'asin') || 'asin';
+          const ratingKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'star_rating') || 'star_rating';
+          const sumByAsin = {};
           rRows.forEach(r => {
             const a = (r[asinKey] || '').trim().toUpperCase();
             if (!a) return;
             reviewCountByAsin[a] = (reviewCountByAsin[a] || 0) + 1;
+            sumByAsin[a] = (sumByAsin[a] || 0) + (Number(r[ratingKey]) || 0);
           });
+          Object.keys(reviewCountByAsin).forEach(a => { reviewAvgByAsin[a] = sumByAsin[a] / reviewCountByAsin[a]; });
         }
         // KPI: Reviews Collected — per Jaclyn (2026-09-11), the TOTAL
         // review count for the whole catalog (not scoped to one month),
@@ -4114,7 +4139,7 @@ window.initAmazonSalesInternal = function () {
         // out of Brand Momentum's per-product cards entirely.
         const skus = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))]
           .filter(sku => names.skuTypeBySku[sku] !== 'BUNDLE');
-        _momentumCache = { skus, asinBySku, names, summaryRows, sessionsBySku, organicKwBySku, reviewCountByAsin, year, month };
+        _momentumCache = { skus, asinBySku, names, summaryRows, sessionsBySku, organicKwBySku, reviewCountByAsin, reviewAvgByAsin, year, month };
         renderProductCards(!!document.getElementById('momentum-hide-negative-bsr')?.checked);
       } catch (err) {
         console.error('[CosmetteBrandMomentum]', err);
