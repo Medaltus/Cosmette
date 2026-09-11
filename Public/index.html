@@ -752,11 +752,11 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    product header; metric rows below with MoM/trend made visually
    prominent via colored pills rather than plain inline text. */
 .momentum-cards-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-.momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;align-items:stretch;}
-.momentum-pcard-hd{background:var(--navy);padding:14px 18px;color:#fff;flex:0 0 240px;display:flex;flex-direction:column;justify-content:center;}
-.momentum-pcard-name{font-size:13.5px;font-weight:700;}
-.momentum-pcard-sku{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--mono);margin-top:3px;}
-.momentum-pcard-body{padding:0;flex:1;display:flex;}
+.momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.momentum-pcard-hd{background:var(--navy);padding:12px 18px;color:#fff;display:flex;align-items:baseline;gap:8px;}
+.momentum-pcard-name{font-size:14px;font-weight:700;}
+.momentum-pcard-sku{font-size:10.5px;color:rgba(255,255,255,.6);font-family:var(--mono);}
+.momentum-pcard-body{padding:0;display:flex;}
 .momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:12px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
 .momentum-pcard-row:last-child{border-right:none;}
 .momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
@@ -4065,7 +4065,6 @@ window.initAmazonSalesInternal = function () {
         // key, replacing the earlier best-effort name-substring match.
         const rRows = window._csReviewsRowsCache || [];
         const reviewCountByAsin = {};
-        let collectedCount = null;
         if (rRows.length) {
           const asinKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'asin') || 'asin';
           rRows.forEach(r => {
@@ -4073,17 +4072,25 @@ window.initAmazonSalesInternal = function () {
             if (!a) return;
             reviewCountByAsin[a] = (reviewCountByAsin[a] || 0) + 1;
           });
-
-          // KPI: Reviews Collected — rows tagged for the last full month
-          // specifically (same YEAR/MONTH targeting convention as the
-          // Reviews tab), not an all-time total.
-          const yearKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'year');
-          const monthKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'month');
-          if (yearKey && monthKey) {
-            collectedCount = rRows.filter(r => String(r[yearKey]||'').trim() === String(year) && String(Number(r[monthKey])||'') === String(Number(month))).length;
-          }
         }
-        setKpi('momentum-kpi-reviews', collectedCount != null ? collectedCount.toLocaleString() : rRows.length.toLocaleString(), null);
+        // KPI: Reviews Collected — per Jaclyn (2026-09-11), the TOTAL
+        // review count for the whole catalog (not scoped to one month),
+        // with a real MoM % using the sheet's own "date" field: cumulative
+        // total through the end of the current reporting month vs through
+        // the end of the prior month.
+        let totalReviewsMomPct = null;
+        if (rRows.length) {
+          const dateKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'date') || 'date';
+          const cumulativeThroughMonth = (y, m) => {
+            const lastDay = new Date(y, m, 0).getDate();
+            const cutoff = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+            return rRows.filter(r => csNormalizeDate(r[dateKey]) <= cutoff).length;
+          };
+          const throughCurrent = cumulativeThroughMonth(year, month);
+          const throughPrior = cumulativeThroughMonth(prevYear, prevMonth);
+          totalReviewsMomPct = throughPrior ? pctChange(throughCurrent, throughPrior) : null;
+        }
+        setKpi('momentum-kpi-reviews', rRows.length.toLocaleString(), totalReviewsMomPct);
 
         // ── Consolidate + render one card per product ─────────────────
         // Bundles excluded per Jaclyn (2026-09-04) — column J on the
