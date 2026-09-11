@@ -751,13 +751,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    re-listing every product. Header styled like the PPC Strategy page's
    product header; metric rows below with MoM/trend made visually
    prominent via colored pills rather than plain inline text. */
-.momentum-cards-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+.momentum-cards-grid{display:grid;grid-template-columns:1fr;gap:28px;}
 .momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .momentum-pcard-hd{background:var(--navy);padding:12px 18px;color:#fff;display:flex;align-items:baseline;gap:8px;}
 .momentum-pcard-name{font-size:14px;font-weight:700;}
 .momentum-pcard-sku{font-size:10.5px;color:rgba(255,255,255,.6);font-family:var(--mono);}
 .momentum-pcard-body{padding:0;display:flex;}
-.momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:12px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
+.momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:26px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
 .momentum-pcard-row:last-child{border-right:none;}
 .momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
 .momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);font-size:13px;}
@@ -8906,27 +8906,47 @@ window.initSubscriptions = function () {
   // longer 3 separate tables, each re-listing every product — now one
   // card per product (.momentum-pcard), reused verbatim from the live
   // DOM the same way Reviews' cards are (scoped CSS handles any PDF-
-  // specific tightening, no need to rebuild field by field). Page split
-  // restructured accordingly: page 1 is the product cards (the part
-  // that scales with catalog size), page 2 is Keyword Indexing + Tracking
-  // Next (fixed-size regardless of product count).
-  function buildMomentumPage1(monthYear) {
+  // specific tightening, no need to rebuild field by field).
+  //
+  // Restyled again 2026-09-11 (more white space per card, more gap
+  // between cards) meant Performance by Product no longer fits one
+  // page with this many products — per the playbook's page-height-
+  // budget lesson, split into a fixed 2 pages (first half / second
+  // half) rather than let it overflow and distort. KPIs + section
+  // title live on the first products page only, not repeated.
+  function buildMomentumProductsPages(monthYear) {
     const kpis = ['momentum-kpi-reviews', 'momentum-kpi-indexed', 'momentum-kpi-sessions'].map(pdfxKpi);
     const cards = Array.prototype.slice.call(document.querySelectorAll('#momentum-cards-grid .momentum-pcard'));
-    const cardsHtml = cards.length
-      ? cards.map(function (c) { return c.outerHTML; }).join('')
-      : '<div style="grid-column:1/-1;color:var(--muted);font-style:italic;font-size:12px;">No product data found.</div>';
-    return '' +
-      '<div class="pdfx-page">' +
-        '<div class="pdfx-inner">' +
-          pdfxHeaderBand(monthYear, 'Brand Momentum') +
-          '<div class="pdfx-chlabel">Brand Momentum</div>' +
-          '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span></div>' +
-          '<div class="pdfx-kpis n3">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
-          '<div class="pdfx-card-title" style="margin-bottom:10px;">Performance by Product</div>' +
-          '<div class="momentum-cards-grid">' + cardsHtml + '</div>' +
-        '</div>' +
-      '</div>';
+    if (!cards.length) {
+      return '<div class="pdfx-page"><div class="pdfx-inner">' +
+        pdfxHeaderBand(monthYear, 'Brand Momentum') +
+        '<div class="pdfx-chlabel">Brand Momentum</div>' +
+        '<div class="pdfx-kpis n3">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+        '<div class="pdfx-card-title" style="margin-bottom:10px;">Performance by Product</div>' +
+        '<div style="color:var(--muted);font-style:italic;font-size:12px;">No product data found.</div>' +
+        '</div></div>';
+    }
+    const half = Math.ceil(cards.length / 2);
+    const firstHalf = cards.slice(0, half), secondHalf = cards.slice(half);
+
+    const page1 = '<div class="pdfx-page"><div class="pdfx-inner">' +
+      pdfxHeaderBand(monthYear, 'Brand Momentum') +
+      '<div class="pdfx-chlabel">Brand Momentum</div>' +
+      '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span></div>' +
+      '<div class="pdfx-kpis n3">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+      '<div class="pdfx-card-title" style="margin-bottom:10px;">Performance by Product</div>' +
+      '<div class="momentum-cards-grid">' + firstHalf.map(function (c) { return c.outerHTML; }).join('') + '</div>' +
+      '</div></div>';
+
+    if (!secondHalf.length) return page1;
+
+    const page2 = '<div class="pdfx-page"><div class="pdfx-inner">' +
+      pdfxHeaderBand(monthYear, 'Brand Momentum') +
+      '<div class="pdfx-chlabel">Performance by Product <span style="font-weight:400;color:var(--muted);">(continued)</span></div>' +
+      '<div class="momentum-cards-grid">' + secondHalf.map(function (c) { return c.outerHTML; }).join('') + '</div>' +
+      '</div></div>';
+
+    return page1 + page2;
   }
 
   function buildMomentumPage2(monthYear) {
@@ -9197,7 +9217,7 @@ window.initSubscriptions = function () {
       const pagesHtml = [
         includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
         includeSections.reviews       ? buildReviewsPages(monthYear)      : '',
-        includeSections.momentum      ? buildMomentumPage1(monthYear) + buildMomentumPage2(monthYear) : '',
+        includeSections.momentum      ? buildMomentumProductsPages(monthYear) + buildMomentumPage2(monthYear) : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
         includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
         includeSections.strategy ? buildStrategyPage(monthYear) : '',
