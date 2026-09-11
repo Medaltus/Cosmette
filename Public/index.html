@@ -758,6 +758,14 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .momentum-pcard-sku{font-size:10.5px;color:rgba(255,255,255,.6);font-family:var(--mono);}
 .momentum-pcard-body{padding:0;display:flex;}
 .momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:42px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
+/* PDF-only tightening for Brand Momentum's product cards — per Jaclyn
+   (2026-09-11), the page was running too tall (Case 6 in the playbook:
+   total rendered height past the ~2112px threshold distorts the whole
+   page during capture, including the logo — not a logo-specific bug).
+   Live dashboard spacing above stays untouched; this only applies
+   inside the PDF via the .pdfx-momentum-tight wrapper. */
+.pdfx-momentum-tight .momentum-cards-grid{gap:14px;}
+.pdfx-momentum-tight .momentum-pcard-row{padding:18px 20px;}
 .momentum-pcard-row:last-child{border-right:none;}
 .momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
 .momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);font-size:13px;}
@@ -8933,7 +8941,7 @@ window.initSubscriptions = function () {
     const firstPageCount = 4;
     const firstHalf = cards.slice(0, firstPageCount), secondHalf = cards.slice(firstPageCount);
 
-    const page1 = '<div class="pdfx-page"><div class="pdfx-inner">' +
+    const page1 = '<div class="pdfx-page"><div class="pdfx-inner pdfx-momentum-tight">' +
       pdfxHeaderBand(monthYear, 'Brand Momentum') +
       '<div class="pdfx-chlabel">Brand Momentum</div>' +
       '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span></div>' +
@@ -8944,7 +8952,7 @@ window.initSubscriptions = function () {
 
     if (!secondHalf.length) return page1;
 
-    const page2 = '<div class="pdfx-page"><div class="pdfx-inner">' +
+    const page2 = '<div class="pdfx-page"><div class="pdfx-inner pdfx-momentum-tight">' +
       pdfxHeaderBand(monthYear, 'Brand Momentum') +
       '<div class="pdfx-chlabel">Performance by Product <span style="font-weight:400;color:var(--muted);">(continued)</span></div>' +
       '<div class="momentum-cards-grid">' + secondHalf.map(function (c) { return c.outerHTML; }).join('') + '</div>' +
