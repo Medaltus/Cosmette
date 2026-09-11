@@ -751,19 +751,25 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    re-listing every product. Header styled like the PPC Strategy page's
    product header; metric rows below with MoM/trend made visually
    prominent via colored pills rather than plain inline text. */
-.momentum-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
-.momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.momentum-pcard-hd{background:var(--navy);padding:12px 16px;color:#fff;}
-.momentum-pcard-name{font-size:13px;font-weight:700;}
-.momentum-pcard-sku{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--mono);margin-top:2px;}
-.momentum-pcard-body{padding:4px 16px;}
-.momentum-pcard-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border2);font-size:12px;}
-.momentum-pcard-row:last-child{border-bottom:none;}
+.momentum-cards-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+.momentum-pcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;align-items:stretch;}
+.momentum-pcard-hd{background:var(--navy);padding:14px 18px;color:#fff;flex:0 0 240px;display:flex;flex-direction:column;justify-content:center;}
+.momentum-pcard-name{font-size:13.5px;font-weight:700;}
+.momentum-pcard-sku{font-size:10px;color:rgba(255,255,255,.6);font-family:var(--mono);margin-top:3px;}
+.momentum-pcard-body{padding:0;flex:1;display:flex;}
+.momentum-pcard-row{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:12px 20px;border-right:1px solid var(--border2);font-size:12px;flex:1;}
+.momentum-pcard-row:last-child{border-right:none;}
 .momentum-pcard-label{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
-.momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);}
+.momentum-pcard-value{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--navy);font-size:13px;}
 .momentum-pill{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;}
 .momentum-pill-up{background:rgba(36,233,163,.15);color:#1db88a;}
 .momentum-pill-dn{background:rgba(219,55,45,.12);color:var(--danger);}
+.momentum-tracking-card{background:var(--navy);border-radius:var(--radius);padding:20px 24px;}
+.momentum-tracking-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;}
+.momentum-tracking-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.momentum-tracking-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px 16px;}
+.momentum-tracking-item-title{font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px;}
+.momentum-tracking-item-text{font-size:11.5px;color:rgba(255,255,255,.65);line-height:1.55;}
 .pdfx-chlabel{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:var(--font-subheader);}
 .pdfx-chrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;}
 .pdfx-chname{font-size:17px;font-weight:600;color:var(--navy);font-family:var(--font-subheader);}
@@ -1621,12 +1627,21 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         </table>
       </div>
 
-      <div class="card">
-        <div class="card-title">What We're Tracking Next</div>
-        <div style="font-size:12px;color:var(--muted);line-height:1.7;">
-          <p style="margin-bottom:8px;"><strong style="color:var(--navy);">Search-to-sale conversion by keyword</strong> — connecting which specific search terms are actually driving purchases, not just clicks or impressions.</p>
-          <p style="margin-bottom:8px;"><strong style="color:var(--navy);">Review sentiment themes</strong> — categorizing what customers are actually praising or flagging in review text, beyond the star rating alone.</p>
-          <p><strong style="color:var(--navy);">Competitive share of voice</strong> — how Cosmette's organic and sponsored presence compares against category leaders for the same target keywords.</p>
+      <div class="momentum-tracking-card">
+        <div class="momentum-tracking-title">What We're Tracking Next</div>
+        <div class="momentum-tracking-grid">
+          <div class="momentum-tracking-item">
+            <div class="momentum-tracking-item-title">Search-to-Sale Conversion</div>
+            <div class="momentum-tracking-item-text">Connecting which specific search terms are actually driving purchases, not just clicks or impressions.</div>
+          </div>
+          <div class="momentum-tracking-item">
+            <div class="momentum-tracking-item-title">Review Sentiment Themes</div>
+            <div class="momentum-tracking-item-text">Categorizing what customers are actually praising or flagging in review text, beyond the star rating alone.</div>
+          </div>
+          <div class="momentum-tracking-item">
+            <div class="momentum-tracking-item-title">Competitive Share of Voice</div>
+            <div class="momentum-tracking-item-text">How Cosmette's organic and sponsored presence compares against category leaders for the same target keywords.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1653,7 +1668,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Key Performance Metrics</div>
       <div class="kpi-row">
         <div class="kpi-card" id="kpi-pct-revenue-invested"><div class="kpi-label">% Revenue Invested</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
-        <div class="kpi-card" id="kpi-amazon-fees"><div class="kpi-label">Amazon Fees</div><div class="kpi-value sm">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Pending Finances API sync</div></div>
+        <div class="kpi-card" id="kpi-amazon-fees"><div class="kpi-label">Amazon Fees</div><div class="kpi-value sm">—</div><div class="kpi-mom flat"></div></div>
         <div class="kpi-card" id="kpi-pct-units-ads"><div class="kpi-label">% Units from Ads</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
         <div class="kpi-card" id="kpi-ad-clicks"><div class="kpi-label">Ad Clicks</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
         <div class="kpi-card" id="kpi-ad-impressions"><div class="kpi-label">Ad Impressions</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
@@ -3688,10 +3703,14 @@ window.initAmazonSalesInternal = function () {
         window._csReviewsLoaded = false; // allow retry once columns exist
         return;
       }
-      const nameKey = findKey(rows[0], 'product_name') || 'product_name';
+      // Header uses the clean Product Name (column C on Master SKU List)
+      // matched by ASIN, per Jaclyn (2026-09-11) — not this sheet's own
+      // product_name column, which mirrors the live Amazon listing title.
+      const asinKey = findKey(rows[0], 'asin') || 'asin';
       const ratingKey = findKey(rows[0], 'star_rating') || 'star_rating';
       const titleKey = findKey(rows[0], 'review_title') || 'review_title';
       const textKey = findKey(rows[0], 'review_text') || 'review_text';
+      const names = await csFetchProductNames();
 
       // Target the last FULL month — reviews are tagged by month after the
       // month closes, so the current (open) month never has tagged
@@ -3701,39 +3720,41 @@ window.initAmazonSalesInternal = function () {
       const targetYear = String(lastMonth.getFullYear());
       const targetMonth = String(lastMonth.getMonth() + 1); // 1-indexed
 
-      // All-time stats per product (count, average, 1-5 distribution).
-      const statsByProduct = {};
+      // All-time stats per product (count, average, 1-5 distribution),
+      // keyed by ASIN.
+      const statsByAsin = {};
       rows.forEach(r => {
-        const name = (r[nameKey] || '').trim();
-        if (!name) return;
+        const asin = (r[asinKey] || '').trim().toUpperCase();
+        if (!asin) return;
         const rating = Math.round(Number(r[ratingKey]) || 0);
-        if (!statsByProduct[name]) statsByProduct[name] = { count: 0, sum: 0, dist: {1:0,2:0,3:0,4:0,5:0} };
-        const s = statsByProduct[name];
+        if (!statsByAsin[asin]) statsByAsin[asin] = { count: 0, sum: 0, dist: {1:0,2:0,3:0,4:0,5:0} };
+        const s = statsByAsin[asin];
         s.count++;
         s.sum += (Number(r[ratingKey]) || 0);
         if (rating >= 1 && rating <= 5) s.dist[rating]++;
       });
 
       // Featured (YEAR/MONTH-tagged) reviews for the target period, grouped
-      // by product, preserving sheet order.
-      const featuredByProduct = {};
-      const productOrder = [];
+      // by ASIN, preserving sheet order.
+      const featuredByAsin = {};
+      const asinOrder = [];
       rows.forEach(r => {
         if (String(r[yearKey] || '').trim() !== targetYear) return;
         if (String(Number(r[monthKey]) || '') !== String(Number(targetMonth))) return;
-        const name = (r[nameKey] || '').trim();
-        if (!name) return;
-        if (!featuredByProduct[name]) { featuredByProduct[name] = []; productOrder.push(name); }
-        featuredByProduct[name].push(r);
+        const asin = (r[asinKey] || '').trim().toUpperCase();
+        if (!asin) return;
+        if (!featuredByAsin[asin]) { featuredByAsin[asin] = []; asinOrder.push(asin); }
+        featuredByAsin[asin].push(r);
       });
 
-      if (!productOrder.length) {
+      if (!asinOrder.length) {
         container.innerHTML = `<div class="ppc-card" style="color:var(--muted);">No reviews tagged for ${csMonths12Full[Number(targetMonth)-1]} ${targetYear} yet — tag rows in the sheet with YEAR=${targetYear} and MONTH=${targetMonth} to feature them here.</div>`;
         return;
       }
 
-      container.innerHTML = productOrder.map(name => {
-        const stats = statsByProduct[name] || { count: 0, sum: 0, dist: {1:0,2:0,3:0,4:0,5:0} };
+      container.innerHTML = asinOrder.map(asin => {
+        const name = names.nameByAsin[asin] || asin;
+        const stats = statsByAsin[asin] || { count: 0, sum: 0, dist: {1:0,2:0,3:0,4:0,5:0} };
         const avg = stats.count ? (stats.sum / stats.count) : 0;
         const maxDist = Math.max(1, ...Object.values(stats.dist));
         const barsHtml = [5,4,3,2,1].map(n => {
@@ -3741,7 +3762,7 @@ window.initAmazonSalesInternal = function () {
           const pct = Math.round((c / maxDist) * 100);
           return `<div class="review-bar-row"><div class="review-bar-label">${n}★</div><div class="review-bar-track"><div class="review-bar-fill" style="width:${pct}%"></div></div><div class="review-bar-count">${c}</div></div>`;
         }).join('');
-        const cardsHtml = featuredByProduct[name].map(r => `
+        const cardsHtml = featuredByAsin[asin].map(r => `
           <div class="review-card">
             <div class="review-card-stars">${reviewStarsHtml(r[ratingKey])}</div>
             <div class="review-card-title">${escapeHtml((r[titleKey]||'').trim())}</div>
@@ -3853,23 +3874,28 @@ window.initAmazonSalesInternal = function () {
         ? `${sess.value.toLocaleString()}${sess.prev != null ? ' ' + momentumMomPill(sess.value, sess.prev) : ''}`
         : '—';
 
-      // BSR / Subcategory BSR + trend
+      // Subcategory BSR only, per Jaclyn (2026-09-11) — BSR (Beauty &
+      // Personal Care overall) removed.
       const row = asin ? pickSummaryRowForAsin(c.summaryRows, asin) : null;
       const prevRow = row ? pickPreviousSummaryRowForAsin(c.summaryRows, asin, row.date||'') : null;
-      let bsrHtml = '—';
-      if (row && row.bsr) {
-        bsrHtml = '#' + (Number(row.bsr)||0).toLocaleString() + (row.category ? ` <span style="font-weight:400;color:var(--muted);">(${escapeHtml(row.category)})</span>` : '');
-        bsrHtml += bsrTrendPill(row.bsr, prevRow, 'bsr', hideNegative);
-      }
       let subBsrHtml = '—';
       if (row && row.subcategory_bsr) {
         subBsrHtml = '#' + (Number(row.subcategory_bsr)||0).toLocaleString() + (row.subcategory ? ` <span style="font-weight:400;color:var(--muted);">(${escapeHtml(row.subcategory)})</span>` : '');
         subBsrHtml += bsrTrendPill(row.subcategory_bsr, prevRow, 'subcategory_bsr', hideNegative);
       }
 
-      // Reviews + rating
-      const rv = c.reviewStatsBySku[sku];
-      const reviewsHtml = rv ? `${rv.count.toLocaleString()} <span style="font-weight:400;color:var(--muted);">(${rv.avg.toFixed(1)} ★)</span>` : '—';
+      // Organic Keywords (count with a real organic rank) + % change,
+      // styled with the same pill as Sessions per Jaclyn (2026-09-11).
+      const okw = c.organicKwBySku[sku];
+      const organicKwHtml = okw
+        ? `${okw.value.toLocaleString()}${okw.prev != null ? ' ' + momentumMomPill(okw.value, okw.prev) : ''}`
+        : '—';
+
+      // Reviews — total row count matching this product's ASIN on the
+      // reviews sheet, per Jaclyn (2026-09-11) — not a name-substring
+      // match against the sheet's own product_name text.
+      const rv = c.reviewCountByAsin[asin];
+      const reviewsHtml = rv != null ? rv.toLocaleString() : '—';
 
       const vineFlag = sku && isWithinVineWindow(c.names.vineDateBySku[sku], c.year, c.month);
 
@@ -3880,7 +3906,7 @@ window.initAmazonSalesInternal = function () {
         </div>
         <div class="momentum-pcard-body">
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Sessions</span><span class="momentum-pcard-value">${sessionsHtml}</span></div>
-          <div class="momentum-pcard-row"><span class="momentum-pcard-label">BSR</span><span class="momentum-pcard-value">${bsrHtml}</span></div>
+          <div class="momentum-pcard-row"><span class="momentum-pcard-label">Organic Keywords</span><span class="momentum-pcard-value">${organicKwHtml}</span></div>
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Subcategory BSR</span><span class="momentum-pcard-value">${subBsrHtml}</span></div>
           <div class="momentum-pcard-row"><span class="momentum-pcard-label">Reviews</span><span class="momentum-pcard-value">${reviewsHtml}</span></div>
         </div>
@@ -3965,6 +3991,27 @@ window.initAmazonSalesInternal = function () {
         // ── Targeted Keyword Indexing Progress (top 10, movement-first
         // then rank ascending) ───────────────────────────────────────
         const kwRows = csIsCsv(kwCsv) ? csParseCsv(kwCsv).filter(r => r.date && r.asin && r.keyword) : [];
+
+        // Organic Keywords per SKU (count with a real organic rank) +
+        // % change vs the prior snapshot date, per Jaclyn (2026-09-11) —
+        // same source as Keyword Indexing Progress above, just counted
+        // per product instead of listed per keyword.
+        const organicKwBySku = {};
+        {
+          const datesSeen = [...new Set(kwRows.map(r => r.date))].sort().reverse();
+          const latestDate = datesSeen[0], prevDate = datesSeen[1];
+          if (latestDate) {
+            const countForDate = (asin, date) => kwRows.filter(r => r.asin.toUpperCase() === asin && r.date === date && parseInt(r.organic_rank,10) > 0).length;
+            Object.keys(names.skuByAsin).forEach(asin => {
+              const sku = names.skuByAsin[asin];
+              if (!sku) return;
+              const value = countForDate(asin, latestDate);
+              const prev = prevDate ? countForDate(asin, prevDate) : null;
+              organicKwBySku[sku] = { value, prev };
+            });
+          }
+        }
+
         const kwIndexingTbody = document.getElementById('momentum-indexing-tbody');
         let keywordsWithRank = 0;
         if (kwIndexingTbody) {
@@ -4012,34 +4059,19 @@ window.initAmazonSalesInternal = function () {
         const asinBySku = {};
         Object.entries(names.skuByAsin).forEach(([asin, sku]) => { asinBySku[sku] = asin; });
 
-        // ── Review stats — reuses the reviews fetch above, no second
-        // fetch of that sheet. NOTE: this reviews sheet has no ASIN/SKU
-        // column (confirmed directly), only its own product_name text —
-        // matched to a SKU by substring on the product's short name,
-        // same best-effort approach the Reviews tab itself already uses
-        // since there's no reliable join key available.
+        // ── Review counts — total row count matching this product's
+        // ASIN on the reviews sheet, per Jaclyn (2026-09-11). This
+        // sheet has SKU (column A) and ASIN (column B) — a direct join
+        // key, replacing the earlier best-effort name-substring match.
         const rRows = window._csReviewsRowsCache || [];
-        const reviewStatsBySku = {};
+        const reviewCountByAsin = {};
         let collectedCount = null;
         if (rRows.length) {
-          const nameKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'product_name') || 'product_name';
-          const ratingKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'star_rating') || 'star_rating';
-          const statsByReviewName = {};
+          const asinKey = Object.keys(rRows[0]||{}).find(k => k.toLowerCase() === 'asin') || 'asin';
           rRows.forEach(r => {
-            const nm = (r[nameKey]||'').trim();
-            if (!nm) return;
-            if (!statsByReviewName[nm]) statsByReviewName[nm] = { count: 0, sum: 0 };
-            statsByReviewName[nm].count++;
-            statsByReviewName[nm].sum += (Number(r[ratingKey]) || 0);
-          });
-          Object.keys(names.nameBySku).forEach(sku => {
-            const shortName = (names.nameBySku[sku] || '').toLowerCase();
-            if (!shortName) return;
-            const matchName = Object.keys(statsByReviewName).find(rn => rn.toLowerCase().includes(shortName) || shortName.includes(rn.toLowerCase()));
-            if (matchName) {
-              const s = statsByReviewName[matchName];
-              reviewStatsBySku[sku] = { count: s.count, avg: s.count ? s.sum / s.count : 0 };
-            }
+            const a = (r[asinKey] || '').trim().toUpperCase();
+            if (!a) return;
+            reviewCountByAsin[a] = (reviewCountByAsin[a] || 0) + 1;
           });
 
           // KPI: Reviews Collected — rows tagged for the last full month
@@ -4060,7 +4092,7 @@ window.initAmazonSalesInternal = function () {
         // out of Brand Momentum's per-product cards entirely.
         const skus = [...new Set(rowsThis.map(r => names.skuByAsin[(r.ASIN||r.asin||'').toUpperCase()]).filter(Boolean))]
           .filter(sku => names.skuTypeBySku[sku] !== 'BUNDLE');
-        _momentumCache = { skus, asinBySku, names, summaryRows, sessionsBySku, reviewStatsBySku, year, month };
+        _momentumCache = { skus, asinBySku, names, summaryRows, sessionsBySku, organicKwBySku, reviewCountByAsin, year, month };
         renderProductCards(!!document.getElementById('momentum-hide-negative-bsr')?.checked);
       } catch (err) {
         console.error('[CosmetteBrandMomentum]', err);
@@ -4588,6 +4620,15 @@ window.csResolveApprovedMonth = function () {
     window._csStewardshipPromise = (async function () {
       const cfg = window.SHEET_CFG;
       if (!cfg.SHEET_STEWARDSHIP_SUMMARY) { console.warn('[CosmetteStewardship] Missing SHEET_STEWARDSHIP_SUMMARY in SHEET_CONFIG.'); return; }
+      // Amazon Fees sheet — per Jaclyn (2026-09-11), given directly as a
+      // real URL rather than a SHEET_CONFIG key. Its schema (date, status,
+      // selling_account, "Amazon Estimated fees" column) matches
+      // SHEET_ORDERS closely — may well be the same underlying sheet —
+      // but hardcoded here exactly as given rather than assumed to be
+      // window.SHEET_CFG.SHEET_ORDERS, since that couldn't be confirmed
+      // without live access.
+      const STEWARDSHIP_FEES_SHEET_ID = '1SiYu8e2-Pfi14Aiuf6SAFytWVXb4_dtdNFT6wvLFPok';
+      const STEWARDSHIP_FEES_GID = '982399951';
 
       const monthAbbr = csMonths12;
       const { year, month } = csGetLastFullMonth();
@@ -4664,7 +4705,29 @@ window.csResolveApprovedMonth = function () {
         const ltdEl = document.getElementById('ltd-total-investments');
         if (ltdEl) ltdEl.textContent = '$' + Math.round(ltdTotal).toLocaleString();
 
-        // Amazon Fees KPI intentionally left as "—" — pending Finances API sync.
+        // Amazon Fees — per Jaclyn (2026-09-11), sum of "Amazon Estimated
+        // Fees" (column P) on the sheet she provided directly. Filtered
+        // to Newderm-only and excludes Cancelled rows, same principles
+        // already established for every other "our performance" figure
+        // on this dashboard (see the MoM fix from 2026-09-04).
+        try {
+          const feesCsv = await fetch(csSheetCsvUrl(STEWARDSHIP_FEES_SHEET_ID, STEWARDSHIP_FEES_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+          const feesRows = csIsCsv(feesCsv) ? csParseCsv(feesCsv) : [];
+          const sumFeesForMonth = (y, m) => {
+            const prefix = `${y}-${String(m).padStart(2,'0')}`;
+            return feesRows
+              .filter(r => csNormalizeDate(r.date).substring(0,7) === prefix)
+              .filter(r => (r.status||'').trim().toLowerCase() !== 'cancelled')
+              .filter(r => r.selling_account === 'Newderm')
+              .reduce((s,r) => s + csParseAmt(r['Amazon Estimated fees']), 0);
+          };
+          const feesCurr = sumFeesForMonth(year, month);
+          const feesPrev = sumFeesForMonth(prevYear, prevMonth);
+          setKpiVal('kpi-amazon-fees', '$' + Math.round(feesCurr).toLocaleString());
+          setKpiMom('kpi-amazon-fees', feesPrev ? csPct(feesCurr, feesPrev) : null);
+        } catch (feeErr) {
+          console.warn('[CosmetteStewardship] Amazon Fees fetch failed:', feeErr.message);
+        }
 
       } catch (err) {
         console.warn('[CosmetteStewardship] failed:', err.message);
@@ -8870,12 +8933,12 @@ window.initSubscriptions = function () {
           '<div class="pdfx-card" style="margin-bottom:0;"><div class="pdfx-card-title">Targeted Keyword Indexing Progress <span style="font-weight:400;color:var(--muted);">(Top 10)</span></div>' +
             pdfxTableHtml(['Keyword', 'Product', 'Organic Rank', 'Search Volume'], indexingRows) +
           '</div>' +
-          '<div class="pdfx-card" style="margin-bottom:0;">' +
-            '<div class="pdfx-card-title">What We\'re Tracking Next</div>' +
-            '<div style="font-size:11px;color:#48557a;line-height:1.6;">' +
-              '<p style="margin-bottom:6px;"><strong style="color:var(--navy);">Search-to-sale conversion by keyword</strong> — connecting which specific search terms are actually driving purchases, not just clicks or impressions.</p>' +
-              '<p style="margin-bottom:6px;"><strong style="color:var(--navy);">Review sentiment themes</strong> — categorizing what customers are actually praising or flagging in review text, beyond the star rating alone.</p>' +
-              '<p><strong style="color:var(--navy);">Competitive share of voice</strong> — how Cosmette\'s organic and sponsored presence compares against category leaders for the same target keywords.</p>' +
+          '<div class="momentum-tracking-card" style="margin-bottom:0;">' +
+            '<div class="momentum-tracking-title">What We\'re Tracking Next</div>' +
+            '<div class="momentum-tracking-grid">' +
+              '<div class="momentum-tracking-item"><div class="momentum-tracking-item-title">Search-to-Sale Conversion</div><div class="momentum-tracking-item-text">Connecting which specific search terms are actually driving purchases, not just clicks or impressions.</div></div>' +
+              '<div class="momentum-tracking-item"><div class="momentum-tracking-item-title">Review Sentiment Themes</div><div class="momentum-tracking-item-text">Categorizing what customers are actually praising or flagging in review text, beyond the star rating alone.</div></div>' +
+              '<div class="momentum-tracking-item"><div class="momentum-tracking-item-title">Competitive Share of Voice</div><div class="momentum-tracking-item-text">How Cosmette\'s organic and sponsored presence compares against category leaders for the same target keywords.</div></div>' +
             '</div>' +
           '</div>' +
           pdfxFooter(monthYear) +
