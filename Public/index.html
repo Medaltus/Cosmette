@@ -4607,6 +4607,12 @@ window.csResolveApprovedMonth = function () {
       const heroEl = document.getElementById('x-overview-hero-date');
       if (heroEl) heroEl.textContent = `${monthNames[key.month-1]} ${key.year}`;
 
+      // Local declaration, not shared across <script> scope with the
+      // other two copies of this const elsewhere in the file — every
+      // scope that uses BRAND needs its own (confirmed this exact class
+      // of bug from the Ad Spend by Type doc: seeing a constant declared
+      // elsewhere in the file is not confirmation it's reachable here).
+      const BRAND = window.SHEET_CFG.BRAND_SLUG || 'cosmette';
       if (typeof window.reportInsightsFetchRow === 'function') {
         try {
           const row = await window.reportInsightsFetchRow(BRAND, { year: String(key.year), month: String(key.month) });
