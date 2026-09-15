@@ -701,6 +701,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .pdfx-hdr-right{text-align:right;}
 .pdfx-hdr-tag{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);font-family:var(--font-subheader);}
 .pdfx-hdr-month{font-family:var(--font-subheader);font-size:17px;color:#fff;margin-top:3px;}
+.pdfx-hdr-datesub{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;}
 .pdfx-cover-eyebrow{font-size:10px;font-weight:400;font-family:var(--font-body-light);letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:12px;}
 .pdfx-cover-title{font-family:var(--font-subheader);font-weight:700;font-size:38px;line-height:1.14;margin-bottom:18px;}
 .pdfx-cover-rule{width:44px;height:2px;background:var(--green);margin-bottom:20px;}
@@ -4242,86 +4243,90 @@ window.initAmazonSalesInternal = function () {
 
 // ══════════════════════════════════════════════════════════════════════════
 // EVENTS STRATEGY TAB — ported from Skinuva's real renderEventsStrategyTab()
-// (2026-09-04). Picks whichever of the 4 events is chronologically next
-// from today ("next" judged by typical season month/day, not an exact
-// date — Amazon doesn't announce most events' real dates until 4-6 weeks
-// out), stays "current" for 14 days past its anchor date so this doesn't
-// flip mid-event. Real dates only show once Cosmette's own Events tab has
-// a row for that year (otherwise "Dates TBD" rather than a stale/made-up
-// date). Reuses Cosmette's own already-confirmed EVENTS_SHEET_ID/GID (same
-// shared, non-brand-specific sheet the BSS/PD/PBDD/BFCM tabs already use)
-// and Cosmette's own global csIsCsv/csParseCsv/csSheetCsvUrl helpers
-// instead of Skinuva's separate local copies.
+// (2026-09-04). REBUILT 2026-09-11 per Jaclyn: instead of guessing which
+// of 4 known events is "next" from a hardcoded calendar, this now just
+// takes the LAST ROW on the Events tab (whichever event was most recently
+// added) — keeping the page current only requires adding a row, no code
+// changes. Also fixes a real bug found in this rebuild: the old lookup
+// tried to match each row by event name AND a "year" column, but the
+// sheet only has Event Name / start_date / end_date — no year column at
+// all — so that match could never succeed, which is why dates were stuck
+// on "Dates TBD" even though real dates were already sitting in the
+// sheet. Reuses Cosmette's own already-confirmed EVENTS_SHEET_ID/GID
+// (same shared, non-brand-specific sheet the BSS/PD/PBDD/BFCM tabs
+// already use) and Cosmette's own global csIsCsv/csParseCsv/csSheetCsvUrl
+// helpers.
 //
 // NOT dynamic, same as Skinuva's version: the promotional badge ("20% OFF
-// / Prime Exclusive Discount"). That happens to be correct for both Prime
-// Day and Prime Big Deal Days, but there's no confirmed source for Big
-// Spring Sale's or BFCM's actual promo mechanics — flag to Jaclyn if this
-// badge should also switch per event once confirmed.
+// / Prime Exclusive Discount"). There's no confirmed source for every
+// event's actual promo mechanics — flag to Jaclyn if this badge should
+// also switch per event once confirmed.
 // ══════════════════════════════════════════════════════════════════════════
 (function () {
   const STRATEGY_EVENTS_SHEET_ID = '1NNRTRQxQl2r4XivAvH700CC39p49GD2xfZlyRNqahGA';
   const STRATEGY_EVENTS_GID = '347530381';
-  const BUFFER_DAYS = 14; // keep showing an event as "current" this long past its anchor date
 
-  const EVENT_CALENDAR = [
-    { eventName: 'Big Spring Sale',             displayName: 'Amazon Big Spring Sale',            shortName: 'Big Spring Sale',             anchorMonth: 3,  anchorDay: 25 },
-    { eventName: 'Prime Day',                   displayName: 'Amazon Prime Day',                  shortName: 'Prime Day',                   anchorMonth: 6,  anchorDay: 23 },
-    { eventName: 'Prime Big Deal Days',         displayName: 'Amazon Prime Big Deal Days',         shortName: 'Prime Big Deal Days',         anchorMonth: 10, anchorDay: 7  },
-    { eventName: 'Black Friday & Cyber Monday', displayName: 'Amazon Black Friday & Cyber Monday', shortName: 'Black Friday & Cyber Monday', anchorMonth: 11, anchorDay: 28 },
-  ];
-
-  function relevantOccurrence(anchorMonth, anchorDay, today) {
-    const year = today.getFullYear();
-    let start = new Date(year, anchorMonth - 1, anchorDay);
-    const cutoff = new Date(start);
-    cutoff.setDate(cutoff.getDate() + BUFFER_DAYS);
-    if (cutoff < today) start = new Date(year + 1, anchorMonth - 1, anchorDay);
-    return start;
-  }
-  function pickUpcomingEvent(today) {
-    let best = null;
-    EVENT_CALENDAR.forEach(ev => {
-      const occ = relevantOccurrence(ev.anchorMonth, ev.anchorDay, today);
-      if (!best || occ < best.occ) best = Object.assign({ occ }, ev);
-    });
-    return best;
-  }
   function fmtStrategyDate(iso) {
     if (!iso) return '';
     const [y,m,d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return '';
     return `${csMonths12[m-1]} ${d}, ${y}`;
+  }
+  // "Dates TBD" / "TBD" (any case, any spacing) or blank all mean the
+  // same thing — no real date typed in yet. Per Jaclyn (2026-09-11):
+  // before real dates are confirmed, the strategy still needs to go out
+  // with "Dates TBD" showing, not a parse error or a blank.
+  function isTbdValue(v) {
+    const t = (v || '').trim().toLowerCase();
+    return !t || t === 'tbd' || t === 'dates tbd';
   }
 
   async function renderEventsStrategyTab() {
-    const today = new Date();
-    const upcoming = pickUpcomingEvent(today);
-    const occYear = upcoming.occ.getFullYear();
-
     const headlineEl = document.getElementById('evs-event-headline');
     const datesEl = document.getElementById('evs-event-dates');
     const contentHealthEl = document.getElementById('evs-contenthealth-text');
     const outlookEl = document.getElementById('evs-outlook-body');
 
-    if (headlineEl) headlineEl.textContent = upcoming.displayName;
-    if (contentHealthEl) {
-      contentHealthEl.innerHTML = `Resolve any listing suppressions, Q&amp;A gaps, and negative review flags <strong>before traffic surges</strong> — a suppressed listing during ${upcoming.shortName} is a direct missed opportunity.`;
-    }
-    if (outlookEl) {
-      outlookEl.innerHTML = `${upcoming.shortName} is one of the highest-traffic sales events of the year on Amazon. The brands that win invest in the 2–3 weeks prior and capitalize in the week after. <strong>Preparation, real-time agility, and disciplined follow-through are the three variables we control.</strong>`;
-    }
-
-    let datesText = 'Dates TBD';
     try {
       const csv = await fetch(csSheetCsvUrl(STRATEGY_EVENTS_SHEET_ID, STRATEGY_EVENTS_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      if (csIsCsv(csv)) {
-        const row = csParseCsv(csv).find(r => (r['Event Name'] || '').trim() === upcoming.eventName && String(r.year).trim() === String(occYear));
-        if (row && row.start_date && row.end_date) datesText = `${fmtStrategyDate(row.start_date)} – ${fmtStrategyDate(row.end_date)}`;
+      if (!csIsCsv(csv)) throw new Error('Events sheet did not return CSV');
+      const rows = csParseCsv(csv).filter(r => (r['Event Name']||'').trim());
+      if (!rows.length) throw new Error('Events sheet has no rows');
+      const latest = rows[rows.length - 1]; // most recently added row = last row
+
+      const rawName = (latest['Event Name'] || '').trim();
+      // Title always shows with "Amazon " prefixed — typing just "Prime
+      // Big Deal Days" in the sheet still displays "Amazon Prime Big Deal
+      // Days", matching how this page has always read. If "Amazon" is
+      // already typed in the sheet, it isn't duplicated.
+      const displayName = /^amazon\b/i.test(rawName) ? rawName : `Amazon ${rawName}`;
+      // Short name for the body text below — same name, without the
+      // "Amazon " prefix, so sentences like "a suppressed listing during
+      // X is a direct missed opportunity" read naturally instead of
+      // repeating "Amazon" mid-sentence.
+      const shortName = rawName.replace(/^amazon\s+/i, '').trim() || rawName;
+
+      if (headlineEl) headlineEl.textContent = displayName;
+      if (contentHealthEl) {
+        contentHealthEl.innerHTML = `Resolve any listing suppressions, Q&amp;A gaps, and negative review flags <strong>before traffic surges</strong> — a suppressed listing during ${shortName} is a direct missed opportunity.`;
       }
+      if (outlookEl) {
+        outlookEl.innerHTML = `${shortName} is one of the highest-traffic sales events of the year on Amazon. The brands that win invest in the 2–3 weeks prior and capitalize in the week after. <strong>Preparation, real-time agility, and disciplined follow-through are the three variables we control.</strong>`;
+      }
+
+      const startRaw = latest.start_date, endRaw = latest.end_date;
+      let datesText;
+      if (isTbdValue(startRaw) || isTbdValue(endRaw)) {
+        datesText = 'Dates TBD';
+      } else {
+        const startFmt = fmtStrategyDate(startRaw), endFmt = fmtStrategyDate(endRaw);
+        datesText = (startFmt && endFmt) ? `${startFmt} – ${endFmt}` : 'Dates TBD';
+      }
+      if (datesEl) datesEl.textContent = datesText;
     } catch (e) {
-      console.warn('[EventsStrategy] date lookup failed:', e.message);
+      console.warn('[EventsStrategy] failed:', e.message);
+      if (datesEl) datesEl.textContent = 'Dates TBD';
     }
-    if (datesEl) datesEl.textContent = datesText;
   }
 
   document.addEventListener('DOMContentLoaded', renderEventsStrategyTab);
@@ -8855,14 +8860,24 @@ window.initSubscriptions = function () {
   // threading an extra parameter through every single buildXPage() call.
   let PDFX_NAV_TABS = ['Sales', 'Reviews', 'Brand Stewardship', 'Opportunities'];
 
-  function pdfxHeaderBand(monthYear, activeTab) {
+  function pdfxHeaderBand(monthYear, activeTab, headerOverride) {
     const tabsHtml = PDFX_NAV_TABS.map(function (t) {
       return '<span class="pdfx-tab' + (t === activeTab ? ' on' : '') + '">' + t + '</span>';
     }).join('');
+    // headerOverride: {tag, month, dateSub} — used only by the Strategy
+    // page (buildStrategyPage), per Jaclyn (2026-09-11): that page is too
+    // content-dense to add a whole new section for "which event/dates is
+    // this strategy for," so instead the existing month field in the
+    // header band gets replaced with the event name, with a small date
+    // line added underneath. Every other page keeps the normal
+    // tag/monthYear header untouched.
+    const tag = headerOverride ? headerOverride.tag : 'Brand Performance Report';
+    const monthHtml = headerOverride ? pdfxEscape(headerOverride.month) : pdfxEscape(monthYear);
+    const dateSubHtml = headerOverride && headerOverride.dateSub ? '<div class="pdfx-hdr-datesub">' + pdfxEscape(headerOverride.dateSub) + '</div>' : '';
     return '<div class="pdfx-topband">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
         '<span class="pdfx-logo-navy" style="display:inline-block;">' + pdfxLogoHtml('height:40px;width:auto;') + '</span>' +
-        '<div class="pdfx-tagright"><div class="pdfx-hdr-tag">Brand Performance Report</div><div class="pdfx-hdr-month">' + pdfxEscape(monthYear) + '</div></div>' +
+        '<div class="pdfx-tagright"><div class="pdfx-hdr-tag">' + pdfxEscape(tag) + '</div><div class="pdfx-hdr-month">' + monthHtml + '</div>' + dateSubHtml + '</div>' +
       '</div>' +
       '<div class="pdfx-tabs">' + tabsHtml + '</div>' +
       '</div>' +
@@ -9156,21 +9171,21 @@ window.initSubscriptions = function () {
   }
   function buildStrategyPage(monthYear) {
     const leadUp = pdfxStrategyPhase('lead-up', 'Phase 01', 'Lead Up', 'Prepare',
-      pdfxStrategyItem('Listings &amp; SEO', 'Refresh listing content, images, and A+ Content to ensure <strong>maximum search visibility and conversion readiness</strong> before traffic surges.') +
+      pdfxStrategyItem('Listings & SEO', 'Refresh listing content, images, and A+ Content to ensure <strong>maximum search visibility and conversion readiness</strong> before traffic surges.') +
       pdfxStrategyItem('Advertising', 'Gradually <strong>increase budgets 1.5–3x and bids 10%+</strong> in the 7–14 days prior to warm the algorithm and activate event-specific campaigns.') +
-      pdfxStrategyItem('Promotions &amp; Pricing', 'Finalize Prime Exclusive Discounts and <strong>confirm all deals are submitted, eligible, and approved</strong> with sufficient lead time.') +
-      pdfxStrategyItem('Inventory &amp; Operations', 'Confirm FBA stock coverage, inbound timelines, and <strong>buffer inventory levels to prevent sell-outs</strong> during peak demand.') +
-      pdfxStrategyItem('Creative &amp; Storefront', 'Upload refreshed imagery and <strong>add promotional banners and curated storefront landing pages</strong> optimized for high-traffic event conditions.') +
+      pdfxStrategyItem('Promotions & Pricing', 'Finalize Prime Exclusive Discounts and <strong>confirm all deals are submitted, eligible, and approved</strong> with sufficient lead time.') +
+      pdfxStrategyItem('Inventory & Operations', 'Confirm FBA stock coverage, inbound timelines, and <strong>buffer inventory levels to prevent sell-outs</strong> during peak demand.') +
+      pdfxStrategyItem('Creative & Storefront', 'Upload refreshed imagery and <strong>add promotional banners and curated storefront landing pages</strong> optimized for high-traffic event conditions.') +
       pdfxStrategyItem('Content Health Check', 'Resolve any listing suppressions, Q&amp;A gaps, and negative review flags <strong>before traffic surges</strong> — a suppressed listing during an event is a direct missed opportunity.')
     );
     const during = pdfxStrategyPhase('during', 'Phase 02', 'During', 'Execute',
       pdfxStrategyItem('Real-Time Ad Optimization', '<strong>Increase budgets 2–4x and bids 20%+</strong> as CPCs rise. Reallocate spend to top performers in real time across all ad placements.') +
-      pdfxStrategyItem('Deal &amp; Buy Box Monitoring', 'Ensure all discounts are active and the <strong>Buy Box is stable</strong>. Resolve any pricing issues immediately — lost Buy Box is direct lost revenue.') +
-      pdfxStrategyItem('Listing &amp; Inventory Health', 'Monitor for suppressed listings and <strong>low-inventory alerts in real time</strong> to prevent conversion interruptions across the event window.') +
+      pdfxStrategyItem('Deal & Buy Box Monitoring', 'Ensure all discounts are active and the <strong>Buy Box is stable</strong>. Resolve any pricing issues immediately — lost Buy Box is direct lost revenue.') +
+      pdfxStrategyItem('Listing & Inventory Health', 'Monitor for suppressed listings and <strong>low-inventory alerts in real time</strong> to prevent conversion interruptions across the event window.') +
       pdfxStrategyItem('Performance Tracking', 'Watch sessions, conversion rate, ACOS, and sell-through velocity continuously. <strong>Make decisions from live data</strong>, not post-event analysis.')
     );
     const leadOut = pdfxStrategyPhase('lead-out', 'Phase 03', 'Lead Out', 'Capitalize',
-      pdfxStrategyItem('Retargeting &amp; Display', 'Run Sponsored Display ads to <strong>re-engage shoppers who viewed but didn\u2019t convert</strong> during the event window.') +
+      pdfxStrategyItem('Retargeting & Display', 'Run Sponsored Display ads to <strong>re-engage shoppers who viewed but didn\u2019t convert</strong> during the event window.') +
       pdfxStrategyItem('Listing Refinement', 'Update keywords and creatives using <strong>what actually converted</strong> during the event — real data is the best optimization input.') +
       pdfxStrategyItem('Brand Halo Expansion', 'Capitalize on new-to-brand traffic with <strong>cross-sell and complementary product campaigns</strong> to increase basket size.') +
       pdfxStrategyItem('Inventory Replenishment', 'Adjust restock strategies based on <strong>post-event velocity and new customer acquisition rates</strong>.') +
@@ -9182,8 +9197,18 @@ window.initSubscriptions = function () {
       '<div style="font-size:9.5px;color:var(--navy);line-height:1.4;">Promotional events are the highest-traffic sales windows of the year. The brands that win invest in the 2–3 weeks prior and capitalize in the week after. <strong>Preparation, real-time agility, and disciplined follow-through are the three variables we control.</strong></div>' +
       '</div>';
 
+    // Per Jaclyn (2026-09-11): this page is too content-dense for a
+    // separate "which event is this for" section, so the header band's
+    // own month field is swapped for the event name instead, with dates
+    // added below it — reads the same live DOM values the Strategy tab
+    // itself already populated (renderEventsStrategyTab), no separate
+    // fetch needed here.
+    const eventName = pdfxText('#evs-event-headline') || 'Event Strategy';
+    const eventDates = pdfxText('#evs-event-dates') || 'Dates TBD';
+    const headerOverride = { tag: 'Event Strategy', month: eventName, dateSub: eventDates };
+
     return '<div class="pdfx-page"><div class="pdfx-inner">' +
-      pdfxHeaderBand(monthYear, 'Events') +
+      pdfxHeaderBand(monthYear, 'Events', headerOverride) +
       '<div class="pdfx-chlabel">Event Strategy</div>' +
       leadUp + during + leadOut + outlook +
       pdfxFooter(monthYear) +
