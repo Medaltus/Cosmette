@@ -1159,7 +1159,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div class="card-title" style="margin-bottom:0;">Sales Revenue by Month</div>
+          <div class="card-title" style="margin-bottom:0;">Units Sold by Month</div>
           <div id="legend-x-amazon" style="display:flex;align-items:center;"></div>
         </div>
         <div style="position:relative;height:320px;"><canvas id="x-chart-amazon"></canvas></div>
@@ -3283,7 +3283,7 @@ const csMonths12Full = ['January','February','March','April','May','June','July'
 // both Julys at the same x-position and one would silently overwrite
 // the other the moment they're merged into a single color/series. Same
 // rounded-line styling as the original chart throughout.
-function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurrentMonth) {
+function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, cutoffAfter) {
   // Calendar Jan-Dec x-axis, one dataset per (year, account-type) —
   // matches the convention used on every other Medaltus brand's Units
   // Sold chart (see csBuildRevenueChart for the same year-offset color
@@ -3293,8 +3293,24 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurren
   // in — per Jaclyn directly, two line segments is fine as long as both
   // read as "the same series" visually, not colored per-year like
   // Medaltus/Newderm's own data is.
+  //
+  // cutoffAfter — generalized 2026-09-15 from the old boolean
+  // excludeCurrentMonth (still works exactly as before: pass `true` to
+  // exclude the literal current calendar month, used by the PDF export).
+  // Now also accepts a {year, month} object to exclude everything AFTER
+  // that specific month — used by the external Sales page so it never
+  // shows data past whatever month has actually been Approved, which can
+  // be more than one month behind the real calendar date if approval
+  // hasn't happened yet (a single "is this the current month" check
+  // wouldn't catch that — this needed a real cutoff, not just a flag).
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  let cutoffKey = null;
+  if (cutoffAfter === true) {
+    cutoffKey = currentMonthKey;
+  } else if (cutoffAfter && cutoffAfter.year && cutoffAfter.month) {
+    cutoffKey = `${cutoffAfter.year}-${String(cutoffAfter.month).padStart(2,'0')}`;
+  }
   // yearData[year] = { medaltus: [12 values|null], cosmette: [12 values|null] }
   const yearData = {};
   function ensureYear(y) {
@@ -3320,11 +3336,19 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurren
   // than being restricted to one single hardcoded "current month" key.
   // Hist still wins whenever both sources have a month, avoiding the
   // double-counting the original single-pass split was built to prevent.
+  //
+  // cutoffKey now applies here too (previously only checked in
+  // addSyncRows) — with a multi-month-back cutoff, histRows could easily
+  // have real data past the cutoff that needs excluding just as much as
+  // syncRows does; the old current-month-only check never hit this case
+  // in practice since histRows rarely has the literal current month, but
+  // a months-back approval cutoff needs both sources gated the same way.
   function addHistRows(rows) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
+      if (cutoffKey && key > cutoffKey) return;
       histCoveredMonths.add(key);
       const [y, m] = key.split('-').map(Number);
       const entry = ensureYear(y);
@@ -3338,13 +3362,7 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, excludeCurren
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
-      // excludeCurrentMonth: used for the PDF export specifically — the
-      // report should only ever show complete months, never a partial
-      // current month sitting on the same trend line as real data. When
-      // set, the literal current month's point is dropped entirely (not
-      // just switched to a different source), so the line simply ends at
-      // the last complete month instead of dipping to a partial total.
-      if (excludeCurrentMonth && key === currentMonthKey) return;
+      if (cutoffKey && key > cutoffKey) return;
       // Skip any month histRows already fully covers — hist wins on
       // overlap, sync only fills genuine gaps.
       if (histCoveredMonths.has(key)) return;
@@ -4624,7 +4642,7 @@ window.csResolveApprovedMonth = function () {
       }
 
       const cfg = window.SHEET_CFG;
-      if (!cfg.SHEET_ORDERS || !cfg.SHEET_ADVERTISING || !cfg.SHEET_AD_ORDERS) {
+      if (!cfg.SHEET_ORDERS || !cfg.SHEET_ORDERS_HISTORICAL || !cfg.SHEET_ADVERTISING || !cfg.SHEET_AD_ORDERS) {
         console.warn('[SalesExternal] Missing SHEET_CONFIG keys for KPI data.');
         return;
       }
@@ -4632,8 +4650,9 @@ window.csResolveApprovedMonth = function () {
       if (prevMonth === 0) { prevMonth = 12; prevYear--; }
 
       try {
-        const [syncCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
+        const [syncCsv, histCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
           fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_ORDERS_HISTORICAL.fileId, cfg.SHEET_ORDERS_HISTORICAL.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
           fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
           fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
         ]);
@@ -4645,6 +4664,20 @@ window.csResolveApprovedMonth = function () {
         // only ever compare Newderm against Newderm, same principle
         // already applied to the internal Sales page.
         const syncRows = csIsCsv(syncCsv) ? csFilterNewderm(csFilterRows(csParseCsv(syncCsv))) : [];
+        // Unfiltered (brand+validity only, NOT Newderm-only) rows for
+        // the Units Sold by Month chart specifically — per Jaclyn
+        // (2026-09-15), this now uses the exact same csBuildUnitsChart
+        // as internal Sales, which does its own Newderm-vs-Historical
+        // split internally and needs both account types present to do
+        // that; the Newderm-only syncRows above stays as-is for the KPI
+        // cards' own MoM math, which genuinely only wants Newderm.
+        const chartSyncRows = csIsCsv(syncCsv) ? csFilterRows(csParseCsv(syncCsv)) : [];
+        const chartHistRows = csIsCsv(histCsv) ? csFilterRows(csParseCsv(histCsv)) : [];
+        // Cutoff at the Approved month, not the literal current month —
+        // the chart must never show anything past whatever's actually
+        // been approved, which can be more than one calendar month
+        // behind if Approve hasn't happened yet.
+        csBuildUnitsChart('x-chart-amazon', 'legend-x-amazon', chartSyncRows, chartHistRows, { year: key.year, month: key.month });
         const curr = csAggregateMonth(syncRows, key.year, key.month);
         const prev = csAggregateMonth(syncRows, prevYear, prevMonth);
         if (!curr) { showEmptyState(`This month's report isn't ready yet — check back soon.`); return; }
@@ -4660,7 +4693,6 @@ window.csResolveApprovedMonth = function () {
         const adOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow).filter(r => parseInt(r.year,10)===key.year && parseInt(r.month,10)===key.month) : [];
         const prevAdOrderRows = csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow).filter(r => parseInt(r.year,10)===prevYear && parseInt(r.month,10)===prevMonth) : [];
         await csBuildTopProducts('x-tp-tbody', 'x-amazon-products-source', syncRows, key.year, key.month, adOrderRows, prevYear, prevMonth, syncRows, prevAdOrderRows);
-        csBuildRevenueChart('x-chart-amazon', key.year).catch(e => console.warn('[SalesExternal] revenue chart failed:', e.message));
       } catch (err) {
         console.error('[SalesExternal] error:', err);
         showEmptyState('Something went wrong loading this report — check back soon.');
