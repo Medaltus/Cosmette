@@ -287,20 +287,22 @@ async function extractThemesForCategory({ brand, category, recentReviews, olderR
 
 Return ONLY a JSON array, no prose outside it. Each theme object:
 {
-  "theme": "short, specific label (e.g. 'Packaging leaks during shipping', 'Scent is stronger than expected')",
+  "theme": "short, specific label (e.g. 'Scent is stronger than expected', 'Absorbs quickly without residue')",
   "status": "active" | "resolved" | "new",
   "sentiment": "positive" | "negative" | "mixed",
   "supporting_review_count": <number of the RECENT reviews that support this theme>,
   "example_quote": "<one short real quote, under 25 words, from an actual review below — never paraphrase this into something no review said>",
-  "note": "<1 sentence: what this means for the brand, e.g. 'worth revisiting the shipping box insert' — only if genuinely useful, otherwise empty string>"
+  "most_recent_review_date": "<the date (YYYY-MM-DD) of whichever supporting review is most recent — copy this exactly from that review's date, never estimate or guess>",
+  "note": "<1 sentence: what this means for the brand, e.g. 'worth calling this out more in product copy' — only if genuinely useful, otherwise empty string>"
 }
 
 Rules:
 - "resolved" only applies to a theme carried over from PREVIOUSLY IDENTIFIED THEMES below that the recent reviews no longer support.
-- "new" is for a real theme with no match in the previous list.
+- "new" is for a real theme with no match in the previous list. This only means newly IDENTIFIED by this tracking process — it does NOT mean the underlying reviews are themselves recent. most_recent_review_date is what actually shows how current the evidence is, since "new" alone can be misleading on an early run against reviews that have existed for a while.
 - "active" is for a theme (whether carried over or newly spotted) that the recent reviews currently support.
-- Do not fabricate a quote — every example_quote must be copyable verbatim from one of the reviews you're given.
-- Skip anything that only one review mentions unless it's a safety/quality concern worth flagging regardless of volume.`;
+- Do not fabricate a quote or a date — every example_quote and every most_recent_review_date must come directly from one of the reviews you're given.
+- Skip anything that only one review mentions unless it's a safety/quality concern worth flagging regardless of volume.
+- NEVER create a theme about a damaged box, damaged/crushed packaging in shipping, a leaking or broken item on arrival, or anything else describing shipping/transit damage. This is a fulfillment (FBA) issue, not a product theme, and doesn't belong here even if several reviews mention it. A review can still support an unrelated real product theme even if it also happens to mention shipping damage — just don't let the damage itself become or support a theme.`;
 
   const userPrompt = `${previousThemesSection}
 
