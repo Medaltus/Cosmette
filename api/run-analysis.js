@@ -1,21 +1,4 @@
 /**
- * ══════════════════════════════════════════════════════════════════════════
- * ADAPTED FOR COSMETTE — 2026-09-15. This file's core architecture (brand-
- * agnostic, driven by config/brands.js's registry) needed no real changes
- * to work for Cosmette — only BRAND_DESCRIPTIONS.cosmette was added below.
- * KEYWORD_TRACKER_SHEET_ID (below) IS independently confirmed for Cosmette
- * specifically (Jaclyn gave this exact fileId directly, 2026-09-11, for
- * dashboard BSR work) — everything else this file assumed/guessed
- * (LISTING_FIELD_CANDIDATES, ABA_FIELD_CANDIDATES, BIZ_FIELD_CANDIDATES,
- * etc. — see the extensive assumption notes throughout the rest of this
- * header) has NOT been independently re-verified against Cosmette's real
- * sheets. Those caveats carry over unchanged from whichever brand's repo
- * this was originally built for — worth a real check against Cosmette's
- * actual sheet output before trusting any single one of them blindly.
- * ══════════════════════════════════════════════════════════════════════════
- */
-
-/**
  * api/run-analysis.js
  * POST /api/run-analysis
  * Body: { brand: "evolis" }
@@ -131,22 +114,15 @@ const { readRows, ensureTab, appendRows } = require('./config/_sheets_client');
 const sheets = require('./config/sheets');
 const brands = require('./config/brands');
 
-// Confirmed directly for COSMETTE specifically (Jaclyn gave this exact
-// fileId, 2026-09-11, for the Subcategory BSR work on the dashboard) —
-// same file also used by other brands (shared multi-brand Keyword
-// Tracker), matching the same reasoning the original comment here
-// documented for why this bypasses sheets.keywordTracker rather than
-// trusting it. Cosmette's own gid on THIS file for the main per-keyword
-// tab is 775722530; the Subcategory BSR/summary tab is a DIFFERENT gid
-// (579593778) — do not assume these are interchangeable, see
-// run-voc-themes.js's own header comment for the same class of mistake
-// elsewhere in this project.
+// Confirmed directly (screenshot of the live sheet + upload-keyword-tracker.js's
+// own example) — see the header comment above for why this bypasses
+// sheets.keywordTracker rather than trusting it.
 const KEYWORD_TRACKER_SHEET_ID = '1geNDQgd_1ensLDyZOuXZBnvQrFT_RC85l9rHHGpgJe4';
 
 const BRAND_DESCRIPTIONS = {
   evolis:   'évolis (EVO) — a clinically tested hair growth brand using FGF5-inhibiting botanicals',
   skinuva:  'Skinuva (SVA) — a scar, bruise, and skin recovery brand',
-  cosmette: 'Cosmette (COS) — a skincare brand recently transitioned to Newderm/Medaltus management, previously self-managed under the Cosmette_Historical seller account',
+  cosmette: 'Cosmette (COS) — a skincare brand',
   default:  'a Medaltus brand'
 };
 
