@@ -53,11 +53,10 @@
  *     exist ONLY so this file doesn't hard-crash on require() if those
  *     keys are still missing; they are not a substitute for actually
  *     adding the real config.
- *   - RECENT_WINDOW_DAYS = 90: not confirmed against any real product
- *     cycle Jaclyn described — a quarter is a reasonable starting default
- *     for "recent enough to reflect current reality" but adjust if 90
- *     days is too short or too long for how often packaging/pricing
- *     actually changes here.
+ *   - RECENT_WINDOW_DAYS = 730 (2 years) — CONFIRMED per Jaclyn (2026-09-16)
+ *     after the first real run: 90 days was too tight and left Cleansers/
+ *     Eyes with zero recent reviews (skipped entirely) and Moisturizer
+ *     with only 1 (not enough to write a real theme from).
  *   - product_category values come directly from the review sheet's own
  *     column (same convention the frontend's initExternalReviews() already
  *     uses) — whatever distinct values exist there is what this groups
@@ -92,7 +91,7 @@ const VOC_THEMES_HEADERS = ['date', 'category', 'themes_json', 'review_count', '
 
 // How far back counts as "recent enough to reflect current reality" for
 // judging whether an older theme is still active. See ASSUMPTIONS above.
-const RECENT_WINDOW_DAYS = 90;
+const RECENT_WINDOW_DAYS = 730; // 2 years — confirmed 90 was too tight (2026-09-16 run: Cleansers/Eyes had zero reviews within 90 days, Moisturizer only had 1)
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 module.exports = async function handler(req, res) {
