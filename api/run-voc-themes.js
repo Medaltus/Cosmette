@@ -237,15 +237,9 @@ async function runVocThemesForBrand(brand, apiKey) {
   const [reviewRows, themeHistoryRows, masterSkuRows] = await Promise.all([
     readRows(AMAZON_REVIEWS_SHEET_ID, brand.tabName).catch(() => []),
     readRows(VOC_THEMES_SHEET_ID, brand.tabName).catch(() => []),
-    // Master SKU List is a shared, cross-brand sheet (per this dashboard's
-    // established convention) — read with the SAME tab-per-brand pattern
-    // as everything else in this file, matching csFetchProductNames()'s
-    // own usage on the frontend. NOT independently confirmed here whether
-    // this sheet is actually organized one-tab-per-brand (like the
-    // reviews sheet) vs. one shared tab with a Brand column filtered
-    // client-side — if masterSkuRows comes back empty for a real brand
-    // tab that should have data, that's the first thing to check.
-    readRows(MASTER_SKU_LIST_SHEET_ID, brand.tabName).catch(() => []),
+    // Master SKU List is one shared tab across all brands, literally
+    // named "Product Short Name" — confirmed directly, not brand.tabName.
+    readRows(MASTER_SKU_LIST_SHEET_ID, 'Product Short Name').catch(() => []),
   ]);
   console.log(`[run-voc-themes] ${brand.id} — reviewRows:${reviewRows.length} themeHistoryRows:${themeHistoryRows.length} masterSkuRows:${masterSkuRows.length}`);
 
