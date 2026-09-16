@@ -1,80 +1,66 @@
 /**
  * api/config/sheets.js
- * Google Sheet IDs for each data type — Cosmette's repo.
+ * Google Sheet IDs for each data type — Skinuva's repo.
  * Add new sheet IDs here as env vars — never hardcode them.
  *
- * ADAPTED from the same brand-agnostic pattern already established on
- * Skinuva's/évolis's own repos (just names → env var values — see
- * config/brands.js for the actual brand-scoping via tabName). NOT
- * independently confirmed that Cosmette's repo doesn't already have its
- * own version of this file with different key names — if it does,
- * reconcile against that rather than blindly overwriting it, since
- * anything already working depends on whatever names are already live.
- *
- * IMPORTANT — this is a DIFFERENT env var layer than the frontend's own
- * SHEET_CONFIG: cosmette_index.html's window.SHEET_CFG is populated from
- * ONE combined SHEET_CONFIG env var (a JSON blob, read by
- * api/sheet-config.js). This file instead expects each sheet as its OWN
- * SEPARATE env var (SHEET_ORDERS, SHEET_ADVERTISING, etc.) — matching
- * how run-analysis.js/run-ppc-analysis.js already read them. These two
- * env var layers need to be kept in sync by hand (the same real sheet ID
- * has to be entered twice — once inside the SHEET_CONFIG JSON blob, once
- * as its own individual env var here) unless/until someone consolidates
- * them into one source of truth. Worth flagging to Jaclyn rather than
- * assuming either layer is authoritative.
- *
- * amazonReviews / vocThemes — ADDED 2026-09-15 for the new
- * run-voc-themes.js cron (see that file). Neither existed in this
- * config before; both need real SHEET_AMAZON_REVIEWS / SHEET_VOC_THEMES
- * env vars set in Vercel. SHEET_AMAZON_REVIEWS is the SAME shared,
- * cross-brand reviews sheet the frontend already reads (confirmed
- * elsewhere in this project) — same real sheet ID, just also needs its
- * own individual env var here per the note above. SHEET_VOC_THEMES is
- * brand new — a sheet that doesn't exist yet needs to be created before
- * this env var points at anything real.
+ * This module is brand-agnostic by design (just names → env var values —
+ * see config/brands.js for the actual brand-scoping via tabName), so it's
+ * structurally identical to évolis's own copy. Kept the full list even
+ * though Skinuva's own crons (run-analysis.js, run-listing-audit.js,
+ * run-ppc-strategy-analysis.js) only actually read a subset of these —
+ * harmless for the rest to resolve to undefined, and one less thing to
+ * edit if a future Skinuva cron needs one of the others.
  *
  * ── Env var → sheet mapping ──────────────────────────────────────────────────
- * SHEET_ORDERS                    rolling ~120-day order cache, per-brand tabs
- * SHEET_ORDERS_HISTORICAL         permanent historical order archive, per-brand tabs
- * SHEET_MASTER_SKU_LIST           Master SKU/ASIN list across all brands (Product Short Name tab)
- * SHEET_ADVERTISING               advertising cache (ad summary), per-brand tabs
+ * SHEET_ORDERS                    sync-orders (rolling 90-day cache, per-brand tabs)
+ * SHEET_ORDERS_HISTORICAL         historical orders cache (YOY comparisons)
+ * SHEET_PRODUCTS                  master SKU/ASIN sheet (Vine tab lives here)
+ * SHEET_ADVERTISING               advertising cache (ad summary + ad orders tabs)
  * SHEET_SUBSCRIPTIONS             subscribe & save sync
  * SHEET_REVENUE                   revenue history (monthly totals by brand)
- * SHEET_RETURNS                   FBA customer returns
+ * SHEET_RETURNS                   FBA customer returns (sync-returns-request/process)
  * SHEET_AD_ORDERS                 ad orders cache (ASIN-level ad performance)
- * SHEET_AD_SEARCH_TERMS           Amazon Ads search-term report, per-brand tabs
- * SHEET_LISTING_AUDIT             listing audit results, per-brand tabs — used by run-listing-audit.js
+ * SHEET_LISTING_AUDIT             listing audit results (per-brand tabs) — used by run-listing-audit.js
+ * SHEET_KEYWORD_STRATEGY          keyword strategy per brand
  * SHEET_INSIGHTS                  brand insights / monthly takeaways — used by run-analysis.js
- * SHEET_REPORT_INSIGHTS           editable report content + approval status for the dashboard (Exec Summary, Key Insights, Opportunity cards) — NOT the same sheet as SHEET_INSIGHTS
- * SHEET_BUSINESS_REPORT           Sales & Traffic business report (sessions/units), per-brand tabs — used by run-analysis.js, run-ppc-analysis.js
- * SHEET_SEARCH_QUERY_PERFORMANCE  Brand Analytics Search Query Performance, per-brand tabs — used by run-analysis.js
- * SHEET_KEYWORD_TRACKER           organic keyword rank tracking, per-brand tabs — used by run-analysis.js
- * SHEET_KEYWORD_TRACKER_SUMMARY   per-ASIN daily BSR/review/rating summary — separate tab on the same file as SHEET_KEYWORD_TRACKER, different gid, do not assume it's the same
- * SHEET_PRODUCT_INVENTORY         dated daily product+inventory snapshots, per-brand tabs — used by run-listing-audit.js, run-analysis.js
- * SHEET_STEWARDSHIP_SUMMARY       pre-computed monthly Brand Stewardship metrics (ads_spend, vine_total, promos_total, etc.)
- * SHEET_AMAZON_REVIEWS            shared, cross-brand Amazon review data, per-brand tabs — used by run-voc-themes.js
- * SHEET_VOC_THEMES                NEW — VOC theme output, written by run-voc-themes.js, read by the dashboard's VOC Themes card
+ * SHEET_UPLOADS                   file uploads tracking (per-brand GID)
+ * SHEET_BUSINESS_REPORT           Sales & Traffic business report (sessions/units by brand, monthly) — used by run-analysis.js, run-ppc-strategy-analysis.js
+ * SHEET_SEARCH_QUERY_PERFORMANCE  Brand Analytics Search Query Performance (full monthly report, per-brand tabs) — used by run-analysis.js
+ * SHEET_MASTER_SKU_LIST           Master SKU/ASIN list across all brands (Product Short Name tab)
+ * SHEET_KEYWORD_TRACKER            Organic keyword rank tracking, per-brand tabs — used by run-analysis.js
+ * SHEET_CONSIGNMENT_INVENTORY      Consignment inventory from ShipStation V2, per-brand tabs
+ * SHEET_FULFILLMENT_DAILY_SHIPMENTS Daily shipped-order counts (chart) + _kpis tab
+ * SHEET_FULFILLMENT_STATES          Orders-by-state snapshot for the Fulfillment page's US map + table
+ * SHEET_CUSTOMER_SERVICE            Reviews Requested (H10 Follow Up, automated) + Compliance Cases (manual), one tab per brand
+ * SHEET_PRODUCT_INVENTORY            Dated daily product+inventory snapshots, per-brand tabs — used by run-listing-audit.js, run-analysis.js
+ * SHEET_NEWDERM_INVENTORY            Regular (non-consignment) inventory reconciliation report — marketplace vs Cin7 Core by location
+ * SHEET_WALMART_RETURNS              Walmart return orders (dedicated Returns API), one tab per brand
+ * SHEET_REPORT_INSIGHTS               Editable report content for the internal dashboard (Executive Summary, Key Insights, Opportunity cards) + approval status. NOT the same sheet as SHEET_INSIGHTS above.
  */
 
 module.exports = {
   orders:                 process.env.SHEET_ORDERS,
   ordersHistorical:       process.env.SHEET_ORDERS_HISTORICAL,
-  masterSkuList:          process.env.SHEET_MASTER_SKU_LIST,
+  products:               process.env.SHEET_PRODUCTS,
   advertising:            process.env.SHEET_ADVERTISING,
   subscriptions:          process.env.SHEET_SUBSCRIPTIONS,
   revenue:                process.env.SHEET_REVENUE,
   returns:                process.env.SHEET_RETURNS,
   adOrders:               process.env.SHEET_AD_ORDERS,
-  adSearchTerms:          process.env.SHEET_AD_SEARCH_TERMS,
   listingAudit:           process.env.SHEET_LISTING_AUDIT,
+  keywordStrategy:        process.env.SHEET_KEYWORD_STRATEGY,
   insights:               process.env.SHEET_INSIGHTS,
   reportInsights:         process.env.SHEET_REPORT_INSIGHTS,
+  uploads:                process.env.SHEET_UPLOADS,
   businessReport:         process.env.SHEET_BUSINESS_REPORT,
   searchQueryPerformance: process.env.SHEET_SEARCH_QUERY_PERFORMANCE,
+  masterSkuList:          process.env.SHEET_MASTER_SKU_LIST,
   keywordTracker:         process.env.SHEET_KEYWORD_TRACKER,
-  keywordTrackerSummary:  process.env.SHEET_KEYWORD_TRACKER_SUMMARY,
-  productInventory:       process.env.SHEET_PRODUCT_INVENTORY,
-  stewardshipSummary:     process.env.SHEET_STEWARDSHIP_SUMMARY,
-  amazonReviews:          process.env.SHEET_AMAZON_REVIEWS,
-  vocThemes:              process.env.SHEET_VOC_THEMES,
+  consignmentInventory:   process.env.SHEET_CONSIGNMENT_INVENTORY,
+  fulfillmentDailyShipments: process.env.SHEET_FULFILLMENT_DAILY_SHIPMENTS,
+  fulfillmentStates:         process.env.SHEET_FULFILLMENT_STATES,
+  customerService:           process.env.SHEET_CUSTOMER_SERVICE,
+  productInventory:          process.env.SHEET_PRODUCT_INVENTORY,
+  newdermInventory:          process.env.SHEET_NEWDERM_INVENTORY,
+  walmartReturns:            process.env.SHEET_WALMART_RETURNS,
 };
