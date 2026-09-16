@@ -1210,7 +1210,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 
       <div class="kpi-row">
         <div class="kpi-card" id="mx-kpi-pct-revenue-invested"><div class="kpi-label">% Revenue Invested</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
-        <div class="kpi-card" id="mx-kpi-amazon-fees"><div class="kpi-label">Amazon Fees</div><div class="kpi-value sm">—</div><div style="font-size:11px;color:var(--muted);margin-top:4px;">Pending Finances API sync</div></div>
+        <div class="kpi-card" id="mx-kpi-amazon-fees"><div class="kpi-label">Amazon Fees</div><div class="kpi-value sm">—</div><div class="kpi-mom flat"></div></div>
         <div class="kpi-card" id="mx-kpi-pct-units-ads"><div class="kpi-label">% Units from Ads</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
         <div class="kpi-card" id="mx-kpi-ad-clicks"><div class="kpi-label">Ad Clicks</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
         <div class="kpi-card" id="mx-kpi-ad-impressions"><div class="kpi-label">Ad Impressions</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
@@ -6082,11 +6082,37 @@ window.initSubscriptions = function () {
 
       const cfg = window.SHEET_CFG;
       if (!cfg.SHEET_STEWARDSHIP_SUMMARY) { console.warn('[StewardshipExternal] Missing SHEET_STEWARDSHIP_SUMMARY.'); return; }
+      // Same fees sheet as internal Stewardship — per Jaclyn (2026-09-15),
+      // this KPI was never actually built for the external page before
+      // now (confirmed directly: it was still showing the original
+      // "Pending Finances API sync" placeholder, not a regression from
+      // the recent merge).
+      const STEWARDSHIP_FEES_SHEET_ID_EXT = '1SiYu8e2-Pfi14Aiuf6SAFytWVXb4_dtdNFT6wvLFPok';
+      const STEWARDSHIP_FEES_GID_EXT = '982399951';
       try {
         const summaryCsv = await fetch(csSheetCsvUrl(cfg.SHEET_STEWARDSHIP_SUMMARY.fileId, cfg.SHEET_STEWARDSHIP_SUMMARY.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
         const summaryRows = csIsCsv(summaryCsv) ? csParseCsv(summaryCsv) : [];
         if (!summaryRows.length) { console.warn('[StewardshipExternal] Summary sheet returned no rows.'); return; }
         const findRow = (y, m) => summaryRows.find(r => parseInt(r.year,10) === y && parseInt(r.month,10) === m);
+
+        try {
+          const feesCsv = await fetch(csSheetCsvUrl(STEWARDSHIP_FEES_SHEET_ID_EXT, STEWARDSHIP_FEES_GID_EXT) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+          const feesRows = csIsCsv(feesCsv) ? csParseCsv(feesCsv) : [];
+          const sumFeesForMonth = (y, m) => {
+            const prefix = `${y}-${String(m).padStart(2,'0')}`;
+            return feesRows
+              .filter(r => csNormalizeDate(r.date).substring(0,7) === prefix)
+              .filter(r => (r.status||'').trim().toLowerCase() !== 'cancelled')
+              .filter(r => r.selling_account === 'Newderm')
+              .reduce((s,r) => s + csParseAmt(r['Amazon Estimated fees']), 0);
+          };
+          const feesCurr = sumFeesForMonth(year, month);
+          const feesPrev = sumFeesForMonth(prevYear, prevMonth);
+          setKpiVal('mx-kpi-amazon-fees', '$' + Math.round(feesCurr).toLocaleString());
+          setKpiMom('mx-kpi-amazon-fees', feesPrev ? csPct(feesCurr, feesPrev) : null);
+        } catch (feeErr) {
+          console.warn('[StewardshipExternal] Amazon Fees fetch failed:', feeErr.message);
+        }
 
         const invMonths = trailingMonths(year, month, 13);
         const investLabels = invMonths.map(({year: y, month: m}) => `${csMonths12[m-1]} '${String(y).slice(2)}`);
