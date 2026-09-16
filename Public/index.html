@@ -470,6 +470,12 @@ details.inci-toggle[open] summary::before{content:'▾ ';}
 .ppc-run-btn.running .spinner{display:block;}
 .ppc-run-btn.running .btn-label{opacity:.7;}
 @keyframes spin{to{transform:rotate(360deg)}}
+.voc-run-btn{display:flex;align-items:center;gap:9px;background:#6b7ba2;color:#fff;border:none;border-radius:999px;padding:13px 26px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;box-shadow:0 2px 8px rgba(107,123,162,.4);}
+.voc-run-btn:hover{box-shadow:0 4px 14px rgba(107,123,162,.55);transform:translateY(-1px);}
+.voc-run-btn:disabled{background:var(--muted);color:#fff;cursor:not-allowed;box-shadow:none;transform:none;}
+.voc-run-btn .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
+.voc-run-btn.running .spinner{display:block;}
+.voc-run-btn.running .btn-label{opacity:.7;}
 .channel-page{display:none;}
 .channel-page.active{display:block;}
 
@@ -2261,7 +2267,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
             <div class="last-run-note" id="last-run-ppc">Last run: —</div>
           </div>
           <div>
-            <button class="upload-run-btn" id="run-voc-themes-btn" onclick="window.__csRunVocThemes()">
+            <button class="voc-run-btn" id="run-voc-themes-btn" onclick="window.__csRunVocThemes()">
               <div class="spinner"></div>
               <span class="btn-label">💬 Run VOC Themes</span>
             </button>
