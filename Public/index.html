@@ -5393,15 +5393,36 @@ window.initSubscriptions = function () {
     }
     const STATUS_STYLE = {
       active:   { bg: 'rgba(219,55,45,.1)', color: 'var(--danger)', label: 'Active' },
-      new:      { bg: 'rgba(200,125,47,.12)', color: 'var(--warn)', label: 'New' },
+      new:      { bg: 'rgba(200,125,47,.12)', color: 'var(--warn)', label: 'New Theme' },
       resolved: { bg: 'rgba(36,233,163,.13)', color: '#1db88a', label: 'Resolved' },
     };
+    // "New" only means newly identified by this tracking process — it
+    // doesn't mean the underlying reviews are themselves recent (on an
+    // early run, everything looks "new" even if built from 2-year-old
+    // reviews). This pill shows actual recency of the evidence
+    // separately, per Jaclyn (2026-09-16), so a "New Theme" badge next
+    // to "2 months ago" reads honestly instead of implying fresh feedback.
+    function timeAgoLabel(dateStr) {
+      const d = Date.parse(dateStr);
+      if (isNaN(d)) return '';
+      const days = Math.floor((Date.now() - d) / 86400000);
+      if (days < 0) return '';
+      if (days < 1) return 'today';
+      if (days < 14) return days + (days === 1 ? ' day ago' : ' days ago');
+      if (days < 60) return Math.floor(days/7) + ' weeks ago';
+      if (days < 730) return Math.floor(days/30) + ' months ago';
+      return Math.floor(days/365) + ' years ago';
+    }
     const rowsHtml = themes.map(t => {
       const st = STATUS_STYLE[t.status] || STATUS_STYLE.active;
+      const agoLabel = timeAgoLabel(t.most_recent_review_date);
       return `<div style="padding:10px 0;border-bottom:1px solid var(--border2);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
           <div style="font-size:12.5px;font-weight:700;color:var(--navy);">${escapeHtml(t.theme||'')}</div>
-          <span style="font-size:9.5px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap;background:${st.bg};color:${st.color};">${st.label}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            ${agoLabel ? `<span style="font-size:9.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;background:var(--bg2);color:var(--muted);">${escapeHtml(agoLabel)}</span>` : ''}
+            <span style="font-size:9.5px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap;background:${st.bg};color:${st.color};">${st.label}</span>
+          </div>
         </div>
         ${t.example_quote ? `<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-bottom:2px;">"${escapeHtml(t.example_quote)}"</div>` : ''}
         ${t.note ? `<div style="font-size:11px;color:var(--muted);">${escapeHtml(t.note)}</div>` : ''}
