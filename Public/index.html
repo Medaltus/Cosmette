@@ -2260,6 +2260,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
             </button>
             <div class="last-run-note" id="last-run-ppc">Last run: —</div>
           </div>
+          <div>
+            <button class="upload-run-btn" id="run-voc-themes-btn" onclick="window.__csRunVocThemes()">
+              <div class="spinner"></div>
+              <span class="btn-label">💬 Run VOC Themes</span>
+            </button>
+            <div class="last-run-note" id="last-run-voc">Last run: —</div>
+          </div>
           <span class="upload-status" id="upload-status" style="align-self:center;"></span>
         </div>
       </div>
@@ -7817,6 +7824,15 @@ window.initSubscriptions = function () {
         setLastRun('last-run-ppc', latest);
       } catch (e) { console.warn('[LastRun] ppc failed:', e.message); }
     }
+    const vocCfg = window.SHEET_CFG.SHEET_VOC_THEMES;
+    if (vocCfg) {
+      try {
+        const csv = await fetch(csSheetCsvUrl(vocCfg.fileId, vocCfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+        const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+        const latest = rows.reduce((max,r) => ((r.uploaded_at||'') > max ? r.uploaded_at : max), '');
+        setLastRun('last-run-voc', latest);
+      } catch (e) { console.warn('[LastRun] voc failed:', e.message); }
+    }
   };
 
   window.initInsightsLog = function () {
@@ -7991,6 +8007,13 @@ window.initSubscriptions = function () {
       // render function yet (no ppc_strategy display built) — this just
       // confirms the cron ran; the tabs still need their own render pass
       // once that's built.
+    });
+  };
+
+  window.__csRunVocThemes = function () {
+    runCron('run-voc-themes-btn', '/api/run-voc-themes', () => {
+      window._csExtReviewsPromise = null;
+      if (typeof window.initExternalReviews === 'function') window.initExternalReviews();
     });
   };
 })();
