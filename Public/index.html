@@ -1253,6 +1253,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="mx-opportunities">
+      <!-- TEMP HIDDEN 2026-09-16 per Jaclyn — Subscribe & Save isn't
+           active/populated yet, so it's not ready for the brand to see.
+           Underlying JS (window.initSubscriptionsExternal) still runs
+           and fetches normally; only the display is suppressed, so this
+           is ready to show again the moment it's live — just remove the
+           display:none below, nothing else needs re-wiring. -->
+      <div style="display:none;">
       <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Subscribe &amp; Save</div>
       <div class="kpi-row" style="margin-bottom:20px;">
         <div class="kpi-card" id="mx-kpi-active-subs"><div class="kpi-label">Active Subscriptions</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
@@ -1261,6 +1268,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       <div class="card" style="margin-bottom:20px;">
         <div class="card-title">Active Subscriptions by Month</div>
         <div id="mx-sns-chart-wrap" style="position:relative;height:320px;"><canvas id="mx-chart-sns"></canvas></div>
+      </div>
       </div>
 
       <!-- Opportunity cards — read-only, locked to the approved month
@@ -5526,7 +5534,8 @@ window.initSubscriptions = function () {
         const byProduct = {};
         catReviews.forEach(r => {
           const key = (r.sku || r.asin || r.product_name || 'unknown').trim();
-          (byProduct[key] = byProduct[key] || { label: r.product_name || key, reviews: [] }).reviews.push(r);
+          const cleanName = names.nameBySku[csBaseSku(r.sku)] || names.nameByAsin[(r.asin||'').toUpperCase()] || r.product_name || key;
+          (byProduct[key] = byProduct[key] || { label: cleanName, reviews: [] }).reviews.push(r);
         });
         const productKeys = Object.keys(byProduct);
         const prodTabsHtml = productKeys.map((key, j) =>
