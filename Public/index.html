@@ -5728,6 +5728,13 @@ window.initSubscriptions = function () {
     </svg>`;
   }
 
+  // Local declaration — this IIFE had no escapeHtml of its own (every
+  // other IIFE in this file that needs it declares its own local copy;
+  // this is the same "not shared across <script> scope" class of bug as
+  // the earlier BRAND is not defined fix).
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
   function csGoalGaugeCard(label, actual, goal, isMtd, projected) {
     if (goal == null) {
       return `<div style="text-align:center;min-width:140px;">
