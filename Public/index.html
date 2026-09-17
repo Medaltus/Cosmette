@@ -1424,8 +1424,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     <div class="card" style="margin-bottom:20px;">
       <div class="card-title">Sales by Product <span style="font-weight:400;color:var(--muted);" id="ov-products-period-label">(by Units, Month to Date)</span></div>
       <table class="data-table" id="ov-top-sellers">
-        <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th></tr></thead>
-        <tbody id="ov-products-tbody"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
+        <thead><tr><th style="width:32px;">#</th><th>Product</th><th>Units</th><th>Units (Ads)</th><th>Units (Organic)</th><th>Conv% (Amazon)</th></tr></thead>
+        <tbody id="ov-products-tbody"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -2989,6 +2989,22 @@ function csGoalTrackerValidOrder(row) {
 function csFilterGoalTrackerRows(rows) {
   return rows.filter(r => csIsCosmetteRow(r) && csGoalTrackerValidOrder(r) && r.selling_account === 'Newderm');
 }
+// Conv% numerator filter — per Jaclyn (2026-09-17), deliberately the
+// most permissive filter on this dashboard: "how many people came to
+// our page and purchased" counts a real purchase event regardless of
+// what happened afterward (cancelled, returned), excluding ONLY Vine
+// (free review units, not a real conversion) and 702-removal orders
+// (not a customer purchase at all). Newderm-only, same "our
+// performance" principle as everywhere else on this dashboard.
+function csConvRateValidOrder(row) {
+  const promos = (row.promotion_ids || '').toLowerCase();
+  if (promos.includes('vine')) return false;
+  if ((row.order_id || '').trim().startsWith('702')) return false;
+  return true;
+}
+function csFilterConvRateRows(rows) {
+  return rows.filter(r => csIsCosmetteRow(r) && csConvRateValidOrder(r) && r.selling_account === 'Newderm');
+}
 // Cosmette sold on its own seller account before partnering with
 // Medaltus. Current-period KPIs must only ever count sales under
 // Medaltus's own "Newderm" seller account — a row from before the
@@ -3254,7 +3270,37 @@ function csFetchProductNames() {
   return _csProductNamesPromise;
 }
 
-async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adOrderRows, prevYear, prevMonth, prevOrderRows, prevAdOrderRows) {
+// Sessions by ASIN, fetched independently and memoized — self-contained
+// so a slow/failed Business Report fetch can only ever affect the Conv%
+// column, never anything else calling csBuildTopProducts (same lesson
+// as the Goal Tracker fetch-coupling bug from 2026-09-17).
+async function csFetchSessionsByAsin(year, month) {
+  const cacheKey = `${year}-${month}`;
+  window._csSessionsByAsinCache = window._csSessionsByAsinCache || {};
+  if (window._csSessionsByAsinCache[cacheKey]) return window._csSessionsByAsinCache[cacheKey];
+  window._csSessionsByAsinCache[cacheKey] = (async () => {
+    const cfg = window.SHEET_CFG;
+    if (!cfg.SHEET_BUSINESS_REPORT) return {};
+    try {
+      const csv = await fetch(csSheetCsvUrl(cfg.SHEET_BUSINESS_REPORT.fileId, cfg.SHEET_BUSINESS_REPORT.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      const rows = csIsCsv(csv) ? csParseCsv(csv) : [];
+      const sessionsByAsin = {};
+      rows.forEach(r => {
+        if (parseInt(r.YEAR||r.year,10) === year && parseInt(r.MONTH||r.month,10) === month) {
+          const asin = (r.ASIN||r.asin||'').trim().toUpperCase();
+          if (asin) sessionsByAsin[asin] = (sessionsByAsin[asin] || 0) + (parseInt(r.SESSIONS||r.sessions,10) || 0);
+        }
+      });
+      return sessionsByAsin;
+    } catch (e) {
+      console.warn('[ConvRate] sessions fetch failed:', e.message);
+      return {};
+    }
+  })();
+  return window._csSessionsByAsinCache[cacheKey];
+}
+
+async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adOrderRows, prevYear, prevMonth, prevOrderRows, prevAdOrderRows, convRateGrossRows) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   const prefix2 = `${year}-${String(month).padStart(2,'0')}`;
@@ -3289,9 +3335,37 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
 
   const sorted = Object.entries(skuUnits).filter(([,u]) => u > 0).sort((a,b) => b[1]-a[1]);
   let totalAdUnits = 0;
+
+  // Conv% — opt-in (Overview only, per Jaclyn 2026-09-17). Ported from
+  // évolis's real implementation (rank-pill, >=15% green, else red, "—"
+  // when no sessions) — the only deliberate change is the numerator:
+  // évolis uses clean net units, Jaclyn wants the gross purchased count
+  // for Cosmette instead (see csFilterConvRateRows above).
+  let sessionsByAsin = {};
+  const grossUnitsByAsin = {};
+  if (convRateGrossRows) {
+    sessionsByAsin = await csFetchSessionsByAsin(year, month);
+    const grossPrefix = `${year}-${String(month).padStart(2,'0')}`;
+    csFilterConvRateRows(convRateGrossRows)
+      .filter(r => csNormalizeDate(r.date).substring(0,7) === grossPrefix)
+      .forEach(r => {
+        const asin = (r.asin || '').trim().toUpperCase();
+        if (asin) grossUnitsByAsin[asin] = (grossUnitsByAsin[asin] || 0) + (parseInt(r.unit_count,10) || 0);
+      });
+  }
+  function convCell(asin) {
+    if (!asin) return '<span class="tp-dash">—</span>';
+    const sessions = sessionsByAsin[asin] || 0;
+    if (!sessions) return '<span class="tp-dash">—</span>';
+    const grossUnits = grossUnitsByAsin[asin] || 0;
+    const conv = (grossUnits / sessions) * 100;
+    const convClass = conv >= 15 ? 'rank-top' : (conv > 0 ? 'rank-low' : 'rank-none');
+    return `<span class="rank-pill ${convClass}">${conv.toFixed(2)}%</span>`;
+  }
+
   tbody.innerHTML = '';
   if (!sorted.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No unit data for this month.</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="${convRateGrossRows ? 6 : 5}" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">No unit data for this month.</td></tr>`;
     return { totalAdUnits: 0 };
   }
   sorted.forEach(([sku, units], idx) => {
@@ -3309,7 +3383,7 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
       <td>${name}</td>
       <td><div class="tp-cell"><span class="tp-units">${units.toLocaleString()}</span>${csMomSpan(units, prevUnits)}</div></td>
       <td><div class="tp-cell"><span class="tp-units">${adUnits.toLocaleString()}</span>${csMomSpan(adUnits, adUnitsPrev)}</div></td>
-      <td><div class="tp-cell"><span class="tp-units">${orgUnits.toLocaleString()}</span>${csMomSpan(orgUnits, prevOrgUnits)}</div></td>`;
+      <td><div class="tp-cell"><span class="tp-units">${orgUnits.toLocaleString()}</span>${csMomSpan(orgUnits, prevOrgUnits)}</div></td>${convRateGrossRows ? `<td>${convCell(asin)}</td>` : ''}`;
     tbody.appendChild(tr);
   });
   const srcEl = document.getElementById(sourceId);
@@ -6064,7 +6138,7 @@ window.initSubscriptions = function () {
     if (mtd) {
       const productsLabelEl = document.getElementById('ov-products-period-label');
       if (productsLabelEl) productsLabelEl.textContent = isMtd ? '(by Units, Month to Date)' : `(by Units, ${csMonths12[refMonth-1]} ${refYear})`;
-      csBuildTopProducts('ov-products-tbody', null, cache.validRows, refYear, refMonth, adOrderRowsCurr, prevYear, prevMonth, cache.validRows, adOrderRowsPrev);
+      csBuildTopProducts('ov-products-tbody', null, cache.validRows, refYear, refMonth, adOrderRowsCurr, prevYear, prevMonth, cache.validRows, adOrderRowsPrev, cache.allRows);
     }
   };
 })();
