@@ -5677,6 +5677,58 @@ window.initSubscriptions = function () {
     if (momEl) { momEl.className = 'kpi-mom flat'; momEl.textContent = label || ''; }
   }
 
+  // RESTORED 2026-09-17 — this whole function, plus renderOverviewPeriodPills
+  // and __cosmetteSelectOverviewPeriod below it, were accidentally deleted
+  // during an earlier bulk line-range edit (they used to sit right here,
+  // immediately before the Goal Tracker code that replaced this same
+  // range). This is back to its original form — Goal Tracker's own data
+  // needs (historical orders, returns) are fetched independently inside
+  // renderGoalTrackerSection now, not folded into this Promise.all, so a
+  // problem with either of those can never block the rest of Overview
+  // from loading again the way it just did.
+  window.initOverviewInternal = function () {
+    if (window._csOverviewPromise) return window._csOverviewPromise;
+    window._csOverviewPromise = (async function () {
+      const cfg = window.SHEET_CFG;
+      const need = ['SHEET_ORDERS','SHEET_ADVERTISING','SHEET_AD_ORDERS','SHEET_REVENUE'];
+      const missing = need.filter(k => !cfg[k]);
+      if (missing.length) { console.warn('[CosmetteOverview] Missing SHEET_CONFIG keys:', missing); return; }
+
+      try {
+        const [ordersCsv, adSummaryCsv, adOrdersCsv] = await Promise.all([
+          fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+          fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+        ]);
+        window._csOverviewDataCache = {
+          allRows: csIsCsv(ordersCsv) ? csParseCsv(ordersCsv).filter(csIsCosmetteRow) : [],
+          validRows: csIsCsv(ordersCsv) ? csFilterRows(csParseCsv(ordersCsv)) : [],
+          adRows: csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [],
+          adOrderRowsAll: csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow) : [],
+        };
+        const startPeriod = window._csOverviewActivePeriod || 'mtd';
+        renderOverviewPeriodPills(startPeriod);
+        window.renderOverview(startPeriod);
+      } catch (err) {
+        console.warn('[CosmetteOverview] failed:', err.message);
+      }
+    })();
+    return window._csOverviewPromise;
+  };
+
+  function renderOverviewPeriodPills(activeKey) {
+    const container = document.getElementById('ov-period-pills');
+    if (!container) return;
+    const labels = { mtd: 'Month to Date', lastFull: 'Last Month' };
+    container.innerHTML = Object.keys(labels).map(key =>
+      `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectOverviewPeriod('${key}')">${labels[key]}</button>`
+    ).join('');
+  }
+  window.__cosmetteSelectOverviewPeriod = function (key) {
+    renderOverviewPeriodPills(key);
+    window.renderOverview(key);
+  };
+
   // ── Goal Tracker — ported from Skinside Seoul's real Goal Tracker
   // (their own Overview page), 2026-09-17, per Jaclyn's real reference
   // code. Kept as a faithful port — layout, gauge rendering, and status
@@ -5811,16 +5863,49 @@ window.initSubscriptions = function () {
     </div>`;
   }
 
+  // Goal Tracker's own data (historical orders, returns) fetched here,
+  // independently from Overview's main initOverviewInternal — this used
+  // to be folded into that shared Promise.all, which meant a slow/stuck
+  // fetch for either of these could block the ENTIRE Overview page from
+  // ever loading, not just this section. Memoized so it only fetches
+  // once per page load, same pattern as every other *Promise cache on
+  // this dashboard.
+  async function csFetchGoalTrackerExtras() {
+    if (window._csGoalTrackerExtrasPromise) return window._csGoalTrackerExtrasPromise;
+    window._csGoalTrackerExtrasPromise = (async function () {
+      const cfg = window.SHEET_CFG;
+      try {
+        const [histCsv, returnsCsv] = await Promise.all([
+          cfg.SHEET_ORDERS_HISTORICAL ? fetch(csSheetCsvUrl(cfg.SHEET_ORDERS_HISTORICAL.fileId, cfg.SHEET_ORDERS_HISTORICAL.gid)).then(r => r.ok ? r.text() : '').catch(() => '') : Promise.resolve(''),
+          cfg.SHEET_RETURNS ? fetch(csSheetCsvUrl(cfg.SHEET_RETURNS.fileId, cfg.SHEET_RETURNS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '') : Promise.resolve(''),
+        ]);
+        const rawHist = csIsCsv(histCsv) ? csParseCsv(histCsv) : [];
+        const returnsRows = csIsCsv(returnsCsv) ? csParseCsv(returnsCsv) : [];
+        if (returnsRows.length) console.log('[GoalTracker] Returns sheet columns:', Object.keys(returnsRows[0]).join(' | '));
+        return { goalTrackerHistRows: csFilterGoalTrackerRows(rawHist), returnsRows };
+      } catch (e) {
+        console.warn('[GoalTracker] extras fetch failed:', e.message);
+        return { goalTrackerHistRows: [], returnsRows: [] };
+      }
+    })();
+    return window._csGoalTrackerExtrasPromise;
+  }
+
   async function renderGoalTrackerSection(cache, refYear, refMonth, throughDay, isPartial) {
     const bodyEl = document.getElementById('ov-goals-body-amz');
     if (!bodyEl) return;
     try {
-      const rows = csGoalTrackerRowsForMonth(cache, refYear, refMonth);
+      const extras = await csFetchGoalTrackerExtras();
+      const goalTrackerCache = {
+        goalTrackerHistRows: extras.goalTrackerHistRows,
+        goalTrackerSyncRows: csFilterGoalTrackerRows(cache.allRows),
+      };
+      const rows = csGoalTrackerRowsForMonth(goalTrackerCache, refYear, refMonth);
       const agg = isPartial
         ? csAggregateMonthThroughDay(rows, refYear, refMonth, throughDay)
         : csAggregateMonth(rows, refYear, refMonth);
       const grossActual = agg ? agg.avgOrder * agg.totalOrders : 0;
-      const returnsTotal = csReturnsTotalForMonth(cache.returnsRows, refYear, refMonth, isPartial ? throughDay : null);
+      const returnsTotal = csReturnsTotalForMonth(extras.returnsRows, refYear, refMonth, isPartial ? throughDay : null);
       const totalActual = Math.max(0, grossActual - returnsTotal);
 
       const adRow = cache.adRows.find(r => parseInt(r.year,10) === refYear && parseInt(r.month,10) === refMonth);
