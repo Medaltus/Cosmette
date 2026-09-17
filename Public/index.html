@@ -1364,10 +1364,13 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
       </div>
     </div>
 
-    <div class="card" style="margin-bottom:20px;">
-      <div class="card-title" style="margin-bottom:16px;">Goal Tracker <span id="ov-goal-period-label" style="font-weight:400;color:var(--muted);"></span></div>
-      <div id="ov-goal-gauges" style="display:flex;gap:24px;flex-wrap:wrap;justify-content:space-around;">
-        <div style="text-align:center;color:var(--muted);font-size:12px;font-style:italic;">Loading…</div>
+    <div class="card-title" style="font-size:16px;">Goal Tracker</div>
+    <div style="margin-bottom:22px;">
+      <div class="card" id="ov-goals-card-amz" style="margin-top:0;background:var(--sand);border:none;border-top:3px solid var(--navy);">
+        <div class="card-title" id="ov-goals-title-amz" style="font-size:16px;">Amazon</div>
+        <div id="ov-goals-body-amz" style="display:flex;gap:16px;">
+          <div style="color:var(--muted);flex:1;text-align:center;padding:20px;">Loading…</div>
+        </div>
       </div>
     </div>
 
@@ -5674,162 +5677,56 @@ window.initSubscriptions = function () {
     if (momEl) { momEl.className = 'kpi-mom flat'; momEl.textContent = label || ''; }
   }
 
-  // ── Goal Tracker — per Jaclyn (2026-09-16), ported from the documented
-  // spec (base version, no cancellation-rate projection adjustment — that's
-  // explicitly optional/separate per the spec). Cosmette is Amazon-only,
-  // so "Total" here is unambiguous (no multi-channel decision needed, same
-  // situation the spec describes for MiGuard). All 3 gauges built since
-  // Jaclyn gave column positions for all 3 goal types.
-  //
-  // Goals sheet — NOT in SHEET_CONFIG, given directly: fileId
-  // 1trsHDgVSLprsOOjOuFWGZRDqVOV-eII3, gid 1084102342. Row-matched by a
-  // month string in column A (format "Aug-26" per the spec) — read
-  // positionally since only column LETTERS were confirmed (O/S/X), not
-  // header names.
+  // ── Goal Tracker — ported from Skinside Seoul's real Goal Tracker
+  // (their own Overview page), 2026-09-17, per Jaclyn's real reference
+  // code. Kept as a faithful port — layout, gauge rendering, and status
+  // logic match that code exactly, not a redesign. Genuinely
+  // Cosmette-specific pieces, not in the reference:
+  //   - Column positions O/S/X (14/18/23) — Jaclyn gave these directly
+  //     for Cosmette's own tab on this shared spreadsheet; the reference
+  //     brand's tab on the SAME spreadsheet uses different columns
+  //     (P/S/AB) and a different gid, confirming each brand's tab has
+  //     its own layout — never assume one brand's positions apply to
+  //     another's tab on a shared sheet.
+  //   - Newderm-only filtering — this brand has the Newderm/
+  //     Cosmette_Historical split the reference brand doesn't; folded
+  //     into goalsIsValidAmazonRow's Cosmette version below.
+  //   - hist+sync combination — this brand has a separate historical
+  //     archive sheet the reference brand's single order sheet doesn't;
+  //     see csGoalTrackerRowsForMonth.
+  //   - Reused this file's own existing csParseCsvRecords for positional
+  //     reading rather than porting the reference's separate parseCsv2D
+  //     helper — same job, already present in this codebase (used
+  //     already for the Vine-date and SKU-type columns), so a second
+  //     copy would just be a duplicate.
   const GOALS_SHEET_ID = '1trsHDgVSLprsOOjOuFWGZRDqVOV-eII3';
   const GOALS_GID = '1084102342';
-  const GOALS_COL = { total: 14, organic: 18, ad: 23 }; // O, S, X (0-indexed)
 
-  async function csFetchGoalTrackerGoals(year, month) {
-    try {
-      const csv = await fetch(csSheetCsvUrl(GOALS_SHEET_ID, GOALS_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
-      if (!csIsCsv(csv)) return null;
-      const records = csParseCsvRecords(csv.trim() + '\n').slice(1); // skip header row
-      const targetLabel = `${csMonths12[month-1]}-${String(year).slice(2)}`;
-      const row = records.find(r => (r[0]||'').trim() === targetLabel);
-      if (!row) { console.warn(`[GoalTracker] No Goals row found for "${targetLabel}" in column A.`); return null; }
-      const cell = (idx) => {
-        const raw = row[idx];
-        if (raw == null || String(raw).trim() === '') return null; // blank = "No goal set", not 0
-        return csParseAmt(raw);
-      };
-      return { total: cell(GOALS_COL.total), organic: cell(GOALS_COL.organic), ad: cell(GOALS_COL.ad) };
-    } catch (e) {
-      console.warn('[GoalTracker] Goals fetch failed:', e.message);
-      return null;
-    }
+  function goalsIsValidAmazonRow(r) {
+    const status = (r.status || '').toLowerCase().trim();
+    if (status === 'cancelled') return false; // pending IS kept, deliberately — see reference note
+    if ((r.promotion_ids || '').toLowerCase().includes('vine')) return false;
+    if ((r.order_id || '').trim().startsWith('702')) return false; // removal orders, same exclusion as everywhere else on this dashboard
+    return csIsCosmetteRow(r) && r.selling_account === 'Newderm'; // Cosmette-specific addition, see header note
+  }
+  function parseGoalsDollar(val) {
+    const n = parseFloat(String(val || '').replace(/[$,()]/g, ''));
+    return isNaN(n) ? null : n;
+  }
+  function findGoalsRow(records, year, month) {
+    const target = `${csMonths12[month-1]}-${String(year).slice(2)}`;
+    return records.find(r => (r[0] || '').trim() === target) || null;
   }
 
-  // Plain SVG ring — no charting library, per the spec's own reasoning:
-  // a single-value gauge doesn't need one, and SVG just re-renders as a
-  // fresh string each time rather than needing a canvas instance
-  // destroyed/recreated on every period toggle.
-  function csGoalGaugeSvg(pct, color) {
-    const size = 116, r = 48, cx = size/2, cy = size/2;
-    const circumference = 2 * Math.PI * r;
-    const clamped = Math.max(0, Math.min(100, pct));
-    const offset = circumference * (1 - clamped/100);
-    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border2)" stroke-width="11"/>
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="11"
-        stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"
-        stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
-      <text x="${cx}" y="${cy+7}" text-anchor="middle" font-size="20" font-weight="700" font-family="var(--font-subheader)" fill="var(--navy)">${Math.round(clamped)}%</text>
-    </svg>`;
-  }
-
-  // Local declaration — this IIFE had no escapeHtml of its own (every
-  // other IIFE in this file that needs it declares its own local copy;
-  // this is the same "not shared across <script> scope" class of bug as
-  // the earlier BRAND is not defined fix).
-  function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  }
-  function csGoalGaugeCard(label, actual, goal, isMtd, projected) {
-    if (goal == null) {
-      return `<div style="text-align:center;min-width:140px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px;">${escapeHtml(label)}</div>
-        ${csGoalGaugeSvg(0, 'var(--border2)')}
-        <div style="font-size:11px;color:var(--muted);margin-top:8px;">No goal set</div>
-      </div>`;
-    }
-    const actualPct = goal > 0 ? (actual/goal)*100 : 0;
-    let color, statusText;
-    if (isMtd) {
-      const projPct = goal > 0 ? (projected/goal)*100 : 0;
-      color = projPct >= 100 ? '#1db88a' : (projPct >= 85 ? 'var(--warn)' : 'var(--danger)');
-      statusText = `Projecting $${Math.round(projected).toLocaleString()}`;
-    } else {
-      color = actualPct >= 100 ? '#1db88a' : 'var(--danger)';
-      statusText = actualPct >= 100 ? 'Hit goal' : 'Missed goal';
-    }
-    return `<div style="text-align:center;min-width:140px;">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px;">${escapeHtml(label)}</div>
-      ${csGoalGaugeSvg(actualPct, color)}
-      <div style="font-size:12px;font-weight:700;color:${color};margin-top:8px;">${escapeHtml(statusText)}</div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:2px;">$${Math.round(actual).toLocaleString()} of $${Math.round(goal).toLocaleString()}</div>
-    </div>`;
-  }
-
-  window.initOverviewInternal = function () {
-    if (window._csOverviewPromise) return window._csOverviewPromise;
-    window._csOverviewPromise = (async function () {
-      const cfg = window.SHEET_CFG;
-      const need = ['SHEET_ORDERS','SHEET_ADVERTISING','SHEET_AD_ORDERS','SHEET_REVENUE'];
-      const missing = need.filter(k => !cfg[k]);
-      if (missing.length) { console.warn('[CosmetteOverview] Missing SHEET_CONFIG keys:', missing); return; }
-
-      try {
-        const [ordersCsv, adSummaryCsv, adOrdersCsv, histCsv, returnsCsv] = await Promise.all([
-          fetch(csSheetCsvUrl(cfg.SHEET_ORDERS.fileId, cfg.SHEET_ORDERS.gid)).then(r => r.ok ? r.text() : '').catch(() => ''),
-          fetch(csSheetCsvUrl(cfg.SHEET_ADVERTISING.fileId, cfg.SHEET_ADVERTISING.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
-          fetch(csSheetCsvUrl(cfg.SHEET_AD_ORDERS.fileId, cfg.SHEET_AD_ORDERS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
-          cfg.SHEET_ORDERS_HISTORICAL ? fetch(csSheetCsvUrl(cfg.SHEET_ORDERS_HISTORICAL.fileId, cfg.SHEET_ORDERS_HISTORICAL.gid)).then(r => r.ok ? r.text() : '').catch(() => '') : Promise.resolve(''),
-          cfg.SHEET_RETURNS ? fetch(csSheetCsvUrl(cfg.SHEET_RETURNS.fileId, cfg.SHEET_RETURNS.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '') : Promise.resolve(''),
-        ]);
-        const rawOrders = csIsCsv(ordersCsv) ? csParseCsv(ordersCsv) : [];
-        const rawHist = csIsCsv(histCsv) ? csParseCsv(histCsv) : [];
-        window._csOverviewDataCache = {
-          allRows: rawOrders.filter(csIsCosmetteRow),
-          validRows: csFilterRows(rawOrders),
-          adRows: csIsCsv(adSummaryCsv) ? csParseCsv(adSummaryCsv) : [],
-          adOrderRowsAll: csIsCsv(adOrdersCsv) ? csParseCsv(adOrdersCsv).filter(csIsCosmetteRow) : [],
-          // Goal Tracker rows — hist wins per month when both sources have
-          // it (same overlap-avoidance pattern as the Units Sold chart),
-          // sync only fills a month hist doesn't cover yet.
-          goalTrackerHistRows: csFilterGoalTrackerRows(rawHist),
-          goalTrackerSyncRows: csFilterGoalTrackerRows(rawOrders),
-          returnsRows: csIsCsv(returnsCsv) ? csParseCsv(returnsCsv) : [],
-        };
-        if (window._csOverviewDataCache.returnsRows.length) {
-          console.log('[GoalTracker] Returns sheet columns:', Object.keys(window._csOverviewDataCache.returnsRows[0]).join(' | '));
-        }
-        const startPeriod = window._csOverviewActivePeriod || 'mtd';
-        renderOverviewPeriodPills(startPeriod);
-        window.renderOverview(startPeriod);
-      } catch (err) {
-        console.warn('[CosmetteOverview] failed:', err.message);
-      }
-    })();
-    return window._csOverviewPromise;
-  };
-
-  function renderOverviewPeriodPills(activeKey) {
-    const container = document.getElementById('ov-period-pills');
-    if (!container) return;
-    const labels = { mtd: 'Month to Date', lastFull: 'Last Month' };
-    container.innerHTML = Object.keys(labels).map(key =>
-      `<button class="period-pill${key === activeKey ? ' active' : ''}" data-period="${key}" onclick="window.__cosmetteSelectOverviewPeriod('${key}')">${labels[key]}</button>`
-    ).join('');
-  }
-  window.__cosmetteSelectOverviewPeriod = function (key) {
-    renderOverviewPeriodPills(key);
-    window.renderOverview(key);
-  };
-
-  // Combines Goal Tracker's hist+sync rows for one target month, hist
-  // winning whenever it actually has data for that month — same
-  // overlap-avoidance pattern as csBuildUnitsChart, so an order that
-  // exists in both sources never gets double-counted.
+  // Combines hist+sync for one month, hist winning whenever it actually
+  // has data for that month (same overlap-avoidance pattern as
+  // csBuildUnitsChart) — genuinely Cosmette-specific, see header note.
   function csGoalTrackerRowsForMonth(cache, year, month) {
     const prefix = `${year}-${String(month).padStart(2,'0')}`;
-    const histRows = cache.goalTrackerHistRows || [];
-    const syncRows = cache.goalTrackerSyncRows || [];
-    const histMatch = histRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
-    if (histMatch.length) return histMatch;
-    return syncRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+    const histRows = (cache.goalTrackerHistRows || []).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+    if (histRows.length) return histRows;
+    return (cache.goalTrackerSyncRows || []).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
   }
-
   function csReturnsTotalForMonth(returnsRows, year, month, throughDay) {
     if (!returnsRows || !returnsRows.length) return 0;
     const prefix = `${year}-${String(month).padStart(2,'0')}`;
@@ -5845,12 +5742,78 @@ window.initSubscriptions = function () {
       .reduce((s,r) => s + Math.abs(csParseAmt(r[amtKey])), 0);
   }
 
-  async function renderGoalTrackerSection(cache, refYear, refMonth, throughDay, isPartial) {
-    const container = document.getElementById('ov-goal-gauges');
-    const labelEl = document.getElementById('ov-goal-period-label');
-    if (!container) return;
-    if (labelEl) labelEl.textContent = isPartial ? '— Month to Date' : `— ${csMonths12[refMonth-1]} ${refYear}`;
+  // Plain SVG ring, deliberately not Chart.js — per the reference's own
+  // reasoning, ported verbatim: a single-value gauge doesn't need a
+  // charting library, and SVG sidesteps the canvas-reuse bug class
+  // entirely since it's DOM-based and just re-renders as a fresh string
+  // on every toggle click, nothing to destroy first.
+  function buildGaugeSvg(pct, colorHex) {
+    const size = 140, stroke = 14, r = (size - stroke) / 2, c = size / 2;
+    const circumference = 2 * Math.PI * r;
+    const clamped = Math.max(0, Math.min(100, pct));
+    const dashOffset = circumference * (1 - clamped / 100);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);">
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${stroke}"/>
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${colorHex}" stroke-width="${stroke}"
+        stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}" stroke-linecap="butt"/>
+    </svg>`;
+  }
 
+  function renderGoalsGroup(actualOverall, actualAds, actualOrganic, goalRecord, isMtd, refYear, refMonth, throughDay) {
+    if (!goalRecord) return `<div style="color:var(--muted);font-size:13px;flex:1;text-align:center;padding:20px;">No goals row found for this month.</div>`;
+    const overallGoal = parseGoalsDollar(goalRecord[14]);
+    const organicGoal = parseGoalsDollar(goalRecord[18]);
+    const adsGoal = parseGoalsDollar(goalRecord[23]);
+    const fmtD = n => '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+    function paceGauge(sublabel, actual, goal) {
+      if (goal == null) {
+        return `<div style="text-align:center;flex:1;">
+          <div style="font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px;">${sublabel}</div>
+          ${buildGaugeSvg(0, 'var(--border)')}
+          <div style="font-size:13px;color:var(--muted);margin-top:8px;">No goal set</div>
+        </div>`;
+      }
+      if (actual == null) {
+        return `<div style="text-align:center;flex:1;">
+          <div style="font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px;">${sublabel}</div>
+          ${buildGaugeSvg(0, 'var(--border)')}
+          <div style="font-size:13px;color:var(--muted);margin-top:8px;">Not available yet</div>
+        </div>`;
+      }
+      const actualPct = goal > 0 ? Math.round((actual / goal) * 100) : 0;
+      let projected = actual, statusText, statusColor;
+      if (isMtd) {
+        const daysInMonth = new Date(refYear, refMonth, 0).getDate();
+        projected = throughDay > 0 ? (actual / throughDay) * daysInMonth : actual;
+        const projectedPct = goal > 0 ? Math.round((projected / goal) * 100) : 0;
+        statusText = `Projecting ${fmtD(projected)}`;
+        statusColor = projectedPct >= 100 ? 'var(--green)' : 'var(--danger)';
+      } else {
+        statusText = actualPct >= 100 ? 'Hit goal' : 'Missed goal';
+        statusColor = actualPct >= 100 ? 'var(--green)' : 'var(--danger)';
+      }
+      return `<div style="text-align:center;flex:1;">
+        <div style="font-size:15px;color:var(--muted);font-weight:700;margin-bottom:8px;">${sublabel}</div>
+        <div style="position:relative;width:140px;height:140px;margin:0 auto;">
+          ${buildGaugeSvg(actualPct, statusColor)}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:${statusColor};">${actualPct}%</div>
+        </div>
+        <div style="font-size:14px;color:var(--navy);font-weight:700;margin-top:8px;">${statusText}</div>
+        <div style="font-size:14px;color:var(--navy);font-weight:700;">Goal ${fmtD(goal)}</div>
+      </div>`;
+    }
+
+    return `<div style="display:flex;gap:16px;flex:1;">
+      ${paceGauge('Total Sales', actualOverall, overallGoal)}
+      ${paceGauge('Organic Sales', actualOrganic, organicGoal)}
+      ${paceGauge('Ad Sales', actualAds, adsGoal)}
+    </div>`;
+  }
+
+  async function renderGoalTrackerSection(cache, refYear, refMonth, throughDay, isPartial) {
+    const bodyEl = document.getElementById('ov-goals-body-amz');
+    if (!bodyEl) return;
     try {
       const rows = csGoalTrackerRowsForMonth(cache, refYear, refMonth);
       const agg = isPartial
@@ -5861,27 +5824,21 @@ window.initSubscriptions = function () {
       const totalActual = Math.max(0, grossActual - returnsTotal);
 
       const adRow = cache.adRows.find(r => parseInt(r.year,10) === refYear && parseInt(r.month,10) === refMonth);
-      const adActual = adRow ? csParseAmt(adRow.sales) : 0;
-      const organicActual = Math.max(0, totalActual - adActual);
+      const adActual = adRow ? csParseAmt(adRow.sales) : null;
+      const organicActual = adActual != null ? Math.max(0, totalActual - adActual) : null;
 
-      const goals = await csFetchGoalTrackerGoals(refYear, refMonth);
+      const goalsCsv = await fetch(csSheetCsvUrl(GOALS_SHEET_ID, GOALS_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+      const goalsRecords = csIsCsv(goalsCsv) ? csParseCsvRecords(goalsCsv.trim() + '\n').slice(1) : [];
+      const goalRecord = findGoalsRow(goalsRecords, refYear, refMonth);
+      console.log('[GoalTracker][qa] Amazon goals row found:', !!goalRecord, goalRecord ? { total: goalRecord[14], organic: goalRecord[18], ads: goalRecord[23] } : null);
 
-      let projTotal = totalActual, projOrganic = organicActual, projAd = adActual;
-      if (isPartial && throughDay) {
-        const daysInMonth = new Date(refYear, refMonth, 0).getDate();
-        const rate = daysInMonth / throughDay;
-        projTotal = totalActual * rate;
-        projOrganic = organicActual * rate;
-        projAd = adActual * rate;
-      }
-
-      container.innerHTML =
-        csGoalGaugeCard('Total Sales', totalActual, goals ? goals.total : null, isPartial, projTotal) +
-        csGoalGaugeCard('Organic Sales', organicActual, goals ? goals.organic : null, isPartial, projOrganic) +
-        csGoalGaugeCard('Ad Sales', adActual, goals ? goals.ad : null, isPartial, projAd);
+      bodyEl.innerHTML = renderGoalsGroup(totalActual, adActual, organicActual, goalRecord, isPartial, refYear, refMonth, throughDay);
     } catch (e) {
-      console.error('[GoalTracker] render failed:', e);
-      container.innerHTML = '<div style="color:var(--muted);font-size:12px;font-style:italic;">Goal Tracker unavailable.</div>';
+      console.warn('[GoalTracker] failed:', e.message);
+      bodyEl.innerHTML = '<div style="color:var(--danger);flex:1;text-align:center;padding:20px;">Goal Tracker failed to load — check console.</div>';
+    }
+  }
+
     }
   }
 
