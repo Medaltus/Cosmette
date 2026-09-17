@@ -5816,13 +5816,15 @@ window.initSubscriptions = function () {
   // exists in both sources never gets double-counted.
   function csGoalTrackerRowsForMonth(cache, year, month) {
     const prefix = `${year}-${String(month).padStart(2,'0')}`;
-    const histMatch = cache.goalTrackerHistRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+    const histRows = cache.goalTrackerHistRows || [];
+    const syncRows = cache.goalTrackerSyncRows || [];
+    const histMatch = histRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
     if (histMatch.length) return histMatch;
-    return cache.goalTrackerSyncRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+    return syncRows.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
   }
 
   function csReturnsTotalForMonth(returnsRows, year, month, throughDay) {
-    if (!returnsRows.length) return 0;
+    if (!returnsRows || !returnsRows.length) return 0;
     const prefix = `${year}-${String(month).padStart(2,'0')}`;
     const dateKey = Object.keys(returnsRows[0]).find(k => /^(date|return_date|refund_date)$/i.test(k)) || 'date';
     const amtKey = Object.keys(returnsRows[0]).find(k => /^(refund_amount|amount|total|return_amount)$/i.test(k)) || 'amount';
@@ -5871,7 +5873,7 @@ window.initSubscriptions = function () {
         csGoalGaugeCard('Organic Sales', organicActual, goals ? goals.organic : null, isPartial, projOrganic) +
         csGoalGaugeCard('Ad Sales', adActual, goals ? goals.ad : null, isPartial, projAd);
     } catch (e) {
-      console.warn('[GoalTracker] render failed:', e.message);
+      console.error('[GoalTracker] render failed:', e);
       container.innerHTML = '<div style="color:var(--muted);font-size:12px;font-style:italic;">Goal Tracker unavailable.</div>';
     }
   }
