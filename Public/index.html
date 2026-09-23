@@ -8295,6 +8295,35 @@ window.initSubscriptions = function () {
     const cfg = window.SHEET_CFG;
     const sourceSheetId = cfg.SHEET_PRODUCT_INVENTORY ? cfg.SHEET_PRODUCT_INVENTORY.fileId : undefined;
     const auditSheetId = cfg.SHEET_LISTING_AUDIT ? cfg.SHEET_LISTING_AUDIT.fileId : undefined;
+    const masterSkuSheetId = cfg.SHEET_MASTER_SKU_LIST ? cfg.SHEET_MASTER_SKU_LIST.fileId : undefined;
+    const masterSkuGid = cfg.SHEET_MASTER_SKU_LIST ? cfg.SHEET_MASTER_SKU_LIST.gid : undefined;
+    const businessReportSheetId = cfg.SHEET_BUSINESS_REPORT ? cfg.SHEET_BUSINESS_REPORT.fileId : undefined;
+    const businessReportGid = cfg.SHEET_BUSINESS_REPORT ? cfg.SHEET_BUSINESS_REPORT.gid : undefined;
+    const adSearchTermsSheetId = cfg.SHEET_AD_SEARCH_TERMS ? cfg.SHEET_AD_SEARCH_TERMS.fileId : undefined;
+    const adSearchTermsGid = cfg.SHEET_AD_SEARCH_TERMS ? cfg.SHEET_AD_SEARCH_TERMS.gid : undefined;
+    const amazonReviewsSheetId = cfg.SHEET_AMAZON_REVIEWS ? cfg.SHEET_AMAZON_REVIEWS.fileId : undefined;
+    const amazonReviewsGid = cfg.SHEET_AMAZON_REVIEWS ? cfg.SHEET_AMAZON_REVIEWS.gid : undefined;
+    // Not in SHEET_CONFIG — given directly by Jaclyn (2026-09-18), same
+    // pattern as the Goals sheet and VOC Themes sheet hardcoding
+    // elsewhere on this page for sheets not yet added to that config.
+    const brandInsightsSheetId = '1yOpmA31g6VLceXI2fOoM-0-P_IaCqS5h7Gz5cqVT8NM';
+    const brandInsightsGid = '299013774';
+    // Competitor/keyword-strategy spreadsheet — one tab per CATEGORY, not
+    // per SKU (corrected by Jaclyn 2026-09-18 after I'd wrongly assumed
+    // per-SKU tabs). Products sharing a category go after the same
+    // keywords and competitors, so they share the same gid here.
+    const keywordSheetId = '19SfYJ99fMtqXna4VKGr8TtNMNxg6z52b0yDQPm7yI9M';
+    const skuGidMap = {
+      'COS0001': '138748067',   // Cleansers
+      'COS0004': '138748067',   // Cleansers
+      'COS0002': '1838200005',  // Serums
+      'COS0005': '1838200005',  // Serums
+      'COS0008': '779379952',   // Acne Treatment
+      'COS0003': '1758364220',  // Moisturizer
+      'COS0006': '1982532831',  // Eyes
+      'COS0007': '847197271',   // Masks
+      'COS0009': '847197271',   // Masks
+    };
 
     btn.classList.add('running');
     btn.disabled = true;
@@ -8317,7 +8346,12 @@ window.initSubscriptions = function () {
           const res = await fetch('/api/run-listing-audit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ brand: cfg.BRAND_SLUG || 'cosmette', sourceSheetId, auditSheetId, skuFilter: batches[b] }),
+            body: JSON.stringify({
+              brand: cfg.BRAND_SLUG || 'cosmette', sourceSheetId, auditSheetId, skuFilter: batches[b],
+              masterSkuSheetId, masterSkuGid, brandInsightsSheetId, brandInsightsGid,
+              businessReportSheetId, businessReportGid, adSearchTermsSheetId, adSearchTermsGid,
+              amazonReviewsSheetId, amazonReviewsGid, keywordSheetId, skuGidMap,
+            }),
             signal: controller.signal,
           });
           const json = await res.json().catch(() => ({}));
