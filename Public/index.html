@@ -405,6 +405,29 @@ details.inci-toggle[open] summary::before{content:'▾ ';}
 .ppc-alert{display:flex;align-items:flex-start;gap:12px;background:rgba(0,31,96,.05);border:1px solid rgba(0,31,96,.15);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:18px;font-size:12.5px;color:var(--navy);line-height:1.6;}
 .ppc-alert.warn{background:rgba(219,55,45,.06);border-color:rgba(219,55,45,.2);}
 .ppc-alert-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+/* Opportunities (What's Been Accomplished + Future Opportunities) — Dazzle Dry's
+   rules from vbc-index.html, re-scoped from .evo-page to #m-opportunities
+   (Cosmette has no .evo-page wrapper). .opp-card itself already exists above
+   with identical values. */
+#m-opportunities .insight-editor input,#m-opportunities .insight-editor textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid rgba(0,31,96,0.20);border-radius:var(--radius-sm);font-family:var(--font);font-size:12.5px;color:var(--navy);resize:vertical;min-height:72px;background:var(--white);outline:none;line-height:1.6;margin-bottom:10px}
+#m-opportunities .insight-editor input{min-height:auto}
+#m-opportunities .insight-editor input:focus,#m-opportunities .insight-editor textarea:focus{border-color:var(--navy)}
+#m-opportunities .insight-editor-label{font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px}
+#m-opportunities .insight-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:0}
+#m-opportunities .opp-card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px}
+#m-opportunities .opp-card-subtitle{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+#m-opportunities .opp-card-body{font-size:12px;color:var(--navy);line-height:1.6}
+#m-opportunities .opp-card-images{display:none;gap:6px;margin-top:10px;flex-wrap:wrap}
+#m-opportunities .opp-card-img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border);background:var(--surf2)}
+#m-opportunities .acc-image-inputs{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border2)}
+#m-opportunities .acc-image-inputs input{margin-bottom:6px}
+#m-opportunities .insight-image-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#m-opportunities .insight-image-row input[type="text"]{flex:1;margin-bottom:0;}
+#m-opportunities .insight-image-upload-btn{background:none;border:1px solid rgba(0,31,96,0.20);border-radius:var(--radius-sm);padding:4px 10px;font-size:10.5px;color:var(--muted);cursor:pointer;transition:all .13s;font-family:var(--font);white-space:nowrap;flex-shrink:0;}
+#m-opportunities .insight-image-upload-btn:hover{border-color:var(--navy);color:var(--navy);}
+#m-opportunities .insight-image-upload-btn.uploading{color:var(--muted);cursor:wait;}
+#m-opportunities .insight-image-upload-btn.uploaded{border-color:#1db88a;color:#1db88a;}
+#m-opportunities .insight-image-upload-btn.upload-error{border-color:var(--danger);color:var(--danger);}
 .opp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
 .opp-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
 .opp-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;}
@@ -1821,107 +1844,160 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="m-opportunities">
-      <!-- 4 editable opportunity cards — opp1-4 title/subtitle/body,
-           already part of MONTHLY_HEADERS in write-report-insights.js.
-           No separate data sheet needed beyond Report Insights.
-           Styling matched to évolis's Future Opportunities section
-           directly (2026-09-02) — outer card + pill header, .opp-grid/
-           .opp-card/.opp-title/.opp-subtitle/.opp-body classes. Kept
-           Cosmette's own per-card Edit/Save (évolis uses one shared
-           editor for all 4) since that's working functionality, not
-           part of the styling mismatch that was reported. -->
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="display:inline-block;background:rgba(36,233,163,.12);border:1px solid rgba(36,233,163,.3);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green);">Future Opportunities</div>
-        </div>
-        <div class="opp-grid">
-        <div class="opp-card" id="opp-card-1">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div class="opp-title" style="margin-bottom:0;" id="opp1-title" data-placeholder="Opportunity 1 — click Edit to add a title">Loading…</div>
-            <button class="btn-edit" id="opp1-edit-btn">✏️ Edit</button>
-          </div>
-          <div class="opp-subtitle" id="opp1-subtitle" data-placeholder=""></div>
-          <div class="opp-body" id="opp1-body" data-placeholder="No content added yet — click Edit to add it."></div>
-          <div class="insight-editor" id="opp1-editor">
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
-            <textarea id="opp1-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
-            <textarea id="opp1-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
-            <textarea id="opp1-textarea-body" style="min-height:70px;"></textarea>
-            <div class="editor-footer">
-              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
-              <button class="btn-cancel" id="opp1-cancel">Cancel</button>
-              <button class="btn-save-stage" id="opp1-save">Save</button>
+      <!-- ══ Opportunities — ported 2026-09-30 from Dazzle Dry's Sales Report
+           Opportunities tab (vbc-index.html #dd-s-opportunities), per Jaclyn:
+           "What's Been Accomplished" (4 cards; cards 1-2 take up to 6
+           images each, uploaded via api/upload-insight-image.js) + "Future
+           Opportunities" (6 cards, Dazzle Dry styling). Same field names as
+           Dazzle Dry: accomplished{n}_title/_subtitle/_body,
+           accomplished{1,2}_image{1-6}, opp{n}_title/_subtitle/_body.
+           Saved through Cosmette's own wireInsightBlock (same report row /
+           write-report-insights endpoint as every other Cosmette field).
+           New fields must be appended at the END of the Report Insights
+           sheet AND of MONTHLY_HEADERS in api/write-report-insights.js. -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">What's Been Accomplished</div>
+        <button class="btn-edit" id="cs-acc-edit-btn">✏️ Edit</button>
+      </div>
+      <div class="insight-grid" id="cs-acc-display">
+        <div class="opp-card"><div class="opp-card-title" id="cs-acc1-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-acc1-subtitle-disp"></div><div class="opp-card-body" id="cs-acc1-body-disp"></div><div class="opp-card-images" id="cs-acc1-images-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-acc2-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-acc2-subtitle-disp"></div><div class="opp-card-body" id="cs-acc2-body-disp"></div><div class="opp-card-images" id="cs-acc2-images-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-acc3-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-acc3-subtitle-disp"></div><div class="opp-card-body" id="cs-acc3-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-acc4-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-acc4-subtitle-disp"></div><div class="opp-card-body" id="cs-acc4-body-disp"></div></div>
+      </div>
+      <div class="insight-editor" id="cs-acc-editor">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div><div class="insight-editor-label">Accomplished 1 — Title</div><input type="text" id="cs-acc1-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-acc1-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-acc1-body-input"></textarea>
+            <div class="acc-image-inputs">
+              <div class="insight-editor-label">Images (up to 6)</div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc1-image1-input" placeholder="Image 1 URL">
+                <label class="insight-image-upload-btn" id="cs-acc1-image1-btn" for="cs-acc1-image1-file">📤 Upload</label>
+                <input type="file" id="cs-acc1-image1-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc1-image1-input','cs-acc1-image1-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc1-image2-input" placeholder="Image 2 URL">
+                <label class="insight-image-upload-btn" id="cs-acc1-image2-btn" for="cs-acc1-image2-file">📤 Upload</label>
+                <input type="file" id="cs-acc1-image2-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc1-image2-input','cs-acc1-image2-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc1-image3-input" placeholder="Image 3 URL">
+                <label class="insight-image-upload-btn" id="cs-acc1-image3-btn" for="cs-acc1-image3-file">📤 Upload</label>
+                <input type="file" id="cs-acc1-image3-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc1-image3-input','cs-acc1-image3-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc1-image4-input" placeholder="Image 4 URL">
+                <label class="insight-image-upload-btn" id="cs-acc1-image4-btn" for="cs-acc1-image4-file">📤 Upload</label>
+                <input type="file" id="cs-acc1-image4-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc1-image4-input','cs-acc1-image4-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc1-image5-input" placeholder="Image 5 URL">
+                <label class="insight-image-upload-btn" id="cs-acc1-image5-btn" for="cs-acc1-image5-file">📤 Upload</label>
+                <input type="file" id="cs-acc1-image5-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc1-image5-input','cs-acc1-image5-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc1-image6-input" placeholder="Image 6 URL">
+                <label class="insight-image-upload-btn" id="cs-acc1-image6-btn" for="cs-acc1-image6-file">📤 Upload</label>
+                <input type="file" id="cs-acc1-image6-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc1-image6-input','cs-acc1-image6-btn')">
+              </div>
             </div>
           </div>
-        </div>
-        <div class="opp-card" id="opp-card-2">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div class="opp-title" style="margin-bottom:0;" id="opp2-title" data-placeholder="Opportunity 2 — click Edit to add a title">Loading…</div>
-            <button class="btn-edit" id="opp2-edit-btn">✏️ Edit</button>
-          </div>
-          <div class="opp-subtitle" id="opp2-subtitle" data-placeholder=""></div>
-          <div class="opp-body" id="opp2-body" data-placeholder="No content added yet — click Edit to add it."></div>
-          <div class="insight-editor" id="opp2-editor">
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
-            <textarea id="opp2-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
-            <textarea id="opp2-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
-            <textarea id="opp2-textarea-body" style="min-height:70px;"></textarea>
-            <div class="editor-footer">
-              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
-              <button class="btn-cancel" id="opp2-cancel">Cancel</button>
-              <button class="btn-save-stage" id="opp2-save">Save</button>
+          <div><div class="insight-editor-label">Accomplished 2 — Title</div><input type="text" id="cs-acc2-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-acc2-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-acc2-body-input"></textarea>
+            <div class="acc-image-inputs">
+              <div class="insight-editor-label">Images (up to 6)</div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc2-image1-input" placeholder="Image 1 URL">
+                <label class="insight-image-upload-btn" id="cs-acc2-image1-btn" for="cs-acc2-image1-file">📤 Upload</label>
+                <input type="file" id="cs-acc2-image1-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc2-image1-input','cs-acc2-image1-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc2-image2-input" placeholder="Image 2 URL">
+                <label class="insight-image-upload-btn" id="cs-acc2-image2-btn" for="cs-acc2-image2-file">📤 Upload</label>
+                <input type="file" id="cs-acc2-image2-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc2-image2-input','cs-acc2-image2-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc2-image3-input" placeholder="Image 3 URL">
+                <label class="insight-image-upload-btn" id="cs-acc2-image3-btn" for="cs-acc2-image3-file">📤 Upload</label>
+                <input type="file" id="cs-acc2-image3-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc2-image3-input','cs-acc2-image3-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc2-image4-input" placeholder="Image 4 URL">
+                <label class="insight-image-upload-btn" id="cs-acc2-image4-btn" for="cs-acc2-image4-file">📤 Upload</label>
+                <input type="file" id="cs-acc2-image4-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc2-image4-input','cs-acc2-image4-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc2-image5-input" placeholder="Image 5 URL">
+                <label class="insight-image-upload-btn" id="cs-acc2-image5-btn" for="cs-acc2-image5-file">📤 Upload</label>
+                <input type="file" id="cs-acc2-image5-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc2-image5-input','cs-acc2-image5-btn')">
+              </div>
+              <div class="insight-image-row">
+                <input type="text" id="cs-acc2-image6-input" placeholder="Image 6 URL">
+                <label class="insight-image-upload-btn" id="cs-acc2-image6-btn" for="cs-acc2-image6-file">📤 Upload</label>
+                <input type="file" id="cs-acc2-image6-file" accept="image/*" style="display:none;" onchange="ddUploadInsightImage(this,'cs-acc2-image6-input','cs-acc2-image6-btn')">
+              </div>
             </div>
           </div>
+          <div><div class="insight-editor-label">Accomplished 3 — Title</div><input type="text" id="cs-acc3-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-acc3-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-acc3-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Accomplished 4 — Title</div><input type="text" id="cs-acc4-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-acc4-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-acc4-body-input"></textarea></div>
         </div>
-        <div class="opp-card" id="opp-card-3">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div class="opp-title" style="margin-bottom:0;" id="opp3-title" data-placeholder="Opportunity 3 — click Edit to add a title">Loading…</div>
-            <button class="btn-edit" id="opp3-edit-btn">✏️ Edit</button>
-          </div>
-          <div class="opp-subtitle" id="opp3-subtitle" data-placeholder=""></div>
-          <div class="opp-body" id="opp3-body" data-placeholder="No content added yet — click Edit to add it."></div>
-          <div class="insight-editor" id="opp3-editor">
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
-            <textarea id="opp3-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
-            <textarea id="opp3-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
-            <textarea id="opp3-textarea-body" style="min-height:70px;"></textarea>
-            <div class="editor-footer">
-              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
-              <button class="btn-cancel" id="opp3-cancel">Cancel</button>
-              <button class="btn-save-stage" id="opp3-save">Save</button>
-            </div>
-          </div>
-        </div>
-        <div class="opp-card" id="opp-card-4">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-            <div class="opp-title" style="margin-bottom:0;" id="opp4-title" data-placeholder="Opportunity 4 — click Edit to add a title">Loading…</div>
-            <button class="btn-edit" id="opp4-edit-btn">✏️ Edit</button>
-          </div>
-          <div class="opp-subtitle" id="opp4-subtitle" data-placeholder=""></div>
-          <div class="opp-body" id="opp4-body" data-placeholder="No content added yet — click Edit to add it."></div>
-          <div class="insight-editor" id="opp4-editor">
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Title</div>
-            <textarea id="opp4-textarea-title" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Subtitle</div>
-            <textarea id="opp4-textarea-subtitle" style="height:36px;margin-bottom:8px;"></textarea>
-            <div style="font-size:11px;font-weight:600;color:var(--navy);margin-bottom:4px;">Body</div>
-            <textarea id="opp4-textarea-body" style="min-height:70px;"></textarea>
-            <div class="editor-footer">
-              <span class="editor-note">Saves directly to the report sheet as a draft.</span>
-              <button class="btn-cancel" id="opp4-cancel">Cancel</button>
-              <button class="btn-save-stage" id="opp4-save">Save</button>
-            </div>
-          </div>
-        </div>
+        <div class="editor-footer">
+          <span class="editor-note">Saves all 4 cards together to this month's report row. Any field (including images) can be left blank.</span>
+          <button class="btn-cancel" id="cs-acc-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="cs-acc-save-btn">Save</button>
         </div>
       </div>
     </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;">Future Opportunities</div>
+        <button class="btn-edit" id="cs-opp-edit-btn">✏️ Edit</button>
+      </div>
+      <div class="insight-grid" id="cs-opp-display">
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp1-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp1-subtitle-disp"></div><div class="opp-card-body" id="cs-opp1-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp2-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp2-subtitle-disp"></div><div class="opp-card-body" id="cs-opp2-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp3-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp3-subtitle-disp"></div><div class="opp-card-body" id="cs-opp3-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp4-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp4-subtitle-disp"></div><div class="opp-card-body" id="cs-opp4-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp5-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp5-subtitle-disp"></div><div class="opp-card-body" id="cs-opp5-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp6-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp6-subtitle-disp"></div><div class="opp-card-body" id="cs-opp6-body-disp"></div></div>
+      </div>
+      <div class="insight-editor" id="cs-opp-editor">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div><div class="insight-editor-label">Opportunity 1 — Title</div><input type="text" id="cs-opp1-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp1-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp1-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 2 — Title</div><input type="text" id="cs-opp2-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp2-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp2-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 3 — Title</div><input type="text" id="cs-opp3-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp3-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp3-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 4 — Title</div><input type="text" id="cs-opp4-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp4-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp4-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 5 — Title</div><input type="text" id="cs-opp5-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp5-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp5-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 6 — Title</div><input type="text" id="cs-opp6-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp6-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp6-body-input"></textarea></div>
+        </div>
+        <div class="editor-footer">
+          <span class="editor-note">Saves all 6 cards together to this month's report row. Any field can be left blank.</span>
+          <button class="btn-cancel" id="cs-opp-cancel-btn">Cancel</button>
+          <button class="btn-save-stage" id="cs-opp-save-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
   </div>
 
   <!-- ══ EVENTS (INTERNAL) ══ -->
@@ -4696,6 +4772,7 @@ window.initAmazonSalesInternal = function () {
         const ta = document.getElementById(f.textareaId);
         if (ta) ta.value = val;
       });
+      if (typeof cfg.onLoad === 'function') cfg.onLoad(row); // optional — used by Opportunities to render image thumbnails
       return row;
     }
     editBtn.addEventListener('click', () => {
@@ -5182,17 +5259,89 @@ window.csResolveApprovedMonth = function () {
 // Reuses wireInsightBlock() from the Sales module — same save mechanism,
 // same SHEET_REPORT_INSIGHTS 'cosmette' tab, different field keys.
 // ══════════════════════════════════════════════════════════════════════════
+
+// Ported verbatim 2026-09-30 from vbc-index.html — generic (takes element
+// ids as arguments). Posts to api/upload-insight-image.js.
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+async function ddUploadInsightImage(fileInputEl, targetInputId, statusBtnId){
+  const file = fileInputEl.files && fileInputEl.files[0];
+  if(!file) return;
+  const targetInput = document.getElementById(targetInputId);
+  const statusBtn = document.getElementById(statusBtnId);
+  const originalLabel = statusBtn ? statusBtn.textContent : '📤 Upload';
+  const MAX_BYTES = 4 * 1024 * 1024; // stay comfortably under Vercel's 4.5MB body limit once base64-inflated ~33%
+  if(file.size > MAX_BYTES){
+    if(statusBtn){ statusBtn.textContent = '✗ Too large (max 4MB)'; statusBtn.classList.remove('uploading','uploaded'); statusBtn.classList.add('upload-error'); }
+    fileInputEl.value = '';
+    return;
+  }
+  try{
+    if(statusBtn){ statusBtn.textContent = '⟳ Uploading…'; statusBtn.classList.remove('uploaded','upload-error'); statusBtn.classList.add('uploading'); }
+    const base64 = await new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || ''); // strip the data: URL prefix
+      reader.onerror = () => reject(new Error('Could not read file'));
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch('/api/upload-insight-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, mimeType: file.type, imageBase64: base64 }),
+    });
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+    if(targetInput) targetInput.value = data.url;
+    if(statusBtn){ statusBtn.textContent = '✓ Uploaded'; statusBtn.classList.remove('uploading'); statusBtn.classList.add('uploaded'); }
+  } catch(err){
+    console.error('[ddUploadInsightImage]', err);
+    if(statusBtn){ statusBtn.textContent = '✗ Upload failed'; statusBtn.classList.remove('uploading'); statusBtn.classList.add('upload-error'); }
+  } finally{
+    fileInputEl.value = ''; // allow re-selecting the same file again if needed
+  }
+}
+
+function renderAccImages(containerId, urls){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const valid = (urls||[]).map(u=>(u||'').trim()).filter(Boolean);
+  if(!valid.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = valid.map(u=>`<img src="${escapeHtml(u)}" class="opp-card-img" alt="" onerror="this.style.display='none'">`).join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.wireInsightBlock !== 'function') { console.warn('[Opportunities] wireInsightBlock not available yet.'); return; }
+  // What's Been Accomplished — Dazzle Dry fields/structure (see markup comment).
+  const csAccFields = [];
   [1, 2, 3, 4].forEach(n => {
-    window.wireInsightBlock({
-      editBtnId: `opp${n}-edit-btn`, saveBtnId: `opp${n}-save`, cancelBtnId: `opp${n}-cancel`, editorId: `opp${n}-editor`,
-      fields: [
-        { key: `opp${n}_title`,    displayId: `opp${n}-title`,    textareaId: `opp${n}-textarea-title`,    placeholder: `Opportunity ${n} — click Edit to add a title` },
-        { key: `opp${n}_subtitle`, displayId: `opp${n}-subtitle`, textareaId: `opp${n}-textarea-subtitle` },
-        { key: `opp${n}_body`,     displayId: `opp${n}-body`,     textareaId: `opp${n}-textarea-body`,     placeholder: 'No content added yet — click Edit to add it.' },
-      ],
-    });
+    csAccFields.push(
+      { key: `accomplished${n}_title`,    displayId: `cs-acc${n}-title-disp`,    textareaId: `cs-acc${n}-title-input`,    placeholder: `Accomplished ${n}` },
+      { key: `accomplished${n}_subtitle`, displayId: `cs-acc${n}-subtitle-disp`, textareaId: `cs-acc${n}-subtitle-input` },
+      { key: `accomplished${n}_body`,     displayId: `cs-acc${n}-body-disp`,     textareaId: `cs-acc${n}-body-input`,     placeholder: 'No content yet.' },
+    );
+  });
+  [1, 2].forEach(n => [1, 2, 3, 4, 5, 6].forEach(i => {
+    csAccFields.push({ key: `accomplished${n}_image${i}`, textareaId: `cs-acc${n}-image${i}-input` }); // no displayId — rendered as <img> via renderAccImages
+  }));
+  window.wireInsightBlock({
+    editBtnId: 'cs-acc-edit-btn', saveBtnId: 'cs-acc-save-btn', cancelBtnId: 'cs-acc-cancel-btn', editorId: 'cs-acc-editor',
+    fields: csAccFields,
+    onLoad: row => [1, 2].forEach(n => renderAccImages(`cs-acc${n}-images-disp`, [1, 2, 3, 4, 5, 6].map(i => row ? row[`accomplished${n}_image${i}`] : ''))),
+  });
+  // Future Opportunities — 6 cards, one shared editor (Dazzle Dry layout).
+  const csOppFields = [];
+  [1, 2, 3, 4, 5, 6].forEach(n => {
+    csOppFields.push(
+      { key: `opp${n}_title`,    displayId: `cs-opp${n}-title-disp`,    textareaId: `cs-opp${n}-title-input`,    placeholder: `Opportunity ${n}` },
+      { key: `opp${n}_subtitle`, displayId: `cs-opp${n}-subtitle-disp`, textareaId: `cs-opp${n}-subtitle-input` },
+      { key: `opp${n}_body`,     displayId: `cs-opp${n}-body-disp`,     textareaId: `cs-opp${n}-body-input`,     placeholder: 'No content yet.' },
+    );
+  });
+  window.wireInsightBlock({
+    editBtnId: 'cs-opp-edit-btn', saveBtnId: 'cs-opp-save-btn', cancelBtnId: 'cs-opp-cancel-btn', editorId: 'cs-opp-editor',
+    fields: csOppFields,
   });
   window.wireInsightBlock({
     editBtnId: 'adimp-insight-edit-btn', saveBtnId: 'adimp-insight-save', cancelBtnId: 'adimp-insight-cancel', editorId: 'adimp-insight-editor',
@@ -10180,11 +10329,13 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     // (not just a blank title), so an export that runs before this
     // section finishes loading doesn't show "Loading…" as a literal
     // opportunity title.
-    const cards = Array.prototype.map.call(document.querySelectorAll('#m-opportunities .opp-card'), function (card) {
-      const title = pdfxText('.opp-title', card);
+    // Selectors updated 2026-09-30 for the Dazzle Dry-style markup
+    // (#cs-opp-display, .opp-card-title/-subtitle/-body).
+    const cards = Array.prototype.map.call(document.querySelectorAll('#cs-opp-display .opp-card'), function (card) {
+      const title = pdfxText('.opp-card-title', card);
       if (!title || title === 'Loading…') return '';
-      const subtitle = pdfxText('.opp-subtitle', card);
-      const body = pdfxText('.opp-body', card);
+      const subtitle = pdfxText('.opp-card-subtitle', card);
+      const body = pdfxText('.opp-card-body', card);
       return '<div>' +
         '<div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;">' + pdfxEscape(title) + '</div>' +
         (subtitle ? '<div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px;">' + pdfxEscape(subtitle) + '</div>' : '') +
