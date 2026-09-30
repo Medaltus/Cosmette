@@ -9186,167 +9186,694 @@ window.initSubscriptions = function () {
     return '';
   }
 
-  const PDFX_CARD_WIDTH_PX = 686; // matches pdfxChartBlock's own target display width
-  const PDFX_CHART_AXIS_TARGET_PX = 12;
-  function pdfxWithScaledAxisFonts(options, captureWidthPx) {
-    const fontScale = captureWidthPx / PDFX_CARD_WIDTH_PX;
-    const scaledSize = Math.max(6, Math.round(PDFX_CHART_AXIS_TARGET_PX * fontScale));
-    const origScales = options.scales || {};
-    const newScales = Object.assign({}, origScales);
-    ['x', 'y'].forEach(function (axisKey) {
-      const origAxis = origScales[axisKey] || {};
-      const origTicks = origAxis.ticks || {};
-      newScales[axisKey] = Object.assign({}, origAxis, {
-        ticks: Object.assign({}, origTicks, { font: Object.assign({}, origTicks.font, { size: scaledSize }) })
+  // ══════════════════════════════════════════════════════════════════
+  // CANONICAL PDF EXPORT PIPELINE — ported verbatim 2026-09-30 from the
+  // VBC reference file (vbc-index.html) per the PDF Export build notes'
+  // "Read this first" rule. Only brand-specific pieces differ:
+  //   - PDFX_CHART_CANVAS_IDS keeps Cosmette's {canvasId, windowVar}
+  //     shape, because Cosmette stores chart instances two ways
+  //     (window globals AND canvas._csChart for chart-amazon). So the
+  //     2 canvas lookups read .canvasId and the 2 chart lookups call
+  //     pdfxGetLiveChart(varName) instead of window[varName]. Nothing
+  //     else in these functions is changed.
+  //   - PDFX_CHART_TARGET_HEIGHT_PX / PDFX_COSMETTE_FIT_CHARTS values.
+  // ══════════════════════════════════════════════════════════════════
+  // Local copy — this IIFE had no escapeHtml, and the ported functions
+  // call it (same scope trap as the Goal Tracker bug).
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  }
+  const PDFX_CARD_WIDTH_PX = 686;
+  const PDFX_CHART_AXIS_TARGET_PX = 12; // effective tick-label size once printed at PDFX_CARD_WIDTH_PX
+  const PDFX_CHART_TARGET_HEIGHT_PX = {
+    _amazonChart: 250,
+  };
+function pdfxWithScaledAxisFonts(options, captureWidthPx){
+  const fontScale = captureWidthPx / PDFX_CARD_WIDTH_PX;
+  const scaledSize = Math.max(6, Math.round(PDFX_CHART_AXIS_TARGET_PX * fontScale));
+  const origScales = options.scales || {};
+  const newScales = Object.assign({}, origScales);
+  ['x','y'].forEach(axisKey=>{
+    const origAxis = origScales[axisKey] || {};
+    const origTicks = origAxis.ticks || {};
+    newScales[axisKey] = Object.assign({}, origAxis, {
+      ticks: Object.assign({}, origTicks, { font: Object.assign({}, origTicks.font, { size: scaledSize }) })
+    });
+  });
+  return Object.assign({}, options, { scales: newScales, fontScale, scaledSize });
+}
+
+// Captures ONE chart: resize the LIVE chart instance (never a second,
+// detached instance — Évolis's own history notes that approach repeatedly
+// crashed against Chart.js's global options-resolver cache) to larger
+// native pixel dimensions, scale its axis fonts/line weight/point radius/
+// layout padding to match, redraw synchronously, capture, then restore
+// everything back to the live dashboard's own original size/style.
+function pdfxCaptureOneChart(varName, heightOverrides){
+  const liveCanvas = document.getElementById(PDFX_CHART_CANVAS_IDS[varName].canvasId);
+  const liveChart = pdfxGetLiveChart(varName);
+  if(!liveCanvas || !liveChart) return { img:'', width:0, height:0, displayHeightPx:0 };
+
+  const rect = liveCanvas.getBoundingClientRect();
+  const rectValid = !!(rect && rect.width>0 && rect.height>0);
+  const originalWidthPx = Math.round((rectValid && rect.width) || liveCanvas.width || 700);
+  const originalHeightPx = Math.round((rectValid && rect.height) || liveCanvas.height || 300);
+  const wrapper = liveCanvas.parentElement;
+  const wrapperRect = wrapper ? wrapper.getBoundingClientRect() : null;
+  // Guard: if wrapper is in a display:none container its rect height = 0.
+  // Fall back to originalHeightPx rather than capturing a 0-height chart.
+  const dashboardHeightPx = (wrapperRect && wrapperRect.height > 0) ? wrapperRect.height : originalHeightPx;
+
+  // Capture at a capped width, not the true live width — on very wide
+  // monitors a chart's real on-screen width can run well past 2000px
+  // (confirmed live: a 2560px browser window produced a 2210px-wide
+  // chart), and capturing natively at that size was producing garbled,
+  // near-blank output once downscaled to the PDF's 686px card width —
+  // almost certainly overwhelming html2canvas's decode/render pipeline
+  // for an image with that extreme a native-to-displayed ratio. 1400px
+  // still gives more than 2x the target display resolution, plenty for
+  // a crisp PDF chart, without the extreme oversampling. originalWidthPx
+  // itself stays uncapped — it's what the live chart gets RESTORED to
+  // afterward, and must never be smaller than the dashboard's own size.
+  const PDFX_MAX_CAPTURE_WIDTH_PX = 1400;
+  const captureWidthPx = Math.min(originalWidthPx, PDFX_MAX_CAPTURE_WIDTH_PX);
+
+  const PDFX_HEIGHT_FACTOR = 0.9;
+  const PDFX_CAPTURE_TENSION = 0.3;
+  const PDFX_LINE_WIDTH_TARGET_PX = 3;
+  const PDFX_POINT_RADIUS_TARGET_PX = 2.2;
+  // Per Jaclyn 2026-09-28: use this chart's actual INTENDED PDF display
+  // height (PDFX_CHART_TARGET_HEIGHT_PX, above) when one exists, rather
+  // than deriving captureHeightPx from the live dashboard's own,
+  // unrelated container height — see that constant's comment for the
+  // full reasoning. Falls back to the original dashboardHeightPx-based
+  // formula for any chart with no listed target (event/shipping charts),
+  // exactly as before.
+  // Per Jaclyn 2026-09-28 (Sales page fix): heightOverrides comes from
+  // pdfxPlanChartHeights() — the height this chart ACTUALLY has room for
+  // on its PDF page this month, measured before capture. Wins over the
+  // fixed default so the chart is captured at the exact size it will be
+  // displayed at (full card width), instead of being shrunk narrower
+  // afterward by pdfxFitChartsToPage.
+  const targetDisplayHeightAtCardWidth = (heightOverrides && heightOverrides[varName])
+    || PDFX_CHART_TARGET_HEIGHT_PX[varName]
+    || (dashboardHeightPx * PDFX_HEIGHT_FACTOR);
+  const captureHeightPx = Math.round(captureWidthPx * (targetDisplayHeightAtCardWidth / PDFX_CARD_WIDTH_PX));
+  // Stop any in-flight Chart.js animation first — while an animation is
+  // running, Chart.js DEFERS resize() to the next draw, and the capture
+  // below can then read the canvas at its old (live) size. Verified in a
+  // test harness: a chart captured mid-animation came out 778x300 instead
+  // of the intended 778x284, i.e. the wrong aspect ratio (playbook Case 8
+  // — a timing race, not a config problem).
+  if(typeof liveChart.stop === 'function') liveChart.stop();
+  liveChart.resize(captureWidthPx, captureHeightPx);
+
+  const targetW = captureWidthPx;
+  const fontScale = targetW / PDFX_CARD_WIDTH_PX;
+  const scaledBorderWidth = PDFX_LINE_WIDTH_TARGET_PX * fontScale;
+  const scaledPointRadius = PDFX_POINT_RADIUS_TARGET_PX * fontScale;
+  liveChart.$pdxFontScale = fontScale; // exposed for any future custom-plugin text (none currently on this dashboard)
+
+  const origPadding = (liveChart.options.layout && liveChart.options.layout.padding)
+    ? Object.assign({}, liveChart.options.layout.padding) : null;
+  if(origPadding){
+    const scaledPadding = {};
+    Object.keys(origPadding).forEach(side => { scaledPadding[side] = origPadding[side] * fontScale; });
+    liveChart.options.layout.padding = scaledPadding;
+  }
+
+  const origLineStyles = (liveChart.data && liveChart.data.datasets)
+    ? liveChart.data.datasets.map(ds => ({ tension:ds.tension, borderWidth:ds.borderWidth, pointRadius:ds.pointRadius }))
+    : [];
+  if(liveChart.data && liveChart.data.datasets){
+    liveChart.data.datasets.forEach(ds=>{
+      if(typeof ds.tension==='number') ds.tension = PDFX_CAPTURE_TENSION;
+      if(typeof ds.borderWidth==='number') ds.borderWidth = scaledBorderWidth;
+      if(typeof ds.pointRadius==='number') ds.pointRadius = scaledPointRadius;
+    });
+  }
+
+  let img='', capturedWidth=liveCanvas.width, capturedHeight=liveCanvas.height;
+  const hasScales = !!(liveChart.options && liveChart.options.scales);
+  const origScales = hasScales ? liveChart.options.scales : null;
+
+  // Built-in legend (e.g. the category chart) needs the same font-scale
+  // treatment as axis ticks or it stays tiny — but reassigning
+  // liveChart.options.plugins wholesale (a full Object.assign
+  // reconstruction, the first attempt at this fix) crashed the ENTIRE
+  // export with a cryptic Chart.js internal error ("t.startsWith is not
+  // a function") on every chart, not just this one. Root cause: Chart.js
+  // wraps options.plugins in its own internal resolver/Proxy structure,
+  // and replacing that structure wholesale — rather than mutating it —
+  // is exactly the class of bug Évolis's own history warned about
+  // (constructing an independent options graph trips Chart.js's global
+  // resolver cache). Fix: mutate ONLY the leaf primitive values in place
+  // on the EXISTING objects, and only when a real legend config already
+  // exists (skips line charts using legend:{display:false} entirely,
+  // since those never had a populated labels object to touch).
+  const legendLabels = liveChart.options && liveChart.options.plugins && liveChart.options.plugins.legend
+    ? liveChart.options.plugins.legend.labels : null;
+  let origLegendFontSize = null, origLegendBoxW = null, origLegendBoxH = null;
+  if(legendLabels){
+    origLegendFontSize = legendLabels.font ? legendLabels.font.size : undefined;
+    origLegendBoxW = legendLabels.boxWidth;
+    origLegendBoxH = legendLabels.boxHeight;
+  }
+
+  try{
+    if(hasScales){
+      const scaled = pdfxWithScaledAxisFonts(liveChart.options, targetW);
+      liveChart.options.scales = scaled.scales;
+      if(legendLabels){
+        if(!legendLabels.font) legendLabels.font = {};
+        legendLabels.font.size = scaled.scaledSize;
+        legendLabels.boxWidth = Math.max(8, Math.round((origLegendBoxW||12) * scaled.fontScale));
+        legendLabels.boxHeight = Math.max(8, Math.round((origLegendBoxH||12) * scaled.fontScale));
+      }
+    }
+    liveChart.update('none'); // synchronous, no animation
+    img = liveChart.toBase64Image('image/png');
+    capturedWidth = liveCanvas.width;
+    capturedHeight = liveCanvas.height;
+  } catch(e){
+    console.warn('[pdf-export] scaled-font capture failed for', varName, '— falling back to as-is:', e.message);
+    try{ img = liveChart.toBase64Image('image/png'); } catch(e2){ img=''; }
+  } finally {
+    delete liveChart.$pdxFontScale;
+    if(origPadding && liveChart.options.layout) liveChart.options.layout.padding = origPadding;
+    if(hasScales) liveChart.options.scales = origScales;
+    if(legendLabels){
+      legendLabels.font.size = origLegendFontSize;
+      legendLabels.boxWidth = origLegendBoxW;
+      legendLabels.boxHeight = origLegendBoxH;
+    }
+    if(liveChart.data && liveChart.data.datasets){
+      liveChart.data.datasets.forEach((ds,i)=>{
+        const orig = origLineStyles[i];
+        if(!orig) return;
+        if(typeof orig.tension==='number') ds.tension = orig.tension;
+        if(typeof orig.borderWidth==='number') ds.borderWidth = orig.borderWidth;
+        if(typeof orig.pointRadius==='number') ds.pointRadius = orig.pointRadius;
       });
-    });
-    return Object.assign({}, options, { scales: newScales });
+    }
+    liveChart.update('none');
   }
 
-  async function pdfxCaptureAllChartImages() {
-    const restore = [];
-    const varNames = Object.keys(PDFX_CHART_CANVAS_IDS);
+  const result = { img, width:capturedWidth, height:capturedHeight, displayHeightPx: dashboardHeightPx*PDFX_HEIGHT_FACTOR };
+  liveChart.resize(originalWidthPx, originalHeightPx); // restore live dashboard's own size
+  return result;
+}
 
-    // Case 1 (partial) — a canvas can be 0×0 if its tab was never
-    // opened this session (its wrapper is display:none, Chart.js sizes
-    // it to 0×0 — capturing that doesn't throw, it just returns a
-    // blank image). Force every hidden ancestor visible long enough to
-    // get a real size, restore afterward.
-    varNames.forEach(function (varName) {
-      const canvas = document.getElementById(PDFX_CHART_CANVAS_IDS[varName].canvasId);
-      const chart = pdfxGetLiveChart(varName);
-      if (!canvas || !chart) return;
-      let node = canvas.parentElement;
-      while (node && node !== document.body) {
-        const disp = window.getComputedStyle(node).display;
-        if (disp === 'none') {
-          restore.push({ el: node, prop: 'display', prevValue: node.style.display });
-          node.style.display = 'block';
-        }
-        node = node.parentElement;
-      }
-    });
-    await new Promise(function (r) { requestAnimationFrame(r); });
-    await new Promise(function (r) { requestAnimationFrame(r); });
-    await new Promise(function (r) { setTimeout(r, 60); });
+// Force every registered chart's ancestor chain visible just long enough
+// to capture at real dimensions (a chart's canvas reads 0×0 while its
+// channel-page is display:none), capture each one, then restore every
+// ancestor's inline style exactly as found. Must run BEFORE any PDF page
+// HTML is built, since the page builders read from PDFX_CHART_CACHE
+// synchronously rather than capturing live.
+async function pdfxCaptureAllChartImages(heightOverrides){
+  const restore = [];
+  const varNames = Object.keys(PDFX_CHART_CANVAS_IDS);
 
-    // Case 1 (the actual fix) — capture on the LIVE chart instance,
-    // never a second detached one. Case 4 documented why a temp
-    // instance fails regardless of cloning: Chart.js's option-
-    // resolution cache lives on the global Chart.defaults scope, not
-    // on any one chart's own options/data object.
-    function pdfxCaptureOneChart(varName) {
-      const liveCanvas = document.getElementById(PDFX_CHART_CANVAS_IDS[varName].canvasId);
-      const liveChart = pdfxGetLiveChart(varName);
-      if (!liveCanvas || !liveChart) return { img: '', width: 0, height: 0, displayHeightPx: 0 };
+  varNames.forEach(varName=>{
+    const canvas = document.getElementById(PDFX_CHART_CANVAS_IDS[varName].canvasId);
+    const chart = pdfxGetLiveChart(varName);
+    if(!canvas || !chart) return;
+    let node = canvas.parentElement;
+    while(node && node!==document.body){
+      const disp = window.getComputedStyle(node).display;
+      if(disp==='none'){ restore.push({el:node, prevValue:node.style.display}); node.style.display='block'; }
+      node = node.parentElement;
+    }
+  });
 
-      const rect = liveCanvas.getBoundingClientRect();
-      const rectValid = !!(rect && rect.width > 0 && rect.height > 0);
-      const originalWidthPx = Math.round((rectValid && rect.width) || liveCanvas.width || 700);
-      const originalHeightPx = Math.round((rectValid && rect.height) || liveCanvas.height || 300);
-      const wrapper = liveCanvas.parentElement;
-      const dashboardHeightPx = wrapper ? wrapper.getBoundingClientRect().height : originalHeightPx;
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>requestAnimationFrame(r));
+  await new Promise(r=>setTimeout(r,60));
 
-      const PDFX_HEIGHT_FACTOR = 0.9;
-      const PDFX_CAPTURE_TENSION = 0.3;
-      const PDFX_LINE_WIDTH_TARGET_PX = 3;
-      const PDFX_POINT_RADIUS_TARGET_PX = 2.2;
-      const captureHeightPx = Math.round(originalWidthPx * ((dashboardHeightPx * PDFX_HEIGHT_FACTOR) / PDFX_CARD_WIDTH_PX));
-      liveChart.resize(originalWidthPx, captureHeightPx);
+  // The category chart's last data point is always the current (partial,
+  // still-accumulating) month — per Jaclyn 2026-09-16, showing it in the
+  // PDF export makes the trend look like it craters, since a few days of
+  // MTD data next to 11 full months reads as a huge drop rather than an
+  // in-progress month. Temporarily drop it before capturing, then restore
+  // the live chart's full data right after — the on-screen dashboard
+  // still shows the current month as normal; this only affects the PDF.
+  const categoryChart = window._ddCategoryChart;
+  let categoryChartBackup = null;
+  if(categoryChart && categoryChart.data && categoryChart.data.labels && categoryChart.data.labels.length > 1){
+    categoryChartBackup = {
+      labels: categoryChart.data.labels.slice(),
+      datasetsData: categoryChart.data.datasets.map(ds => ds.data.slice()),
+    };
+    categoryChart.data.labels = categoryChart.data.labels.slice(0, -1);
+    categoryChart.data.datasets.forEach(ds => { ds.data = ds.data.slice(0, -1); });
+    categoryChart.update('none');
+    await new Promise(r=>requestAnimationFrame(r));
+  }
 
-      const targetW = originalWidthPx;
-      const fontScale = targetW / PDFX_CARD_WIDTH_PX;
-      const scaledBorderWidth = PDFX_LINE_WIDTH_TARGET_PX * fontScale;
-      const scaledPointRadius = PDFX_POINT_RADIUS_TARGET_PX * fontScale;
+  const images = {};
+  varNames.forEach(varName=>{ images[varName] = pdfxCaptureOneChart(varName, heightOverrides); });
 
-      // Case 3 — stashed scale factor for any custom plugin drawing its
-      // own text via raw ctx.fillText(). Cosmette doesn't currently
-      // have a custom canvas plugin like Skinuva's yoyLabelPlugin, but
-      // this is kept so one can be added later without silently
-      // missing this scaling.
-      liveChart.$pdxFontScale = fontScale;
+  if(categoryChartBackup){
+    categoryChart.data.labels = categoryChartBackup.labels;
+    categoryChart.data.datasets.forEach((ds, i) => { ds.data = categoryChartBackup.datasetsData[i]; });
+    categoryChart.update('none');
+  }
 
-      const origPadding = (liveChart.options.layout && liveChart.options.layout.padding)
-        ? Object.assign({}, liveChart.options.layout.padding)
-        : null;
-      if (origPadding) {
-        const scaledPadding = {};
-        Object.keys(origPadding).forEach(side => { scaledPadding[side] = origPadding[side] * fontScale; });
-        liveChart.options.layout.padding = scaledPadding;
-      }
+  restore.forEach(r => { r.el.style.display = r.prevValue; });
+  return images;
+}
 
-      const origLineStyles = (liveChart.data && liveChart.data.datasets)
-        ? liveChart.data.datasets.map(function (ds) { return { tension: ds.tension, borderWidth: ds.borderWidth, pointRadius: ds.pointRadius }; })
-        : [];
-      if (liveChart.data && liveChart.data.datasets) {
-        liveChart.data.datasets.forEach(function (ds) {
-          if (typeof ds.tension === 'number') ds.tension = PDFX_CAPTURE_TENSION;
-          if (typeof ds.borderWidth === 'number') ds.borderWidth = scaledBorderWidth;
-          if (typeof ds.pointRadius === 'number') ds.pointRadius = scaledPointRadius;
+function pdfxChartImg(varName){
+  if(PDFX_CHART_CACHE && Object.prototype.hasOwnProperty.call(PDFX_CHART_CACHE, varName)){
+    const entry = PDFX_CHART_CACHE[varName];
+    return entry ? entry.img : '';
+  }
+  return '';
+}
+function pdfxChartAspect(varName){
+  const entry = PDFX_CHART_CACHE && PDFX_CHART_CACHE[varName];
+  if(!entry || !entry.width || !entry.height) return null;
+  return entry.height / entry.width;
+}
+
+// Explicit pixel width AND height (not width:100% CSS) — Évolis's own
+// history notes html2canvas unreliably resolving percentage-based image
+// sizing on this exact kind of element.
+//
+// Per Jaclyn 2026-09-28, working from the évolis/Cosmette PDF-export
+// debugging playbook: the previous maxHeightPx cap here (and my first
+// attempt at "fixing" it by shrinking width proportionally when it
+// fired) were both the wrong layer to fix. The playbook's core lesson —
+// confirmed against several of its own case studies — is that a chart
+// looking wrong in a PDF is almost never a reason to force-resize an
+// already-captured image; the fix belongs in how/when it's captured or
+// displayed at its OWN correct size, not in cropping or stretching it
+// afterward. maxHeightPx was solving a problem (page overflow) that
+// pdfxFitChartsToPage now already solves properly, dynamically, and
+// without distortion — so this cap was redundant AND actively harmful:
+// on every export where a chart's natural height exceeded its cap
+// (not just overflow months), it forced the chart narrower than its
+// natural size, which is what broke charts that were never actually
+// causing any overflow at all. maxHeightPx is no longer applied — kept
+// as a parameter (ignored) rather than touching every call site's
+// argument order. Charts now always render at their true, natural,
+// full-card-width aspect ratio; pdfxFitChartsToPage is the ONLY place
+// a chart ever gets shrunk, and only when the page it's actually on
+// really overflows.
+function pdfxChartBlock(varName, fallbackLabel, maxHeightPx, imgId){
+  const img = pdfxChartImg(varName);
+  const idAttr = imgId ? ` id="${imgId}"` : '';
+  if(img){
+    const aspect = pdfxChartAspect(varName);
+    const heightPx = aspect ? Math.round(PDFX_CARD_WIDTH_PX * aspect) : 230;
+    return `<img${idAttr} src="${img}" data-default-w="${PDFX_CARD_WIDTH_PX}" data-default-h="${heightPx}" style="display:block;width:${PDFX_CARD_WIDTH_PX}px;height:${heightPx}px;">`;
+  }
+  return `<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-style:italic;">${escapeHtml(fallbackLabel||'Chart not yet loaded — open this tab once on the dashboard, then re-export.')}</div>`;
+}
+
+
+// Per Jaclyn 2026-09-28: dynamically shrinks a PDF page's chart(s) to
+// whatever vertical space remains after the REST of that page's actual
+// content (mainly variable-length text like the Key Insight paragraph)
+// has rendered — instead of a fixed chart height regardless of how much
+// room the rest of the page needs that month. A long Key Insight some
+// months previously pushed the whole page past 11in, which forced the
+// final export step (see the capture loop in exportDDSalesPdf /
+// exportVVSSalesPdf) to non-uniformly squish the ENTIRE page — header and
+// logo included — to force-fit it into a fixed 8.5x11 box. Shrinking
+// chart(s) to the actual remaining room keeps total page height
+// consistently near 11in every month instead of only sometimes.
+//
+// Takes an ARRAY of chart configs, not just one — Jaclyn 2026-09-28's
+// second report (the Sales/Subscriptions page had visible side margins
+// too) traced back to that page having TWO charts (_ddCategoryChart,
+// _ddSubsChart) that were never wired to any fitting logic at all, so it
+// always overflowed whenever its own Key Insight was long. Rather than
+// call a single-chart version twice (which would greedily shrink the
+// first chart to its floor before ever touching the second, even when
+// splitting the overflow across both would keep each one more legible),
+// this distributes the needed shrinkage PROPORTIONALLY across every
+// chart passed in, weighted by how much each one can still give before
+// hitting its own floor. Verified directly: moderate overflow splits
+// shrinkage between both charts in proportion to their own budgets;
+// overflow beyond the combined budget correctly clamps every chart at
+// its floor rather than going negative or overshooting one chart.
+//
+// Must run AFTER root.innerHTML is set (needs real, live layout to
+// measure) and BEFORE that page's html2canvas capture. Safe/idempotent to
+// call on every page each export — no-ops immediately if none of the
+// given chart ids are present on this particular page.
+const PDFX_TARGET_PAGE_HEIGHT_PX = 11 * 96; // matches the 96px/in this file's PDFX_CARD_WIDTH_PX (8.5in=816px) already assumes
+function pdfxFitChartsToPage(pageEl, chartConfigs){
+  const charts = chartConfigs
+    .map(cfg => {
+      const el = pageEl.querySelector(`#${cfg.id}`);
+      if(!el) return null;
+      // Read the TRUE rendered default size off the element itself
+      // (set by pdfxChartBlock — may already be narrower than the full
+      // card width if its own maxHeightPx cap kicked in) rather than
+      // assuming full width. Using the wrong baseline here would silently
+      // reintroduce the exact distortion this function exists to avoid.
+      const defaultWidthPx = Number(el.dataset.defaultW) || PDFX_CARD_WIDTH_PX;
+      const defaultHeightPx = Number(el.dataset.defaultH) || cfg.defaultHeightPx;
+      return { ...cfg, el, defaultWidthPx, defaultHeightPx };
+    })
+    .filter(Boolean);
+  if(!charts.length) return;
+  // Reset to normal defaults first, every call — makes this safe to call
+  // unconditionally every export, not just on overflowing months.
+  charts.forEach(c => {
+    c.el.style.height = c.defaultHeightPx + 'px';
+    c.el.style.width = c.defaultWidthPx + 'px';
+    c.el.style.margin = c.defaultWidthPx < PDFX_CARD_WIDTH_PX ? '0 auto' : '0';
+  });
+  const overflowPx = pageEl.scrollHeight - PDFX_TARGET_PAGE_HEIGHT_PX;
+  if(overflowPx <= 0) return; // already fits — leave every chart at its normal size
+  const totalBudget = charts.reduce((sum,c) => sum + (c.defaultHeightPx - c.minHeightPx), 0);
+  if(totalBudget <= 0) return; // no room to give at all — Part B's proportional-scale-down safety net handles the remaining overflow without distorting
+  charts.forEach(c => {
+    const ownBudget = c.defaultHeightPx - c.minHeightPx;
+    const share = ownBudget / totalBudget;
+    const shrinkAmount = Math.min(ownBudget, overflowPx * share);
+    const newHeightPx = Math.max(c.minHeightPx, c.defaultHeightPx - shrinkAmount);
+    // Per Jaclyn 2026-09-28: shrinking height alone (old behavior) forced
+    // the pre-captured chart image into a shorter box than it was
+    // actually captured at — pdfxCaptureOneChart() bakes a FIXED aspect
+    // ratio into the image at capture time (it re-renders the live
+    // Chart.js canvas at a specific width/height before screenshotting),
+    // so overriding only the CSS height stretched/squished that fixed-
+    // ratio image, visibly distorting the axis label text. Shrinking
+    // width proportionally alongside height (from the TRUE default width,
+    // not an assumed full-width baseline) keeps the displayed ratio
+    // matching the captured one at every stage. Centered via margin so a
+    // narrower chart doesn't look like a left-alignment bug.
+    const newWidthPx = c.defaultWidthPx * (newHeightPx / c.defaultHeightPx);
+    c.el.style.height = newHeightPx + 'px';
+    c.el.style.width = newWidthPx + 'px';
+    c.el.style.margin = '0 auto';
+  });
+}
+// ══════════════════════════════════════════════════════════════════════
+// Per Jaclyn 2026-09-28 — the ACTUAL Sales (Amazon) page chart fix.
+//
+// QA finding (Sales vs Insights, same capture code, same chart options —
+// the Subscriptions chart even shares yoyChartOptions with the Amazon
+// chart): the difference is page content, not chart code. The Amazon
+// page (5 KPIs + chart + 7-row table + Key Insight) is over the 11in
+// budget EVERY month — measured 1064px vs 1056px with no Key Insight at
+// all, 1124–1181px with a typical 300–900 character one. The Insights
+// page fits, so its charts are never touched after capture. On the
+// Amazon page, pdfxFitChartsToPage then had to shrink the already-
+// captured image, and (to avoid distortion) shrank its WIDTH too —
+// measured down to 499px / 420px / 343px wide on a 686px card. That's
+// the "doesn't extend the full width" chart, and it's why changing the
+// capture height alone never changed it.
+//
+// Fix (playbook Case 6 + the core "capture at the right size" lesson):
+// measure each chart page's real content BEFORE capturing, work out how
+// tall its chart(s) can be and still fit, and capture them at exactly
+// that height at full card width. Chart.js re-lays-out its own axes for
+// the shorter size, so nothing is stretched, squished, or narrowed.
+// pdfxFitChartsToPage stays as the emergency net and should now no-op.
+// ══════════════════════════════════════════════════════════════════════
+// Cosmette's fit-chart list. Only the Amazon Sales page chart is listed —
+// it is the direct analog of VBC's Amazon Sales chart (same page shape:
+// KPIs + chart + product table + Key Insight), so it uses the same
+// default/min heights. Every other Cosmette chart falls back to the
+// canonical dashboard-container-derived sizing, exactly as VBC's own
+// unlisted (event/shipping) charts do. defaultHeightPx MUST equal the
+// matching PDFX_CHART_TARGET_HEIGHT_PX value.
+const PDFX_COSMETTE_FIT_CHARTS = [
+  {id:'pdfx-cs-amazon-chart-img', varName:'_amazonChart', defaultHeightPx:250, minHeightPx:120},
+];
+const PDFX_BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const PDFX_FIT_SAFETY_PX = 4; // absorbs 1px rounding between planned and captured image heights
+
+// Builds each chart page with a full-width placeholder at the chart's
+// default height, measures the real rendered page, and returns
+// {varName: heightPx} for any chart that needs to be shorter to fit.
+// Overflow is split across a page's charts in proportion to how much
+// each can give before its floor — same rule pdfxFitChartsToPage uses.
+// Must run after all page text (KPIs, table, Key Insight) is populated.
+async function pdfxPlanChartHeights(pageBuilders, fitCharts){
+  const overrides = {};
+  const savedCache = PDFX_CHART_CACHE;
+  PDFX_CHART_CACHE = {};
+  fitCharts.forEach(c => { PDFX_CHART_CACHE[c.varName] = { img:PDFX_BLANK_IMG, width:PDFX_CARD_WIDTH_PX, height:c.defaultHeightPx }; });
+  const box = document.createElement('div');
+  box.setAttribute('style','position:absolute;left:-99999px;top:0;width:8.5in;background:#fff;font-family:var(--font);');
+  document.body.appendChild(box);
+  try{
+    for(const build of pageBuilders){
+      box.innerHTML = build();
+      await new Promise(r=>requestAnimationFrame(r));
+      await Promise.all(Array.from(box.querySelectorAll('img')).map(img => typeof img.decode==='function' ? img.decode().catch(()=>{}) : undefined));
+      if(document.fonts && document.fonts.ready) await document.fonts.ready;
+      box.querySelectorAll('.pdfx-page').forEach(pageEl => {
+        const charts = fitCharts.filter(c => pageEl.querySelector('#'+c.id));
+        if(!charts.length) return;
+        const overflowPx = pageEl.scrollHeight - PDFX_TARGET_PAGE_HEIGHT_PX + PDFX_FIT_SAFETY_PX;
+        if(overflowPx <= 0) return;
+        const totalBudget = charts.reduce((sum,c) => sum + (c.defaultHeightPx - c.minHeightPx), 0);
+        if(totalBudget <= 0) return;
+        charts.forEach(c => {
+          const ownBudget = c.defaultHeightPx - c.minHeightPx;
+          const shrink = Math.min(ownBudget, overflowPx * (ownBudget / totalBudget));
+          overrides[c.varName] = Math.floor(Math.max(c.minHeightPx, c.defaultHeightPx - shrink));
         });
-      }
-
-      let img = '';
-      let capturedWidth = liveCanvas.width;
-      let capturedHeight = liveCanvas.height;
-      const hasScales = !!(liveChart.options && liveChart.options.scales);
-      const origScales = hasScales ? liveChart.options.scales : null;
-      try {
-        if (hasScales) {
-          const scaled = pdfxWithScaledAxisFonts(liveChart.options, targetW);
-          liveChart.options.scales = scaled.scales;
-        }
-        liveChart.update('none'); // synchronous, no animation
-        img = liveChart.toBase64Image('image/png');
-        // Captured HERE, alongside the image itself — not re-read after
-        // the finally block's restore-update runs.
-        capturedWidth = liveCanvas.width;
-        capturedHeight = liveCanvas.height;
-      } catch (e) {
-        console.warn('[pdf-export] scaled-font capture failed for', varName, '— falling back:', e.message);
-        img = pdfxRawChartImg(varName);
-      } finally {
-        delete liveChart.$pdxFontScale;
-        if (origPadding && liveChart.options.layout) liveChart.options.layout.padding = origPadding;
-        if (hasScales) liveChart.options.scales = origScales;
-        if (liveChart.data && liveChart.data.datasets) {
-          liveChart.data.datasets.forEach(function (ds, i) {
-            const orig = origLineStyles[i];
-            if (!orig) return;
-            if (typeof orig.tension === 'number') ds.tension = orig.tension;
-            if (typeof orig.borderWidth === 'number') ds.borderWidth = orig.borderWidth;
-            if (typeof orig.pointRadius === 'number') ds.pointRadius = orig.pointRadius;
-          });
-        }
-        liveChart.update('none');
-      }
-
-      const result = { img: img, width: capturedWidth, height: capturedHeight, displayHeightPx: dashboardHeightPx * PDFX_HEIGHT_FACTOR };
-      liveChart.resize(originalWidthPx, originalHeightPx); // restore live dashboard's own size
-      return result;
+        console.log('[pdf-export] chart heights planned to fit page:', JSON.stringify(overrides));
+      });
     }
+  } finally {
+    box.remove();
+    PDFX_CHART_CACHE = savedCache;
+  }
+  return overrides;
+}
 
-    const images = {};
-    varNames.forEach(function (varName) {
-      images[varName] = pdfxCaptureOneChart(varName);
+// ══════════════════════════════════════════════════════════════════════
+// REAL-TEXT PDF OUTPUT — per Jaclyn 2026-09-28. CANONICAL: port verbatim
+// to every dashboard (see the build notes' "Read this first" section).
+//
+// Problem this replaces: every page used to be html2canvas-screenshotted
+// and embedded as a scale:3 PNG, so ALL text in the PDF was a picture
+// (not selectable/searchable) and a full report came out ~155MB — far too
+// big to email, and far over the 4.5MB request limit /api/upload-report
+// can accept, so Drive archiving of large reports was failing too.
+//
+// Fix: the exact same #pdfx-root pages (same HTML, same CSS, same fitted
+// chart sizes) are sent to /api/render-pdf, which prints them with
+// headless Chrome. Text, tables and KPIs come back as real vector text —
+// sharp at any zoom, selectable, and a normal file size. Chart images are
+// still the same captured PNGs (pdfxCaptureOneChart), just placed on the
+// page instead of re-screenshotted.
+//
+// If the server render fails for any reason (timeout, network, payload
+// too large), pdfxScreenshotPagesToPdf() still produces a PDF the old
+// way so an export never just fails — as high-quality JPEG with jsPDF
+// compression on, so even the fallback stays emailable.
+// ══════════════════════════════════════════════════════════════════════
+const PDFX_RENDER_ENDPOINT = '/api/render-pdf';
+const PDFX_RENDER_TIMEOUT_MS = 55000;
+const PDFX_RENDER_MAX_BODY_BYTES = 4200000; // Vercel's hard request limit is 4.5MB
+const PDFX_SYMBOL_FONT_CSS = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&family=Noto+Sans+Math&display=block';
+const PDFX_SYMBOL_FONT_STACK = "'Noto Sans Symbols 2','Noto Sans Math',sans-serif";
+// Arrows, box/geometric shapes, stars (★ ☆ ▲ ▼ ↕ →) — DM Sans has no
+// glyphs for these, and the server's Chrome has no system fonts to fall
+// back on, so they'd print as empty boxes without an explicit font.
+const PDFX_SYMBOL_RE = /[←-⇿─-➿⬀-⯿]/;
+
+function pdfxWrapSymbolGlyphs(rootNode){
+  const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  while(walker.nextNode()){ if(PDFX_SYMBOL_RE.test(walker.currentNode.nodeValue)) targets.push(walker.currentNode); }
+  targets.forEach(textNode => {
+    const frag = document.createDocumentFragment();
+    textNode.nodeValue.split(/([←-⇿─-➿⬀-⯿]+)/).forEach(part => {
+      if(!part) return;
+      if(PDFX_SYMBOL_RE.test(part)){
+        const span = document.createElement('span');
+        span.style.fontFamily = PDFX_SYMBOL_FONT_STACK;
+        span.textContent = part;
+        frag.appendChild(span);
+      } else {
+        frag.appendChild(document.createTextNode(part));
+      }
     });
-    restore.forEach(function (r) { r.el.style[r.prop] = r.prevValue; });
-    return images;
-  }
+    textNode.parentNode.replaceChild(frag, textNode);
+  });
+}
 
-  function pdfxChartImg(varName) {
-    if (PDFX_CHART_CACHE && Object.prototype.hasOwnProperty.call(PDFX_CHART_CACHE, varName)) {
-      const entry = PDFX_CHART_CACHE[varName];
-      return entry ? entry.img : '';
-    }
-    return pdfxRawChartImg(varName);
+// Serializes #pdfx-root into a standalone HTML document for headless
+// Chrome: this page's own <style> blocks and stylesheet <link>s (fonts),
+// a <base> so relative URLs (the Plantin font file) resolve, and print
+// CSS that makes every .pdfx-page exactly one 8.5x11in PDF page. A page
+// still taller than 11in after pdfxFitChartsToPage is zoomed down to fit
+// (both dimensions together, centered) — the same never-distort rule as
+// the screenshot path's Part B, just applied to real HTML.
+// SVG logos/watermarks (Canva exports using masks + color-matrix filters)
+// print wrong in the server's headless Chrome — first live export showed a
+// black box over half the cover logo and a faint box around the header
+// logo. The dashboard's own browser draws them correctly, so each SVG
+// <img> is rasterized HERE, client-side, to a high-res PNG (longest side
+// 1600px) before the document is sent. Same principle as playbook Case 5:
+// use the rendering path that's already proven to work.
+async function pdfxSvgToPng(src){
+  const im = new Image();
+  im.src = src;
+  await im.decode();
+  const w0 = im.naturalWidth || 1200, h0 = im.naturalHeight || 300;
+  const k = 1600 / Math.max(w0, h0);
+  const c = document.createElement('canvas');
+  c.width = Math.round(w0 * k); c.height = Math.round(h0 * k);
+  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+async function pdfxRasterizeSvgImages(clone){
+  const cache = new Map();
+  const imgs = Array.from(clone.querySelectorAll('img'))
+    .filter(img => (img.getAttribute('src') || '').startsWith('data:image/svg+xml'));
+  for(const img of imgs){
+    const src = img.getAttribute('src');
+    if(!cache.has(src)) cache.set(src, pdfxSvgToPng(src).catch(err => { console.warn('[pdf-export] SVG rasterize failed:', err && err.message); return null; }));
+    const png = await cache.get(src);
+    if(png) img.setAttribute('src', png);
   }
-  function pdfxChartAspect(varName) {
-    if (PDFX_CHART_CACHE && PDFX_CHART_CACHE[varName] && PDFX_CHART_CACHE[varName].width) {
-      return PDFX_CHART_CACHE[varName].height / PDFX_CHART_CACHE[varName].width;
-    }
-    return null;
+}
+// The server has no Georgia (and the Plantin file doesn't load), so every
+// serif heading fell back to a plain sans. Gelasio is a free Google font
+// built to match Georgia's metrics exactly; its Google Fonts CSS is
+// fetched and RENAMED to 'Georgia' so every existing Georgia rule in this
+// file resolves to it on the server — same line breaks and sizes the
+// dashboard shows. Only affects the server-rendered PDF document.
+const PDFX_GEORGIA_SUBSTITUTE_CSS = 'https://fonts.googleapis.com/css2?family=Gelasio:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=block';
+let pdfxGeorgiaAliasCss = null;
+async function pdfxGetGeorgiaAliasCss(){
+  if(pdfxGeorgiaAliasCss !== null) return pdfxGeorgiaAliasCss;
+  try{
+    const res = await fetch(PDFX_GEORGIA_SUBSTITUTE_CSS);
+    const css = res.ok ? await res.text() : '';
+    pdfxGeorgiaAliasCss = css.replace(/font-family:\s*['"]?Gelasio['"]?/g, "font-family: 'Georgia'");
+  } catch(err){
+    console.warn('[pdf-export] Georgia substitute font CSS failed to load:', err && err.message);
+    pdfxGeorgiaAliasCss = '';
   }
+  return pdfxGeorgiaAliasCss;
+}
+
+async function pdfxBuildRenderDocument(root, pageEls){
+  const zooms = pageEls.map(el => {
+    const h = el.scrollHeight;
+    return h > PDFX_TARGET_PAGE_HEIGHT_PX + 1 ? { zoom: PDFX_TARGET_PAGE_HEIGHT_PX / h, heightPx: h } : null;
+  });
+  const clone = root.cloneNode(true);
+  clone.removeAttribute('style');
+  Array.from(clone.querySelectorAll('.pdfx-page')).forEach((pg, i) => {
+    const z = zooms[i];
+    if(!z) return;
+    pg.style.zoom = String(z.zoom);
+    pg.style.height = z.heightPx + 'px';
+    pg.style.margin = '0 auto';
+  });
+  pdfxWrapSymbolGlyphs(clone);
+  await pdfxRasterizeSvgImages(clone);
+  const georgiaAlias = await pdfxGetGeorgiaAliasCss();
+  const css = Array.from(document.querySelectorAll('style')).map(st => st.textContent).join('\n');
+  const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+    .map(l => `<link rel="stylesheet" href="${escapeHtml(l.href)}">`).join('');
+  const printCss = `@page{size:8.5in 11in;margin:0}
+html,body{height:auto!important;margin:0!important;padding:0!important;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#pdfx-root{position:static!important;left:auto!important;top:auto!important;display:block!important;opacity:1!important;z-index:auto!important;width:8.5in}
+.pdfx-page{width:8.5in;height:11in;min-height:0;overflow:hidden;break-after:page;page-break-after:always}
+.pdfx-page:last-child{break-after:auto;page-break-after:auto}`;
+  return `<!doctype html><html><head><meta charset="utf-8"><base href="${escapeHtml(location.href)}">${links}<link rel="stylesheet" href="${PDFX_SYMBOL_FONT_CSS}"><style>${georgiaAlias}</style><style>${css}</style><style>${printCss}</style></head><body><div id="pdfx-root">${clone.innerHTML}</div></body></html>`;
+}
+
+async function pdfxRenderViaServer(root, pageEls){
+  const html = await pdfxBuildRenderDocument(root, pageEls);
+  let body = new Blob([html], { type:'text/html' });
+  const headers = { 'Content-Type':'application/octet-stream' };
+  if(typeof CompressionStream === 'function'){
+    body = await new Response(body.stream().pipeThrough(new CompressionStream('gzip'))).blob();
+    headers['X-Pdfx-Encoding'] = 'gzip';
+  }
+  if(body.size > PDFX_RENDER_MAX_BODY_BYTES) throw new Error(`render payload ${(body.size/1048576).toFixed(1)}MB is over the upload limit`);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), PDFX_RENDER_TIMEOUT_MS);
+  try{
+    const res = await fetch(PDFX_RENDER_ENDPOINT, { method:'POST', headers, body, signal:ctrl.signal });
+    if(!res.ok){
+      const msg = await res.text().catch(()=> '');
+      throw new Error(`render-pdf HTTP ${res.status} ${msg.slice(0,200)}`);
+    }
+    const blob = await res.blob();
+    if(blob.size < 1000) throw new Error('render-pdf returned an empty file');
+    return new Blob([blob], { type:'application/pdf' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Fallback only — the old screenshot pipeline (Layers 2 and 3 from the
+// build notes), with JPEG 0.95 + jsPDF compression instead of raw PNG so
+// the result is still a reasonable size.
+async function pdfxScreenshotPagesToPdf(pageEls){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'in', format:'letter', orientation:'portrait', compress:true });
+  const pageWidthIn = 8.5, pageHeightIn = 11;
+  for(let i=0; i<pageEls.length; i++){
+    const el = pageEls[i];
+    const pageImgs = Array.from(el.querySelectorAll('img'));
+    await Promise.all(pageImgs.map(img => typeof img.decode==='function' ? img.decode().catch(()=>{}) : Promise.resolve()));
+    const needsCORS = el.querySelector('.pdfx-opp-img, .pdfx-opp-img-full') !== null;
+    const canvas = await html2canvas(el, {
+      scale: 3,
+      backgroundColor: '#ffffff',
+      ignoreElements: (node) => node.tagName === 'CANVAS' && !node.closest('#pdfx-root'),
+      useCORS: needsCORS,
+    });
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    if(i>0) pdf.addPage();
+    let renderedWidthIn = pageWidthIn;
+    let renderedHeightIn = pageWidthIn * (canvas.height / canvas.width);
+    if(renderedHeightIn > pageHeightIn){
+      const shrink = pageHeightIn / renderedHeightIn;
+      renderedHeightIn = pageHeightIn;
+      renderedWidthIn = pageWidthIn * shrink;
+    }
+    const xOffsetIn = (pageWidthIn - renderedWidthIn) / 2;
+    pdf.addImage(imgData, 'JPEG', xOffsetIn, 0, renderedWidthIn, renderedHeightIn, undefined, 'FAST');
+  }
+  return pdf.output('blob');
+}
+
+// The ONE entry point every export uses. Runs the chart-fit safety net
+// on each page first (no-op normally — pdfxPlanChartHeights already sized
+// the charts), then renders real-text via the server, falling back to
+// screenshots only if that fails.
+async function pdfxRenderPagesToPdf(root, pageEls, fitCharts){
+  if(fitCharts) pageEls.forEach(el => pdfxFitChartsToPage(el, fitCharts));
+  await new Promise(r => requestAnimationFrame(r));
+  try{
+    const blob = await pdfxRenderViaServer(root, pageEls);
+    console.log('[pdf-export] real-text PDF rendered server-side:', (blob.size/1048576).toFixed(2) + 'MB');
+    return { blob, mode:'text' };
+  } catch(err){
+    console.warn('[pdf-export] server render failed — using screenshot fallback:', err.message);
+  }
+  const blob = await pdfxScreenshotPagesToPdf(pageEls);
+  console.log('[pdf-export] screenshot-fallback PDF:', (blob.size/1048576).toFixed(2) + 'MB');
+  return { blob, mode:'image' };
+}
+
+function pdfxDownloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond, so this PDF was made from screenshots (text isn\'t selectable). Try exporting again in a minute.';
 
   // Real logo/watermark assets — fetched directly from Cosmette's own
   // public/ folder (public/cosmette.svg, public/m_watermark.png) via
@@ -9365,21 +9892,6 @@ window.initSubscriptions = function () {
       : '<span style="font-family:Georgia,\'Times New Roman\',serif;font-style:italic;' + style + '">Cosmette</span>';
   }
 
-  function pdfxChartBlock(varName, fallbackLabel) {
-    const img = pdfxChartImg(varName);
-    if (img) {
-      // Height computed from the chart's own real captured aspect
-      // ratio at fixed width, never a fixed-height CSS box — Case 6's
-      // sibling gotcha (object-fit unreliable in html2canvas) applies
-      // to any fixed-box approach, this sidesteps it entirely.
-      const aspect = pdfxChartAspect(varName);
-      const cardWidthPx = 686;
-      const heightPx = aspect ? Math.round(cardWidthPx * aspect) : 230;
-      return '<img src="' + img + '" style="display:block;width:' + cardWidthPx + 'px;height:' + heightPx + 'px;">';
-    }
-    return '<div style="height:140px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);font-style:italic;">' +
-      pdfxEscape(fallbackLabel || 'Chart not yet loaded — open this tab once on the dashboard, then re-export.') + '</div>';
-  }
 
   const MONTH_ABBR_TO_FULL = {
     Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', May: 'May', Jun: 'June',
@@ -9470,7 +9982,7 @@ window.initSubscriptions = function () {
           '<div class="pdfx-chlabel">Channel Performance</div>' +
           '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span><span class="pdfx-chdate">' + pdfxEscape(dateRange) + '</span></div>' +
           '<div class="pdfx-kpis">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
-          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Units Sold by Month</div><div>' + pdfxLegendHtml('legend-amazon') + '</div></div>' + pdfxChartBlock('_amazonChart') + '</div>' +
+          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Units Sold by Month</div><div>' + pdfxLegendHtml('legend-amazon') + '</div></div>' + pdfxChartBlock('_amazonChart', undefined, undefined, 'pdfx-cs-amazon-chart-img') + '</div>' +
           '<div class="pdfx-card"><div class="pdfx-card-title">Top Selling Products <span style="font-weight:400;color:var(--muted);">(by Units)</span></div>' +
             pdfxTableHtml(['#', 'Product', 'Units', 'Units (Ads)', 'Units (Organic)'], rows) +
           '</div>' +
@@ -9894,17 +10406,24 @@ window.initSubscriptions = function () {
       // Force-render + snapshot every chart's canvas BEFORE any page
       // HTML is built — the page builders below read from this cache
       // synchronously.
-      PDFX_CHART_CACHE = await pdfxCaptureAllChartImages();
-
-      // Real font/image load wait (Case 8) — before capturing the DOM
-      // via html2canvas, not a fixed delay.
-      if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-      }
-
+      // monthYear computed BEFORE planning — the page builders need it,
+      // and pdfxPlanChartHeights must measure the real, fully-populated
+      // pages (canonical step 1: fill all content first).
       const rangeText = pdfxText('#sales-page-sub') || '';
       const monthYear = pdfxMonthYear(rangeText) || pdfxMonthYear(document.title) || '';
       console.log('[pdf-export] monthYear:', JSON.stringify(monthYear));
+
+      // ── Plan chart heights, then capture all charts ─────────────────
+      // Canonical pipeline: plan first so a dense page's chart is
+      // CAPTURED at the height it actually has room for, at full width.
+      const csChartHeights = await pdfxPlanChartHeights([
+        includeSections.amazon ? () => buildAmazonPage(monthYear) : null,
+      ].filter(Boolean), PDFX_COSMETTE_FIT_CHARTS);
+      PDFX_CHART_CACHE = await pdfxCaptureAllChartImages(csChartHeights);
+
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
 
       root = pdfxById('pdfx-root');
       if (!root) {
@@ -9953,41 +10472,14 @@ window.initSubscriptions = function () {
       }));
 
       const pages = Array.prototype.slice.call(root.querySelectorAll('.pdfx-page'));
-      const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-      if (typeof jsPDFCtor !== 'function') throw new Error('jsPDF constructor not found on window.jspdf.jsPDF or window.jsPDF.');
-      if (typeof html2canvas !== 'function') throw new Error('html2canvas is not available as a global.');
-
-      const pdf = new jsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
-
-      for (let i = 0; i < pages.length; i++) {
-        const el = pages[i];
-        // Case 6 — page-height budget. Confirmed 686px-wide chart
-        // images + KPI rows + tables per page stay well under the
-        // ~2112px rendered-height threshold for these 4 pages; revisit
-        // if a future page adds significantly more content.
-        const canvas = await html2canvas(el, {
-          scale: 2,
-          useCORS: false, // Case 2 — never true here; this page renders its own base64 images internally, none of them cross-origin
-          backgroundColor: '#ffffff',
-          // Explicit windowWidth/windowHeight matching the real
-          // element's scroll dimensions — html2canvas doesn't reliably
-          // measure off-screen/fixed-positioned elements on its own.
-          windowWidth: el.scrollWidth,
-          windowHeight: el.scrollHeight,
-          // html2canvas clones the ENTIRE document by default, not just
-          // `el` — this can pick up other dashboard canvases (0×0,
-          // hidden tabs) and log "tainted canvas" warnings that are a
-          // red herring, unrelated to this page's own (all <img>-only)
-          // content. Skip cloning any canvas outside #pdfx-root.
-          ignoreElements: (node) => node.tagName === 'CANVAS' && !node.closest('#pdfx-root'),
-        });
-        const imgData = canvas.toDataURL('image/png');
-        if (i > 0) pdf.addPage('letter', 'portrait');
-        pdf.addImage(imgData, 'PNG', 0, 0, 8.5, 11, undefined, 'FAST');
-      }
+      if (!pages.length) throw new Error('No pages to export');
+      // Real-text PDF via /api/render-pdf, screenshot fallback only if that
+      // fails — see pdfxRenderPagesToPdf. Same call in every export.
+      const pdfResult = await pdfxRenderPagesToPdf(root, pages, PDFX_COSMETTE_FIT_CHARTS);
+      if (pdfResult.mode === 'image') showToast(PDFX_FALLBACK_TOAST);
 
       const fileMonth = monthYear ? monthYear.replace(/\s+/g, '_') : new Date().toISOString().slice(0,7);
-      pdf.save(`Cosmette_Partner_Report_${fileMonth}.pdf`);
+      pdfxDownloadBlob(pdfResult.blob, `Cosmette_Partner_Report_${fileMonth}.pdf`);
 
     } catch (err) {
       console.error('[pdf-export] failed:', err);
