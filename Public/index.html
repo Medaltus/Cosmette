@@ -1525,7 +1525,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <button class="ch-tab active" onclick="showChannel('sales','s-overview',this)">Overview</button>
         <button class="ch-tab" onclick="showChannel('sales','s-amazon',this)">Amazon</button>
         <button class="ch-tab" onclick="showChannel('sales','s-reviews',this)">Reviews</button>
-        <button class="ch-tab" onclick="showChannel('sales','s-momentum',this)">Brand Momentum</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-walmart',this)">Walmart</button>
         <button class="ch-tab ch-tab-hidden" onclick="showChannel('sales','s-website',this)">Website</button>
       </div>
@@ -1645,6 +1644,83 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
          rather than presented as a clean MoM trend. Remaining sections
          (Keyword Indexing, Subcategory BSR, Review Velocity, Tracking
          Next) still to come in a later pass. -->
+
+  </div>
+
+  <!-- ══ MARKETING (INTERNAL) ══ -->
+  <!-- ══ MARKETING (INTERNAL) ══
+       Structured to match Skinuva's real internal Marketing page: Brand
+       Stewardship + Opportunities. Fulfillment & Customer Service channel
+       intentionally omitted — Cosmette has no data behind it yet
+       (SHEET_CUSTOMER_SERVICE / SHEET_FULFILLMENT_STATES /
+       SHEET_FULFILLMENT_DAILY_SHIPMENTS all blank in SHEET_CONFIG). Add it
+       back if/when Cosmette moves to Medaltus 3PL. -->
+  <div class="page" id="page-marketing">
+    <div class="page-hd">
+      <div><div class="page-title">Marketing</div><div class="page-sub">Brand stewardship · Growth opportunities</div></div>
+    </div>
+    <div class="channel-tabs">
+      <button class="ch-tab active" onclick="showChannel('marketing','m-insights',this)">Insights</button>
+      <button class="ch-tab" onclick="showChannel('marketing','s-momentum',this)">Brand Momentum</button>
+      <button class="ch-tab" onclick="showChannel('marketing','m-stewardship',this)">Brand Stewardship</button>
+      <button class="ch-tab" onclick="showChannel('marketing','m-opportunities',this)">Opportunities</button>
+    </div>
+
+    <!-- ══ INSIGHTS — ported 2026-09-30 from Dazzle Dry's Sales Report
+         Insights tab (vbc-index.html #dd-s-insights): Unit Sales by Product
+         Category chart, Subscriptions, Key Insight. Per Jaclyn: first tab
+         on Marketing. Subscribe & Save KPIs/chart moved here from the top
+         of Opportunities (same element ids, so initSubscriptions() and the
+         PDF's Opportunities builder keep working unchanged). Key Insight
+         saves as category_key_insight — needs that column appended at the
+         END of the Report Insights sheet AND of MONTHLY_HEADERS in
+         api/write-report-insights.js, or saves are silently dropped. -->
+    <div class="channel-page active" id="m-insights">
+      <div class="card">
+        <div class="card-title">Unit Sales by Product Category</div>
+        <div style="position:relative;height:320px;"><canvas id="cs-category-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Subscriptions</div>
+      <!-- ── Subscribe & Save — adapted from Skinuva's real initSns(): reads
+           SHEET_STEWARDSHIP_SUMMARY (total_subscriptions per month) and
+           SHEET_SUBSCRIPTIONS (90-day retention), both already in
+           SHEET_CONFIG for Cosmette. Same defensive column-name fallbacks
+           (total_subscriptions/total_subs/subscriptions/active_subscriptions,
+           retention_90_day/retention_90/retention/etc.) since exact header
+           casing on these specific tabs hasn't been independently confirmed. -->
+      <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Subscribe &amp; Save</div>
+      <div class="kpi-row" style="margin-bottom:20px;">
+        <div class="kpi-card" id="kpi-active-subs"><div class="kpi-label">Active Subscriptions</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
+        <div class="kpi-card" id="kpi-retention"><div class="kpi-label">Subscribe &amp; Save Retention (90 Days)</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">Active Subscriptions by Month</div>
+        </div>
+        <div id="sns-chart-wrap" style="position:relative;height:320px;"><canvas id="chart-sns"></canvas></div>
+      </div>
+      </div>
+      <div class="card">
+        <div class="insight-bar">
+          <strong>Key Insight:</strong>
+          <span class="insight-text" id="cat-insight-text" data-placeholder="No insight yet — click Edit to add one."></span>
+          <div style="margin-left:auto;"><button class="btn-edit" id="cat-insight-edit-btn">✏️ Edit</button></div>
+        </div>
+        <div class="insight-editor" id="cat-insight-editor">
+          <textarea id="cat-insight-textarea" style="min-height:70px;"></textarea>
+          <div class="editor-footer">
+            <span class="editor-note">Saves to this month's report row. Any field can be left blank — nothing here is required.</span>
+            <button class="btn-cancel" id="cat-insight-cancel">Cancel</button>
+            <button class="btn-save-stage" id="cat-insight-save">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Brand Momentum — moved here from the Sales page per Jaclyn
+         (2026-09-30): Insights → Brand Momentum → Brand Stewardship.
+         Same id, so its showChannel() init hook is unchanged. -->
     <div class="channel-page" id="s-momentum">
       <div class="page-hd" style="margin-bottom:16px;">
         <div><div class="page-title" style="font-size:18px;">Brand Momentum</div><div class="page-sub" id="momentum-page-sub">Last month</div></div>
@@ -1694,26 +1770,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ══ MARKETING (INTERNAL) ══ -->
-  <!-- ══ MARKETING (INTERNAL) ══
-       Structured to match Skinuva's real internal Marketing page: Brand
-       Stewardship + Opportunities. Fulfillment & Customer Service channel
-       intentionally omitted — Cosmette has no data behind it yet
-       (SHEET_CUSTOMER_SERVICE / SHEET_FULFILLMENT_STATES /
-       SHEET_FULFILLMENT_DAILY_SHIPMENTS all blank in SHEET_CONFIG). Add it
-       back if/when Cosmette moves to Medaltus 3PL. -->
-  <div class="page" id="page-marketing">
-    <div class="page-hd">
-      <div><div class="page-title">Marketing</div><div class="page-sub">Brand stewardship · Growth opportunities</div></div>
-    </div>
-    <div class="channel-tabs">
-      <button class="ch-tab active" onclick="showChannel('marketing','m-stewardship',this)">Brand Stewardship</button>
-      <button class="ch-tab" onclick="showChannel('marketing','m-opportunities',this)">Opportunities</button>
-    </div>
-
-    <div class="channel-page active" id="m-stewardship">
+    <div class="channel-page" id="m-stewardship">
       <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Key Performance Metrics</div>
       <div class="kpi-row">
         <div class="kpi-card" id="kpi-pct-revenue-invested"><div class="kpi-label">% Revenue Invested</div><div class="kpi-value">—</div><div class="kpi-mom flat"></div></div>
@@ -1763,25 +1821,6 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
     </div>
 
     <div class="channel-page" id="m-opportunities">
-      <!-- ── Subscribe & Save — adapted from Skinuva's real initSns(): reads
-           SHEET_STEWARDSHIP_SUMMARY (total_subscriptions per month) and
-           SHEET_SUBSCRIPTIONS (90-day retention), both already in
-           SHEET_CONFIG for Cosmette. Same defensive column-name fallbacks
-           (total_subscriptions/total_subs/subscriptions/active_subscriptions,
-           retention_90_day/retention_90/retention/etc.) since exact header
-           casing on these specific tabs hasn't been independently confirmed. -->
-      <div class="section-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;">Subscribe &amp; Save</div>
-      <div class="kpi-row" style="margin-bottom:20px;">
-        <div class="kpi-card" id="kpi-active-subs"><div class="kpi-label">Active Subscriptions</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
-        <div class="kpi-card" id="kpi-retention"><div class="kpi-label">Subscribe &amp; Save Retention (90 Days)</div><div class="kpi-value" style="font-size:36px;">—</div><div class="kpi-mom flat">Loading…</div></div>
-      </div>
-      <div class="card" style="margin-bottom:20px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div class="card-title" style="margin-bottom:0;">Active Subscriptions by Month</div>
-        </div>
-        <div id="sns-chart-wrap" style="position:relative;height:320px;"><canvas id="chart-sns"></canvas></div>
-      </div>
-
       <!-- 4 editable opportunity cards — opp1-4 title/subtitle/body,
            already part of MONTHLY_HEADERS in write-report-insights.js.
            No separate data sheet needed beyond Report Insights.
@@ -2523,6 +2562,7 @@ function showPage(id, btn) {
   if (id === 'sales-external' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
   if (id === 'marketing' && typeof window.initStewardshipInternal === 'function') window.initStewardshipInternal();
   if (id === 'marketing' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
+  if (id === 'marketing' && typeof window.loadCsCategoryChart === 'function') window.loadCsCategoryChart();
   if (id === 'events') {
     // Strategy is now the default-active tab (ev-strategy) — it's
     // self-initializing via its own DOMContentLoaded listener and has no
@@ -2588,6 +2628,8 @@ function showChannel(page, channelId, btn) {
   if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (channelId === 's-reviews' && typeof window.loadCosmetteReviews === 'function') window.loadCosmetteReviews();
   if (channelId === 's-momentum' && typeof window.initBrandMomentum === 'function') window.initBrandMomentum();
+  if (channelId === 'm-insights' && typeof window.loadCsCategoryChart === 'function') window.loadCsCategoryChart();
+  if (channelId === 'm-insights' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
   if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
 
   const EVENT_NAME_BY_CHANNEL = { 'ev-bss': 'Big Spring Sale', 'ev-pd': 'Prime Day', 'ev-pbdd': 'Prime Big Deal Days', 'ev-bfcm': 'Black Friday & Cyber Monday' };
@@ -3269,6 +3311,96 @@ function csFetchProductNames() {
   })();
   return _csProductNamesPromise;
 }
+
+// ══ Unit Sales by Product Category — ported 2026-09-30 from Dazzle Dry's
+// loadDDCategoryChart() (vbc-index.html). Same logic: units by
+// year-month + category from the ASIN business report, last 13 months,
+// grouped bar chart, same Chart.js options. Brand-specific pieces only:
+// data source is Cosmette's SHEET_BUSINESS_REPORT (same MONTH/YEAR/
+// UNITS_ORDERED columns DD reads), category comes from Cosmette's Master
+// SKU List via csFetchProductNames().categoryBySku ("COS • " prefix
+// already stripped), and CS_CATEGORY_CONFIG lists Cosmette's categories.
+// Bundles are excluded exactly the way DD excludes anything not in its
+// config. mktNum/YOY_MONTHS don't exist here, so toLocaleString and
+// csMonths12 stand in for them.
+const CS_CATEGORY_CONFIG = [
+  { match:'Cleansers',   label:'Cleansers',   color:'#24E9A3' },
+  { match:'Serums',      label:'Serums',      color:'#F4DFD0' },
+  { match:'Moisturizer', label:'Moisturizer', color:'#6B7BA2' },
+  { match:'Eyes',        label:'Eyes',        color:'#CCD3D5' },
+  { match:'Masks',       label:'Masks',       color:'#001F60' },
+];
+
+window.loadCsCategoryChart = async function loadCsCategoryChart(){
+  if(window._csCategoryChart) return;
+  const canvas = document.getElementById('cs-category-chart');
+  if(!canvas) return;
+  try{
+    const cfg = window.SHEET_CFG && window.SHEET_CFG.SHEET_BUSINESS_REPORT;
+    if(!cfg) throw new Error('SHEET_BUSINESS_REPORT missing from SHEET_CONFIG');
+    const [csv, names] = await Promise.all([
+      fetch(csSheetCsvUrl(cfg.fileId, cfg.gid) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => ''),
+      csFetchProductNames(),
+    ]);
+    const asinRows = csIsCsv(csv) ? csParseCsv(csv) : [];
+
+    const f = v => parseFloat((v||'0').toString().replace(/[^0-9.-]/g,'')) || 0;
+    // Aggregate units by year-month + category
+    const byPeriod = {}; // 'YYYY-M' -> { category: units }
+    asinRows.forEach(r=>{
+      const sku = (r.SKU||'').trim();
+      const cat = names.categoryBySku[sku] || names.categoryBySku[names.skuByAsin[(r.ASIN||'').trim().toUpperCase()]];
+      if(!CS_CATEGORY_CONFIG.some(c=>c.match===cat)) return;
+      const yr = (r.YEAR||'').trim(), mo = String(f(r.MONTH));
+      if(!yr || !mo) return;
+      const key = `${yr}-${mo}`;
+      byPeriod[key] = byPeriod[key] || {};
+      byPeriod[key][cat] = (byPeriod[key][cat]||0) + f(r.UNITS_ORDERED);
+    });
+
+    const periods = Object.keys(byPeriod)
+      .map(k=>{ const [yr,mo]=k.split('-'); return {key:k, year:Number(yr), month:Number(mo)}; })
+      .sort((a,b)=>(a.year*12+a.month)-(b.year*12+b.month))
+      .slice(-13);
+
+    if(!periods.length) return;
+
+    const labels = periods.map(p => csMonths12[p.month-1] || p.month);
+    const datasets = CS_CATEGORY_CONFIG.map(c=>({
+      label: c.label,
+      data: periods.map(p => byPeriod[p.key][c.match] || 0),
+      backgroundColor: c.color,
+      borderRadius: 2,
+    }));
+
+    if(window._csCategoryChart) window._csCategoryChart.destroy();
+    window._csCategoryChart = new Chart(canvas, {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position:'top', align:'end', labels:{ boxWidth:12, boxHeight:12, font:{family:'DM Sans, sans-serif', size:11}, color:'#001F60' } },
+          tooltip: {
+            backgroundColor:'#fff', borderColor:'rgba(0,31,96,0.1)', borderWidth:1,
+            titleColor:'#001F60', bodyColor:'#6B7BA2',
+            titleFont:{family:'DM Sans, sans-serif', size:11, weight:'600'},
+            bodyFont:{family:'DM Sans, sans-serif', size:11},
+            padding:12,
+            callbacks:{ label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.parsed.y).toLocaleString()}` }
+          }
+        },
+        scales: {
+          x: { border:{display:false}, grid:{display:false}, ticks:{font:{family:'DM Sans, sans-serif', size:10}, color:'#6B7BA2'} },
+          y: { border:{display:false}, grid:{color:'rgba(0,31,96,0.05)'}, ticks:{font:{family:'DM Sans, sans-serif', size:10}, color:'#6B7BA2'} }
+        }
+      }
+    });
+  } catch(err){
+    console.error('[CS Category Chart]', err);
+  }
+};
 
 // Sessions by ASIN, fetched independently and memoized — self-contained
 // so a slow/failed Business Report fetch can only ever affect the Conv%
@@ -4641,6 +4773,10 @@ window.initAmazonSalesInternal = function () {
     wireInsightBlock({
       editBtnId: 'tp-insight-edit-btn', saveBtnId: 'tp-insight-save', cancelBtnId: 'tp-insight-cancel', editorId: 'tp-insight-editor',
       fields: [ { key: 'amazon_key_insight', displayId: 'tp-insight-text', textareaId: 'tp-insight-textarea' } ],
+    });
+    wireInsightBlock({
+      editBtnId: 'cat-insight-edit-btn', saveBtnId: 'cat-insight-save', cancelBtnId: 'cat-insight-cancel', editorId: 'cat-insight-editor',
+      fields: [ { key: 'category_key_insight', displayId: 'cat-insight-text', textareaId: 'cat-insight-textarea', placeholder: 'No insight yet — click Edit to add one.' } ],
     });
     wireInsightBlock({
       editBtnId: 'ins-hero-edit-btn', saveBtnId: 'ins-hero-save', cancelBtnId: 'ins-hero-cancel', editorId: 'ins-hero-editor',
