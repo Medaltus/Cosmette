@@ -721,6 +721,9 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    exportPartnerPDF() makes this element fully visible on top of
    everything during capture, then hides it again immediately after. */
 #pdfx-root{display:none;width:8.5in;background:#fff;font-family:var(--font);}
+.pdfx-pill-sand{background:var(--sand);border:1px solid rgba(138,96,16,.35);color:var(--warn);}
+.pdfx-opp-image-slot{display:flex;flex-wrap:wrap;gap:6px;}
+.pdfx-opp-img-full{width:108px;height:100px;object-fit:cover;border-radius:0;border:1px solid var(--border);}
 .pdfx-page{width:8.5in;min-height:11in;background:#fff;position:relative;box-sizing:border-box;overflow:hidden;page-break-after:always;}
 .pdfx-page.pdfx-cover{display:flex;flex-direction:column;}
 .pdfx-cover{padding:0;}
@@ -971,10 +974,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-reviews" checked> Reviews</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-insights" checked> Insights</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-momentum" checked> Brand Momentum</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-stewardship" checked> Brand Stewardship</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-opportunities" checked> Opportunities</label>
-          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-left:14px;font-size:11px;color:var(--muted);"><input type="checkbox" id="pdf-include-subscribe-save" checked> Subscribe &amp; Save</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-strategy"> Event Strategy</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-bss"> Big Spring Sale</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-pd"> Prime Day</label>
@@ -9431,6 +9434,7 @@ window.initSubscriptions = function () {
     _investChart:           { canvasId: 'chart-invest', windowVar: '_csInvestChart' },
     _impressChart:          { canvasId: 'chart-impressions', windowVar: '_csImpressChart' },
     _snsChart:              { canvasId: 'chart-sns', windowVar: '_csSnsChart' },
+    _csCategoryChart:       { canvasId: 'cs-category-chart', windowVar: '_csCategoryChart' },
     _csbssTopSellersChart:  { canvasId: 'bss-chart-top-sellers',  windowVar: '_csbssTopSellersChart' },
     _cspdTopSellersChart:   { canvasId: 'pd-chart-top-sellers',   windowVar: '_cspdTopSellersChart' },
     _cspbddTopSellersChart: { canvasId: 'pbdd-chart-top-sellers', windowVar: '_cspbddTopSellersChart' },
@@ -9483,7 +9487,9 @@ window.initSubscriptions = function () {
   const PDFX_CARD_WIDTH_PX = 686;
   const PDFX_CHART_AXIS_TARGET_PX = 12; // effective tick-label size once printed at PDFX_CARD_WIDTH_PX
   const PDFX_CHART_TARGET_HEIGHT_PX = {
-    _amazonChart: 250,
+    _amazonChart:     250,
+    _csCategoryChart: 200, // = VBC _ddCategoryChart (same page role)
+    _snsChart:        160, // = VBC _ddSubsChart (same page role)
   };
 function pdfxWithScaledAxisFonts(options, captureWidthPx){
   const fontScale = captureWidthPx / PDFX_CARD_WIDTH_PX;
@@ -9881,7 +9887,9 @@ function pdfxFitChartsToPage(pageEl, chartConfigs){
 // unlisted (event/shipping) charts do. defaultHeightPx MUST equal the
 // matching PDFX_CHART_TARGET_HEIGHT_PX value.
 const PDFX_COSMETTE_FIT_CHARTS = [
-  {id:'pdfx-cs-amazon-chart-img', varName:'_amazonChart', defaultHeightPx:250, minHeightPx:120},
+  {id:'pdfx-cs-amazon-chart-img',   varName:'_amazonChart',     defaultHeightPx:250, minHeightPx:120},
+  {id:'pdfx-cs-category-chart-img', varName:'_csCategoryChart', defaultHeightPx:200, minHeightPx:130},
+  {id:'pdfx-cs-subs-chart-img',     varName:'_snsChart',        defaultHeightPx:160, minHeightPx:100},
 ];
 const PDFX_BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const PDFX_FIT_SAFETY_PX = 4; // absorbs 1px rounding between planned and captured image heights
@@ -10449,21 +10457,97 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       '</div>';
   }
 
-  function buildOpportunitiesPage(monthYear, includeSubscribeSave) {
-    const subscribeSaveHtml = includeSubscribeSave
-      ? (function () {
-          const kpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
-          return '<div class="pdfx-chlabel">Subscribe &amp; Save</div>' +
-            '<div class="pdfx-kpis n2" style="margin-top:6px;">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
-            '<div class="pdfx-card"><div class="pdfx-card-title">Active Subscriptions by Month</div>' + pdfxChartBlock('_snsChart') + '</div>';
-        })()
-      : '';
+  // ══ Insights + Opportunities PDF pages — ported 2026-09-30 from
+  // vbc-index.html pdfxBuildInsightsPage() / pdfxBuildOpportunitiesPage(),
+  // per Jaclyn: must match Dazzle Dry's PDF. Page bodies (cards, order,
+  // image slot-displacement rule, plain item template) are Dazzle Dry's;
+  // only the page chrome uses Cosmette's own helpers (pdfxHeaderBand /
+  // pdfxFooter / pdfxKpi), and field text is read from textContent since
+  // Cosmette's wireInsightBlock doesn't set data-raw.
+  function pdfxFieldText(id) {
+    const t = pdfxText('#' + id);
+    return (t && t !== 'Loading…') ? t : '';
+  }
+
+  function buildInsightsPage(monthYear) {
+    const insight = pdfxFieldText('cat-insight-text');
+    const subsKpis = ['kpi-active-subs', 'kpi-retention'].map(pdfxKpi);
+    return '' +
+      '<div class="pdfx-page">' +
+        '<div class="pdfx-inner">' +
+          pdfxHeaderBand(monthYear, 'Insights') +
+          '<div class="pdfx-chlabel">Channel Performance</div>' +
+          '<div class="pdfx-chrow"><span class="pdfx-chname">Amazon</span></div>' +
+          '<div class="pdfx-card">' +
+            '<div class="pdfx-card-title">Unit Sales by Product Category</div>' +
+            pdfxChartBlock('_csCategoryChart', 'Category chart', 200, 'pdfx-cs-category-chart-img') +
+          '</div>' +
+          '<div class="pdfx-card">' +
+            '<div class="pdfx-card-title">Subscriptions</div>' +
+            '<div class="pdfx-kpis n2" style="margin-top:6px;">' + subsKpis.map(pdfxKpiCardHtml).join('') + '</div>' +
+            pdfxChartBlock('_snsChart', 'Subscriptions chart', 160, 'pdfx-cs-subs-chart-img') +
+          '</div>' +
+          (insight ? '<div class="pdfx-insight"><strong>Key Insight:</strong> ' + escapeHtml(insight) + '</div>' : '') +
+          pdfxFooter(monthYear) +
+        '</div>' +
+      '</div>';
+  }
+
+  function pdfxImagesFromContainer(containerId){
+    const el = document.getElementById(containerId);
+    if(!el) return [];
+    return Array.from(el.querySelectorAll('img')).map(img=>img.getAttribute('src')).filter(Boolean);
+  }
+
+  // Plain item template — verbatim from vbc-index.html.
+  function pdfxPlainOppItem(title, subtitle, body, imagesHtml){
+    if(!title && !body && !imagesHtml) return '';
+    return `<div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:3px;">${escapeHtml(title)}</div>
+      ${subtitle ? `<div style="font-size:10.5px;font-weight:600;color:var(--navy);margin-bottom:5px;">${escapeHtml(subtitle)}</div>` : ''}
+      <div style="font-size:10px;color:#48557a;line-height:1.45;">${escapeHtml(body)}</div>
+      ${imagesHtml||''}
+    </div>`;
+  }
+
+  function buildOpportunitiesPage(monthYear) {
+    const getField = (n, field) => pdfxFieldText(`cs-acc${n}-${field}-disp`);
+    const imagesFor = (n) => (n===1 || n===2) ? pdfxImagesFromContainer(`cs-acc${n}-images-disp`) : [];
+    const hasOwnText = (n) => Boolean(getField(n,'title') || getField(n,'body'));
+
+    // Slot-displacement rule — verbatim from vbc-index.html: a card's
+    // images take over another slot entirely (BELOW by default: 1->3,
+    // 2->4; BESIDE — 1->2, 2->1 — only when both candidate slots are
+    // empty of their own text).
+    const slots = {};
+    [1,2,3,4].forEach(n=>{
+      slots[n] = pdfxPlainOppItem(getField(n,'title'), getField(n,'subtitle'), getField(n,'body'), '');
+    });
+    const targetsFor = { 1: {below:3, beside:2}, 2: {below:4, beside:1} };
+    [1,2].forEach(sourceN=>{
+      const images = imagesFor(sourceN);
+      if(!images.length) return;
+      const {below, beside} = targetsFor[sourceN];
+      const targetN = (!hasOwnText(below) && !hasOwnText(beside)) ? beside : below;
+      slots[targetN] = `<div class="pdfx-opp-image-slot">${images.map(u=>`<img src="${u}" class="pdfx-opp-img-full">`).join('')}</div>`;
+    });
+    const accCards = [1,2,3,4].map(n=>slots[n]).join('');
+    // Future Opportunities — 4 slots (opp1-opp4, per Cosmette's MONTHLY_HEADERS).
+    const oppCards = [1,2,3,4].map(n=>{
+      return pdfxPlainOppItem(pdfxFieldText(`cs-opp${n}-title-disp`), pdfxFieldText(`cs-opp${n}-subtitle-disp`), pdfxFieldText(`cs-opp${n}-body-disp`), '');
+    }).join('');
     return '' +
       '<div class="pdfx-page">' +
         '<div class="pdfx-inner">' +
           pdfxHeaderBand(monthYear, 'Opportunities') +
-          subscribeSaveHtml +
-          pdfxOpportunityCardsBlock() +
+          `<div class="pdfx-card" style="border:none;padding:0;margin-bottom:14px;">
+            <span class="pdfx-pill pdfx-pill-sand" style="margin-bottom:16px;">What's Been Accomplished</span>
+            <div class="pdfx-cover-cols">${accCards || '<div style="font-size:11px;color:var(--muted);">No entries added yet.</div>'}</div>
+          </div>
+          <div class="pdfx-card" style="border:none;padding:0;border-top:1px solid var(--border);padding-top:12px;">
+            <span class="pdfx-pill" style="margin-bottom:16px;">Future Opportunities</span>
+            <div class="pdfx-cover-cols">${oppCards || '<div style="font-size:11px;color:var(--muted);">No opportunities added yet.</div>'}</div>
+          </div>` +
           pdfxFooter(monthYear) +
         '</div>' +
       '</div>';
@@ -10592,7 +10676,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
         momentum:      !!document.getElementById('pdf-include-momentum')      && document.getElementById('pdf-include-momentum').checked,
         stewardship:   !!document.getElementById('pdf-include-stewardship')   && document.getElementById('pdf-include-stewardship').checked,
         opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
-        subscribeSave: !!document.getElementById('pdf-include-subscribe-save') && document.getElementById('pdf-include-subscribe-save').checked,
+        insights:      !!document.getElementById('pdf-include-insights')      && document.getElementById('pdf-include-insights').checked,
         strategy: !!document.getElementById('pdf-include-strategy') && document.getElementById('pdf-include-strategy').checked,
         bss:  !!document.getElementById('pdf-include-bss')  && document.getElementById('pdf-include-bss').checked,
         pd:   !!document.getElementById('pdf-include-pd')   && document.getElementById('pdf-include-pd').checked,
@@ -10612,6 +10696,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       PDFX_NAV_TABS = [];
       if (includeSections.amazon) PDFX_NAV_TABS.push('Sales');
       if (includeSections.reviews) PDFX_NAV_TABS.push('Reviews');
+      if (includeSections.insights) PDFX_NAV_TABS.push('Insights');
       if (includeSections.momentum) PDFX_NAV_TABS.push('Brand Momentum');
       if (includeSections.stewardship) PDFX_NAV_TABS.push('Brand Stewardship');
       if (includeSections.opportunities) PDFX_NAV_TABS.push('Opportunities');
@@ -10628,7 +10713,8 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
         (includeSections.reviews       && typeof window.loadCosmetteReviews === 'function')       ? window.loadCosmetteReviews()      : null,
         (includeSections.momentum      && typeof window.initBrandMomentum === 'function')          ? window.initBrandMomentum()         : null,
         (includeSections.stewardship   && typeof window.initStewardshipInternal === 'function')  ? window.initStewardshipInternal()  : null,
-        (includeSections.opportunities && includeSections.subscribeSave && typeof window.initSubscriptions === 'function') ? window.initSubscriptions() : null,
+        (includeSections.insights && typeof window.initSubscriptions === 'function') ? window.initSubscriptions() : null,
+        (includeSections.insights && typeof window.loadCsCategoryChart === 'function') ? window.loadCsCategoryChart() : null,
         (includeSections.bss  && typeof window.initEventReport === 'function') ? window.initEventReport('ev-bss')  : null,
         (includeSections.pd   && typeof window.initEventReport === 'function') ? window.initEventReport('ev-pd')   : null,
         (includeSections.pbdd && typeof window.initEventReport === 'function') ? window.initEventReport('ev-pbdd') : null,
@@ -10675,7 +10761,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       const expectedCharts = Object.keys(chartsBySection)
         .filter(sec => includeSections[sec])
         .reduce((arr, sec) => arr.concat(chartsBySection[sec]), []);
-      if (includeSections.opportunities && includeSections.subscribeSave) expectedCharts.push('_snsChart');
+      if (includeSections.insights) expectedCharts.push('_snsChart', '_csCategoryChart');
       const pollStart = Date.now();
       while (Date.now() - pollStart < 12000 && expectedCharts.some(v => !window[v])) {
         await new Promise(r => setTimeout(r, 150));
@@ -10696,7 +10782,8 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       // Canonical pipeline: plan first so a dense page's chart is
       // CAPTURED at the height it actually has room for, at full width.
       const csChartHeights = await pdfxPlanChartHeights([
-        includeSections.amazon ? () => buildAmazonPage(monthYear) : null,
+        includeSections.amazon   ? () => buildAmazonPage(monthYear)   : null,
+        includeSections.insights ? () => buildInsightsPage(monthYear) : null,
       ].filter(Boolean), PDFX_COSMETTE_FIT_CHARTS);
       PDFX_CHART_CACHE = await pdfxCaptureAllChartImages(csChartHeights);
 
@@ -10717,9 +10804,10 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       const pagesHtml = [
         includeSections.amazon        ? buildAmazonPage(monthYear)        : '',
         includeSections.reviews       ? buildReviewsPages(monthYear)      : '',
+        includeSections.insights      ? buildInsightsPage(monthYear)      : '',
         includeSections.momentum      ? buildMomentumProductsPages(monthYear) + buildMomentumPage2(monthYear) : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
-        includeSections.opportunities ? buildOpportunitiesPage(monthYear, includeSections.subscribeSave) : '',
+        includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
         includeSections.strategy ? buildStrategyPage(monthYear) : '',
         includeSections.bss  ? buildEventPage('bss',  'Big Spring Sale',             monthYear) : '',
         includeSections.pd   ? buildEventPage('pd',   'Prime Day',                   monthYear) : '',
