@@ -721,7 +721,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    exportPartnerPDF() makes this element fully visible on top of
    everything during capture, then hides it again immediately after. */
 #pdfx-root{display:none;width:8.5in;background:#fff;font-family:var(--font);}
-.pdfx-pill-sand{background:var(--sand);border:1px solid rgba(138,96,16,.35);color:var(--warn);}
+.pdfx-pill.pdfx-pill-sand{background:#f4dfd0;border:1px solid rgba(138,96,16,.35);color:var(--warn);} /* .pdfx-pill.pdfx-pill-sand, not .pdfx-pill-sand — the later .pdfx-pill rule was overriding it */
 .pdfx-opp-image-slot{display:flex;flex-wrap:wrap;gap:6px;}
 .pdfx-opp-img-full{width:108px;height:100px;object-fit:cover;border-radius:0;border:1px solid var(--border);}
 .pdfx-page{width:8.5in;min-height:11in;background:#fff;position:relative;box-sizing:border-box;overflow:hidden;page-break-after:always;}
@@ -815,8 +815,18 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    version, but this still trims a bit further for the PDF specifically.
    Live dashboard spacing stays untouched; only applies inside the PDF
    via the .pdfx-momentum-tight wrapper. */
-.pdfx-momentum-tight .momentum-cards-grid{gap:14px;}
-.pdfx-momentum-tight .momentum-pcard-body{padding:16px 20px;}
+/* PDF-only Brand Momentum card tightening — ported verbatim 2026-09-30 from
+   évolis (expanded there 2026-09-29 so 5 cards fit a no-KPI page). Only applies
+   inside the PDF via the .pdfx-momentum-tight wrapper; live dashboard untouched. */
+.pdfx-momentum-tight .momentum-cards-grid{gap:8px;}
+.pdfx-momentum-tight .momentum-pcard-hd{padding:7px 14px;}
+.pdfx-momentum-tight .momentum-pcard-name{font-size:13px;}
+.pdfx-momentum-tight .momentum-pcard-rating{font-size:11px;}
+.pdfx-momentum-tight .momentum-pcard-body{padding:9px 16px;}
+.pdfx-momentum-tight .momentum-pcard-label{font-size:9px;}
+.pdfx-momentum-tight .momentum-pcard-value{font-size:19px;}
+.pdfx-momentum-tight .momentum-pcard-subcategory{font-size:9.5px;}
+.pdfx-momentum-tight .momentum-pill{font-size:9px;padding:2px 7px;}
 .momentum-tracking-card{background:var(--navy);border-radius:var(--radius);padding:20px 24px;}
 .momentum-tracking-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:14px;}
 .momentum-tracking-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
@@ -9490,6 +9500,8 @@ window.initSubscriptions = function () {
     _amazonChart:     250,
     _csCategoryChart: 200, // = VBC _ddCategoryChart (same page role)
     _snsChart:        160, // = VBC _ddSubsChart (same page role)
+    _investChart:     200, // Stewardship page — 2 charts + KPIs + LTD + note, sized like VBC's 2-chart Insights page
+    _impressChart:    160,
   };
 function pdfxWithScaledAxisFonts(options, captureWidthPx){
   const fontScale = captureWidthPx / PDFX_CARD_WIDTH_PX;
@@ -9890,6 +9902,8 @@ const PDFX_COSMETTE_FIT_CHARTS = [
   {id:'pdfx-cs-amazon-chart-img',   varName:'_amazonChart',     defaultHeightPx:250, minHeightPx:120},
   {id:'pdfx-cs-category-chart-img', varName:'_csCategoryChart', defaultHeightPx:200, minHeightPx:130},
   {id:'pdfx-cs-subs-chart-img',     varName:'_snsChart',        defaultHeightPx:160, minHeightPx:100},
+  {id:'pdfx-cs-invest-chart-img',   varName:'_investChart',     defaultHeightPx:200, minHeightPx:130},
+  {id:'pdfx-cs-impress-chart-img',  varName:'_impressChart',    defaultHeightPx:160, minHeightPx:100},
 ];
 const PDFX_BLANK_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const PDFX_FIT_SAFETY_PX = 4; // absorbs 1px rounding between planned and captured image heights
@@ -10296,7 +10310,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
                   '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--border);border-radius:2px;display:inline-block;"></span>Promos</span>' +
                 '</div>' +
               '</div>' +
-              pdfxChartBlock('_investChart') +
+              pdfxChartBlock('_investChart', undefined, undefined, 'pdfx-cs-invest-chart-img') +
               '<div class="pdfx-ltd"><div class="pdfx-ltd-val">' + pdfxEscape(ltdVal || '—') + '</div><div class="pdfx-ltd-lbl">Launch to date · Total Investments</div></div>' +
             '</div>' +
             '<div class="pdfx-card" style="margin-bottom:0;">' +
@@ -10307,7 +10321,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
                   '<span style="display:flex;align-items:center;gap:6px;"><span style="width:11px;height:11px;background:var(--sand);border-radius:2px;display:inline-block;"></span>' + (new Date().getFullYear() - 1) + '</span>' +
                 '</div>' +
               '</div>' +
-              pdfxChartBlock('_impressChart') +
+              pdfxChartBlock('_impressChart', undefined, undefined, 'pdfx-cs-impress-chart-img') +
               (adimpInsight ? '<div class="pdfx-insight" style="margin-top:10px;"><strong>Note:</strong> ' + pdfxEscape(adimpInsight) + '</div>' : '') +
             '</div>' +
           '</div>' +
@@ -10452,7 +10466,6 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
               '<div class="momentum-tracking-item"><div class="momentum-tracking-item-title">Competitive Share of Voice</div><div class="momentum-tracking-item-text">How Cosmette\'s organic and sponsored presence compares against category leaders for the same target keywords.</div></div>' +
             '</div>' +
           '</div>' +
-          pdfxFooter(monthYear) +
         '</div>' +
       '</div>';
   }
@@ -10488,7 +10501,6 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
             pdfxChartBlock('_snsChart', 'Subscriptions chart', 160, 'pdfx-cs-subs-chart-img') +
           '</div>' +
           (insight ? '<div class="pdfx-insight"><strong>Key Insight:</strong> ' + escapeHtml(insight) + '</div>' : '') +
-          pdfxFooter(monthYear) +
         '</div>' +
       '</div>';
   }
@@ -10623,7 +10635,6 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       pdfxHeaderBand(monthYear, 'Events', headerOverride) +
       '<div class="pdfx-chlabel">Event Strategy</div>' +
       leadUp + during + leadOut + outlook +
-      pdfxFooter(monthYear) +
       '</div></div>';
   }
 
@@ -10784,6 +10795,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       const csChartHeights = await pdfxPlanChartHeights([
         includeSections.amazon   ? () => buildAmazonPage(monthYear)   : null,
         includeSections.insights ? () => buildInsightsPage(monthYear) : null,
+        includeSections.stewardship ? () => buildStewardshipPage(monthYear) : null,
       ].filter(Boolean), PDFX_COSMETTE_FIT_CHARTS);
       PDFX_CHART_CACHE = await pdfxCaptureAllChartImages(csChartHeights);
 
