@@ -724,6 +724,12 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .pdfx-pill.pdfx-pill-sand{background:#f4dfd0;border:1px solid rgba(138,96,16,.35);color:var(--warn);} /* .pdfx-pill.pdfx-pill-sand, not .pdfx-pill-sand — the later .pdfx-pill rule was overriding it */
 .pdfx-opp-image-slot{display:flex;flex-wrap:wrap;gap:6px;}
 .pdfx-opp-img-full{width:108px;height:100px;object-fit:cover;border-radius:0;border:1px solid var(--border);}
+/* Brand Manager KPIs tab (Overview) — added 2026-10-05 */
+#ov-bm-kpis .kpi-card.bmk-pending .kpi-value{color:var(--muted);font-size:18px;}
+#ov-bm-kpis .bmk-needs{display:inline-block;font-size:11px;color:var(--warn);background:rgba(244,223,208,.55);border:1px solid rgba(200,125,47,.25);border-radius:4px;padding:2px 8px;}
+#ov-bm-kpis .bmk-scored-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);background:rgba(36,233,163,.12);border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;}
+#ov-bm-kpis .data-table td.bmk-calc{color:var(--muted);font-size:11px;}
+#ov-bm-kpis .bmk-cat-note{font-size:11px;color:var(--muted);margin:-6px 0 12px;line-height:1.5;}
 .pdfx-page{width:8.5in;min-height:11in;background:#fff;position:relative;box-sizing:border-box;overflow:hidden;page-break-after:always;}
 .pdfx-page.pdfx-cover{display:flex;flex-direction:column;}
 .pdfx-cover{padding:0;}
@@ -1386,8 +1392,26 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
   <div class="page" id="page-overview">
     <div class="page-hd" style="justify-content:space-between;">
       <div><div class="page-title">Overview</div><div class="page-sub" id="ov-page-sub">Month to date</div></div>
-      <div class="period-pills" id="ov-period-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
+
     </div>
+
+    <!-- Overview tabs — added 2026-10-05, ported from MiGuard: everything that
+         was already on this page lives in the first tab ("Overview"). The
+         MTD/Last Month toggle moved inside that tab (as on MiGuard), since it
+         only drives the Overview tab's numbers. -->
+    <div class="channel-tabs-row">
+      <div class="channel-tabs">
+        <button class="ch-tab active" onclick="showChannel('overview','ov-main',this)">Overview</button>
+        <button class="ch-tab" onclick="showChannel('overview','ov-projections',this)">Projections &amp; Goals</button>
+        <button class="ch-tab" onclick="showChannel('overview','ov-bm-kpis',this)">Brand Manager KPIs</button>
+      </div>
+    </div>
+
+    <div class="channel-page active" id="ov-main">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+        <div class="period-pills" id="ov-period-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
+      </div>
+
 
     <div class="home-hero" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
       <div>
@@ -1464,6 +1488,55 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <tbody id="ov-products-tbody"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted);font-style:italic;">Loading…</td></tr></tbody>
       </table>
     </div>
+    </div>
+
+    <div class="channel-page" id="ov-projections">
+      <div class="card">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px;">
+          <div class="card-title" style="margin-bottom:0;">Share of Sales</div>
+          <div id="legend-proj-ads" style="display:flex;align-items:center;"></div>
+        </div>
+        <div style="height:10px;"></div>
+        <div style="position:relative;height:300px;"><canvas id="proj-ads-pct-chart"></canvas></div>
+        <div class="ppc-note" id="proj-ads-note"></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">Sales by Quarter <span style="font-weight:400;color:var(--muted);">(completed quarters)</span></div>
+          <div class="period-pills" id="proj-quarter-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="proj-quarter-table">
+            <thead id="proj-quarter-thead"></thead>
+            <tbody id="proj-quarter-tbody"><tr><td style="color:var(--muted);">Loading…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="ppc-note">ℹ Amazon orders (Newderm account), excluding cancelled, pending, Vine and removal orders — same rules as the rest of this dashboard. Inventory Available is today's figure (FBA + inbound receiving + seller-fulfilled − reserved), same as the Inventory page. The quarter in progress appears once it ends.</div>
+      </div>
+    </div>
+
+    <!-- Brand Manager KPIs — added 2026-10-05 per Jaclyn, from her 5-category
+         framework (Organic Performance, Conversion, SEO / Discoverability,
+         Strategic Execution, Retail Readiness / Risk). Top row = the 5 scored
+         KPIs; below, every supporting metric with its calculation. Metrics
+         that depend on data that isn't in any sheet yet (initiatives, issue
+         log, promo plan, CVR target, SMART goals) are shown as "Needs input"
+         rather than guessed. Rendered by window.initBmKpis(). -->
+    <div class="channel-page" id="ov-bm-kpis">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0;font-size:16px;">Brand Manager KPIs</div>
+        <div class="period-pills" id="bmk-quarter-pills" style="display:flex;background:var(--white);border:1px solid var(--border);border-radius:999px;padding:4px;gap:2px;"></div>
+      </div>
+      <div class="section-label" style="margin-top:0;">Scored KPIs</div>
+      <div class="kpi-row" id="bmk-scored" style="grid-template-columns:repeat(5,1fr);"><div style="color:var(--muted);font-size:12px;">Loading…</div></div>
+      <div id="bmk-categories"></div>
+      <div class="card" id="bmk-smart">
+        <div class="card-title">Brand-Specific SMART KPIs <span style="font-weight:400;color:var(--muted);">(2–3 per quarter)</span></div>
+        <div class="bmk-needs">Needs input — the quarter's 2–3 SMART goals from the strategy sheet (goal, target, due date, status).</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ══ INVENTORY (INTERNAL) ══ -->
@@ -2709,6 +2782,8 @@ function showChannel(page, channelId, btn) {
   if (channelId === 's-amazon' && typeof window.initAmazonSalesInternal === 'function') window.initAmazonSalesInternal();
   if (channelId === 's-reviews' && typeof window.loadCosmetteReviews === 'function') window.loadCosmetteReviews();
   if (channelId === 's-momentum' && typeof window.initBrandMomentum === 'function') window.initBrandMomentum();
+  if (channelId === 'ov-projections' && typeof window.initProjections === 'function') window.initProjections();
+  if (channelId === 'ov-bm-kpis' && typeof window.initBmKpis === 'function') window.initBmKpis();
   if (channelId === 'm-insights' && typeof window.loadCsCategoryChart === 'function') window.loadCsCategoryChart();
   if (channelId === 'm-insights' && typeof window.initSubscriptions === 'function') window.initSubscriptions();
   if (channelId === 'x-amazon' && typeof window.initSalesExternalPage === 'function') window.initSalesExternalPage();
@@ -6175,11 +6250,27 @@ window.initSubscriptions = function () {
     </svg>`;
   }
 
+  // MiGuard's ring (miguard_index11.html, 2026-10-05) — verbatim, renamed so
+  // Cosmette's own buildGaugeSvg (still used by Organic/Ad rings) is unchanged.
+  function buildGaugeSvgMiGuard(pct, colorHex, trackColor, size, stroke, centerFill) {
+    size = size || 140; stroke = stroke || 14;
+    const r = (size - stroke) / 2, c = size / 2;
+    const circumference = 2 * Math.PI * r;
+    const clamped = Math.max(0, Math.min(100, pct));
+    const dashOffset = circumference * (1 - clamped / 100);
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);display:block;">
+      ${centerFill ? `<circle cx="${c}" cy="${c}" r="${r - stroke / 2}" fill="${centerFill}"/>` : ''}
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${trackColor || 'var(--border)'}" stroke-width="${stroke}"/>
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${colorHex}" stroke-width="${stroke}"
+        stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}" stroke-linecap="round"/>
+    </svg>`;
+  }
+
   function renderGoalsGroup(actualOverall, actualAds, actualOrganic, goalRecord, isMtd, refYear, refMonth, throughDay) {
     if (!goalRecord) return `<div style="color:var(--muted);font-size:13px;flex:1;text-align:center;padding:20px;">No goals row found for this month.</div>`;
     const overallGoal = parseGoalsDollar(goalRecord[14]);
     const organicGoal = parseGoalsDollar(goalRecord[18]);
-    const adsGoal = parseGoalsDollar(goalRecord[23]);
+    const adsGoal = parseGoalsDollar(goalRecord[24]); // col Y 'Ads Sales Goal' — col X (23) is 'Ad Spend Goal' (verified on the live sheet 2026-10-05)
     const fmtD = n => '$' + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 
     function paceGauge(sublabel, actual, goal) {
@@ -6220,8 +6311,50 @@ window.initSubscriptions = function () {
       </div>`;
     }
 
+    // Total Sales ring ONLY — MiGuard's restyle (per Jaclyn 2026-10-05):
+    // 170px ring, white track, round cap, opaque green/red center tint,
+    // MiGuard's exact colors and type sizes. Status math is Cosmette's own
+    // (unchanged — MiGuard's cancel-rate adjustment is math, not styling).
+    // Column stays flex:1 so the 3 rings remain evenly spaced.
+    function bigGauge(label, actual, goal) {
+      const GREEN = '#1db88a', RED = '#db372d';
+      const size = 170, stroke = 16;
+      if (goal == null || actual == null) {
+        return `<div style="text-align:center;flex:1;">
+          <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:10px;">${label}</div>
+          <div style="position:relative;width:${size}px;height:${size}px;margin:0 auto;">
+            ${buildGaugeSvgMiGuard(0, '#ffffff', '#ffffff', size, stroke, 'rgba(255,255,255,.55)')}
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);font-weight:600;">${goal == null ? 'No goal set' : 'Not available yet'}</div>
+          </div>
+          <div style="font-size:14px;color:var(--navy);margin-top:12px;">Goal <strong>${goal == null ? '—' : fmtD(goal)}</strong></div>
+        </div>`;
+      }
+      const actualPct = goal > 0 ? Math.round((actual / goal) * 100) : 0;
+      let onPace, statusText;
+      if (isMtd) {
+        const daysInMonth = new Date(refYear, refMonth, 0).getDate();
+        const projected = throughDay > 0 ? (actual / throughDay) * daysInMonth : actual;
+        onPace = goal > 0 && projected >= goal;
+        statusText = `Projecting ${fmtD(projected)}`;
+      } else {
+        onPace = actualPct >= 100;
+        statusText = onPace ? 'Hit goal' : 'Missed goal';
+      }
+      const color = onPace ? GREEN : RED;
+      const fill = onPace ? '#c4f6e4' : '#f4c3c0';
+      return `<div style="text-align:center;flex:1;">
+        <div style="font-size:18px;font-weight:700;color:var(--navy);margin-bottom:10px;">${label}</div>
+        <div style="position:relative;width:${size}px;height:${size}px;margin:0 auto;">
+          ${buildGaugeSvgMiGuard(actualPct, color, '#ffffff', size, stroke, fill)}
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:700;color:${color};">${actualPct}%</div>
+        </div>
+        <div style="font-size:15px;font-weight:600;color:${color};margin-top:12px;">${statusText}</div>
+        <div style="font-size:15px;color:var(--navy);margin-top:2px;">Goal <strong>${fmtD(goal)}</strong></div>
+      </div>`;
+    }
+
     return `<div style="display:flex;gap:16px;flex:1;">
-      ${paceGauge('Total Sales', actualOverall, overallGoal)}
+      ${bigGauge('Total Sales', actualOverall, overallGoal)}
       ${paceGauge('Organic Sales', actualOrganic, organicGoal)}
       ${paceGauge('Ad Sales', actualAds, adsGoal)}
     </div>`;
@@ -6279,7 +6412,7 @@ window.initSubscriptions = function () {
       const goalsCsv = await fetch(csSheetCsvUrl(GOALS_SHEET_ID, GOALS_GID) + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
       const goalsRecords = csIsCsv(goalsCsv) ? csParseCsvRecords(goalsCsv.trim() + '\n').slice(1) : [];
       const goalRecord = findGoalsRow(goalsRecords, refYear, refMonth);
-      console.log('[GoalTracker][qa] Amazon goals row found:', !!goalRecord, goalRecord ? { total: goalRecord[14], organic: goalRecord[18], ads: goalRecord[23] } : null);
+      console.log('[GoalTracker][qa] Amazon goals row found:', !!goalRecord, goalRecord ? { total: goalRecord[14], organic: goalRecord[18], ads: goalRecord[24] } : null);
 
       bodyEl.innerHTML = renderGoalsGroup(totalActual, adActual, organicActual, goalRecord, isPartial, refYear, refMonth, throughDay);
     } catch (e) {
@@ -10875,6 +11008,784 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     }
   };
 })();
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// OVERVIEW > Projections & Goals + Brand Manager KPIs — ported 2026-10-05
+// from MiGuard's dashboard (miguard_index11.html) per Jaclyn. MiGuard's
+// helpers are copied verbatim under their own names (no collisions here)
+// because the tab code relies on them — e.g. parseCsvToRows LOWERCASES
+// every header, which Cosmette's own csParseCsv does not. Cosmette-specific
+// substitutions only: brand ('Cosmette Skincare' / 'cosmette'), Newderm-
+// only + no 702 removal orders, Goals tab gid 1084102342 with organic $ in
+// col S and units in col T, all 6 category competitor tabs, and an empty
+// STRATEGY_SHEETS until Cosmette's strategy tab gid is confirmed.
+// ══════════════════════════════════════════════════════════════════
+function bigLegendLabels(chart) {
+  const items = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+  items.forEach(it => { it.lineWidth = 4; });
+  return items;
+}
+
+window.renderExternalLegend = function (chart, containerId) {
+  const el = document.getElementById(containerId);
+  if (!el || !chart) return;
+  let items = [];
+  try { items = bigLegendLabels(chart) || []; } catch (e) { items = []; }
+  el.innerHTML = items.map(function (it) {
+    const color = it.strokeStyle || it.fillStyle || '#6b7ba2';
+    const label = String(it.text == null ? '' : it.text)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return '<span style="display:inline-flex;align-items:center;gap:6px;margin-left:16px;font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;">' +
+      '<span style="width:16px;height:3px;border-radius:2px;background:' + color + ';display:inline-block;flex-shrink:0;"></span>' +
+      label +
+      '</span>';
+  }).join('');
+};
+
+function ovCsvUrl(id, gid) {
+  return 'https://docs.google.com/spreadsheets/d/' + id + '/export?format=csv&gid=' + gid + '&_cb=' + Date.now();
+}
+
+function parseAmt(val) {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/[$,]/g, '')) || 0;
+  }
+
+function stripCategoryBrandPrefix(raw) {
+  return (raw || '').trim().replace(/^[A-Za-z0-9]+\s*[•\-–]\s*/, '').trim();
+}
+
+let _productMasterPromise = null;
+
+function getProductMaster() {
+  if (_productMasterPromise) return _productMasterPromise;
+  _productMasterPromise = (async () => {
+    const csv = await fetch(ovCsvUrl('1NNRTRQxQl2r4XivAvH700CC39p49GD2xfZlyRNqahGA', '164358627') + `&_cb=${Date.now()}`)
+      .then(r => r.ok ? r.text() : '').catch(() => '');
+    const rows = parseCsvToRows(csv);
+    const bySku = {}, byAsin = {};
+    rows.forEach(r => {
+      const asin = (r.asin || '').trim().toUpperCase();
+      const sku  = (r.sku  || '').trim().toUpperCase().replace(/-SF$/i, '');
+      const entry = {
+        asin, sku,
+        name: r['product short name'] || r.name || '',
+        brand: r.brand || '',
+        price: parseAmt(r.price),
+        skuType: (r['sku type'] || r.sku_type || '').trim(),
+        category: stripCategoryBrandPrefix(r['product category'] || r.product_category || ''),
+        channel: (r['channel'] || r.channel || '').trim(), // added 2026-08-10 per Jaclyn — needed to scope bundles to Amazon-only
+      };
+      if (sku) bySku[sku] = entry;
+      if (asin) byAsin[asin] = entry;
+    });
+    return { bySku, byAsin };
+  })();
+  return _productMasterPromise;
+}
+
+function parseCsvFull(text) {
+  text = (text || '').replace(/^\uFEFF/, ''); // strip BOM
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i += 2; continue; } // escaped quote
+        inQuotes = false; i++; continue;
+      }
+      field += ch; i++; continue;
+    }
+    if (ch === '"') { inQuotes = true; i++; continue; }
+    if (ch === ',') { row.push(field.trim()); field = ''; i++; continue; }
+    if (ch === '\r' && text[i + 1] === '\n') {
+      row.push(field.trim()); rows.push(row); row = []; field = ''; i += 2; continue;
+    }
+    if (ch === '\n') {
+      row.push(field.trim()); rows.push(row); row = []; field = ''; i++; continue;
+    }
+    field += ch; i++;
+  }
+  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  return rows.filter(r => r.some(v => v));
+}
+
+function parseCsvToRows(text) {
+  const all = parseCsvFull(text);
+  if (all.length < 2) return [];
+  const headers = all[0].map(h => h.toLowerCase());
+  return all.slice(1).map(vals => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || ''); });
+    return obj;
+  }).filter(row => Object.values(row).some(v => v));
+}
+
+window.getAmazonMonthlySales = function () {
+  if (window._amzMonthlySalesPromise) return window._amzMonthlySalesPromise;
+  window._amzMonthlySalesPromise = (async function () {
+    const amt = v => parseFloat(String(v == null ? '' : v).replace(/[$,]/g, '')) || 0;
+    const nd = v => {
+      v = String(v || '').trim();
+      if (/^\d{4}-\d{2}/.test(v)) return v.substring(0, 10);
+      const p = v.split('/');
+      if (p.length === 3) return `${p[2].length === 2 ? '20' + p[2] : p[2]}-${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}`;
+      return '';
+    };
+    const cfgOf = k => window.SHEET_CFG[k] || {};
+    const csvOf = k => fetch(ovCsvUrl(cfgOf(k).fileId || '', cfgOf(k).gid || '') + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+    const [master, syncCsv, histCsv] = await Promise.all([getProductMaster(), csvOf('SHEET_ORDERS'), csvOf('SHEET_ORDERS_HISTORICAL')]);
+    const products = Object.values(master.bySku)
+      .filter(e => (e.brand || '').trim().toLowerCase() === 'cosmette skincare' && (e.channel || '').toLowerCase().includes('amazon') && (!e.skuType || e.skuType.toUpperCase() === 'CATALOG'))
+      .sort((a, b) => a.sku.localeCompare(b.sku));
+    const asinToSku = {};
+    products.forEach(p => { if (p.asin) asinToSku[p.asin] = p.sku; });
+    const valid = r => {
+      const s = (r.status || '').trim().toLowerCase();
+      if (s === 'cancelled' || s === 'pending') return false;
+      if ((r.promotion_ids || '').toLowerCase().includes('vine')) return false;
+      // Cosmette rules (same as the rest of this dashboard): Newderm seller
+      // account only, and 702-prefixed removal orders aren't sales.
+      if ((r.selling_account || '').trim() !== 'Newderm') return false;
+      if ((r.order_id || '').trim().startsWith('702')) return false;
+      const b = (r.brand || '').trim().toLowerCase();
+      return !b || b === 'cosmette';
+    };
+    const prep = rows => rows.map(r => ({ r, d: nd(r.date) })).filter(x => x.d);
+    const sync = prep(parseCsvToRows(syncCsv)), hist = prep(parseCsvToRows(histCsv));
+    const syncStart = sync.reduce((m, x) => (!m || x.d < m ? x.d : m), '');
+    const bySkuMonth = {}, monthTotal = {}, monthUnits = {};
+    const add = (list, useMonth) => list.forEach(({ r, d }) => {
+      const ym = d.substring(0, 7);
+      if (!useMonth(ym) || !valid(r)) return;
+      const sku = asinToSku[(r.asin || '').trim().toUpperCase()];
+      if (!sku) return; // not a Cosmette US Amazon catalog product (bundles, .ca, etc.)
+      const units = parseInt(r.unit_count, 10) || 0, sales = amt(r.item_price);
+      const m = bySkuMonth[ym] = bySkuMonth[ym] || {};
+      const s = m[sku] = m[sku] || { units: 0, sales: 0 };
+      s.units += units; s.sales += sales;
+      monthTotal[ym] = (monthTotal[ym] || 0) + sales;
+      monthUnits[ym] = (monthUnits[ym] || 0) + units;
+    });
+    const syncCovers = ym => !!syncStart && `${ym}-01` >= syncStart;
+    add(sync, ym => syncCovers(ym));
+    add(hist, ym => !syncCovers(ym));
+    return { products, bySkuMonth, monthTotal, monthUnits, syncStart };
+  })().catch(err => { window._amzMonthlySalesPromise = null; throw err; });
+  return window._amzMonthlySalesPromise;
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// OVERVIEW > PROJECTIONS & GOALS — added 2026-10-05 per Jaclyn.
+//  1) Ad vs. Organic share of sales, last 12 full months (2-line chart).
+//     Ad sales = Stewardship Summary ad_sales (col O). Total sales = Amazon
+//     order item_price, same rules as Sales > Amazon. Organic = total − ad.
+//  2) Sales by Quarter table: SKU | Product | Inventory Available | per-month
+//     Units + Sales $ | quarter totals, for completed quarters only.
+// Order source per month: the sync sheet (SHEET_ORDERS) for any month it
+// fully covers, the historical sheet otherwise — never both for the same
+// month, so an order can't be double-counted (same rule as Sales > Amazon).
+// ═══════════════════════════════════════════════════════════════════
+window.initProjections = function () {
+  if (window._projPromise) return window._projPromise;
+  window._projPromise = (async function () {
+    const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const amt = v => parseFloat(String(v == null ? '' : v).replace(/[$,]/g, '')) || 0;
+    const nd = v => {
+      v = String(v || '').trim();
+      if (/^\d{4}-\d{2}/.test(v)) return v.substring(0, 10);
+      const p = v.split('/');
+      if (p.length === 3) return `${p[2].length === 2 ? '20' + p[2] : p[2]}-${p[0].padStart(2, '0')}-${p[1].padStart(2, '0')}`;
+      return '';
+    };
+    const cfgOf = k => window.SHEET_CFG[k] || {};
+    const csvOf = k => fetch(ovCsvUrl(cfgOf(k).fileId || '', cfgOf(k).gid || '') + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+    const tbody = document.getElementById('proj-quarter-tbody');
+    try {
+      const [sales, adCsv, invCsv] = await Promise.all([
+        window.getAmazonMonthlySales(), csvOf('SHEET_STEWARDSHIP_SUMMARY'), csvOf('SHEET_PRODUCT_INVENTORY'),
+      ]);
+      const { products, bySkuMonth, monthTotal, syncStart } = sales;
+
+
+      // Last full month (the month before today's).
+      const now = new Date();
+      const lastFull = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const ymOf = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+
+      // ── 1) Ad vs. Organic share of sales ──
+      // CHANGED 2026-10-05 per Jaclyn: ad sales now come from the Stewardship
+      // Summary sheet's ad_sales column (col O), which has history back to
+      // 2025 — not the Amazon ad summary sheet (May 2026 on only). Total sales
+      // is unchanged (the order-based monthly totals the table uses).
+      // Organic share = (total − ad sales) ÷ total. A month with a blank
+      // ad_sales cell is left as a gap on both lines rather than shown as 0%.
+      const adByMonth = {};
+      parseCsvToRows(adCsv).forEach(r => {
+        const y = parseInt(r.year, 10), m = parseInt(r.month, 10);
+        const raw = String(r.ad_sales == null ? '' : r.ad_sales).trim();
+        if (!y || !m || raw === '') return;
+        adByMonth[`${y}-${String(m).padStart(2, '0')}`] = amt(raw);
+      });
+      const months12 = [];
+      for (let i = 11; i >= 0; i--) months12.push(new Date(lastFull.getFullYear(), lastFull.getMonth() - i, 1));
+      const pts = months12.map(dt => {
+        const ym = ymOf(dt), total = monthTotal[ym] || 0;
+        const adSales = ym in adByMonth ? adByMonth[ym] : null;
+        let pct = null, orgPct = null;
+        if (adSales != null && total > 0) {
+          pct = Math.round((adSales / total) * 1000) / 10;
+          orgPct = Math.round((Math.max(0, total - adSales) / total) * 1000) / 10;
+        }
+        return { label: `${MONTHS[dt.getMonth()]} '${String(dt.getFullYear()).slice(2)}`, ym, pct, orgPct, adSales, total };
+      });
+      const canvas = document.getElementById('proj-ads-pct-chart');
+      if (canvas && typeof Chart === 'function') {
+        if (window._projAdsPctChart) window._projAdsPctChart.destroy();
+        const fmt$ = v => '$' + Math.round(v || 0).toLocaleString();
+        window._projAdsPctChart = new Chart(canvas, {
+          type: 'line',
+          data: { labels: pts.map(p => p.label), datasets: [
+            { label: 'Ad sales %', data: pts.map(p => p.pct), borderColor: '#24e9a3', backgroundColor: 'rgba(36,233,163,0.08)', fill: true, pointRadius: 3, tension: 0.3, borderWidth: 2.5, spanGaps: false },
+            { label: 'Organic sales %', data: pts.map(p => p.orgPct), borderColor: '#001f60', backgroundColor: 'transparent', fill: false, pointRadius: 3, tension: 0.3, borderWidth: 2.5, spanGaps: false },
+          ] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false }, // external legend in #legend-proj-ads
+              tooltip: { callbacks: { label: ctx => {
+                const p = pts[ctx.dataIndex];
+                if (ctx.datasetIndex === 0) return ` Ad: ${p.pct}% (${fmt$(p.adSales)})`;
+                return ` Organic: ${p.orgPct}% (${fmt$(Math.max(0, p.total - p.adSales))} of ${fmt$(p.total)})`;
+              } } },
+            },
+            scales: {
+              x: { grid: { color: 'rgba(0,0,0,0.04)' } },
+              y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => v + '%' } },
+            },
+          },
+        });
+        if (typeof window.renderExternalLegend === 'function') window.renderExternalLegend(window._projAdsPctChart, 'legend-proj-ads');
+      }
+      const gaps = pts.filter(p => p.pct == null).map(p => p.label);
+      const noteEl = document.getElementById('proj-ads-note');
+      if (noteEl) noteEl.textContent = 'ℹ Ad sales from the Stewardship Summary sheet (ad_sales, column O); total sales from Amazon orders, same as the table below.' + (gaps.length ? ' No ad_sales value yet for: ' + gaps.join(', ') + ' — those months are left blank.' : '');
+
+      // ── 2) Sales by Quarter ──
+      // Inventory Available = latest Products Cache snapshot, same formula as the Inventory page.
+      const invRows = parseCsvToRows(invCsv);
+      const latestInvDate = invRows.reduce((m, r) => ((r.date || '') > m ? r.date : m), '');
+      const availBySku = {};
+      invRows.filter(r => r.date === latestInvDate).forEach(r => {
+        const sku = (r.sku || '').trim().toUpperCase().replace(/-SF$/i, '');
+        const a = (parseInt(r.fulfillable_quantity, 10) || 0) + (parseInt(r.inbound_receiving, 10) || 0)
+                + (parseInt(r.seller_fulfilled_quantity, 10) || 0) - (parseInt(r.reserved_quantity, 10) || 0);
+        availBySku[sku] = (availBySku[sku] || 0) + a;
+      });
+
+      // Completed quarters that are fully covered by order data.
+      const dataMonths = Object.keys(bySkuMonth).sort();
+      const firstDataMonth = dataMonths[0];
+      const quarters = [];
+      const lastQ = Math.floor(lastFull.getMonth() / 3); // quarter index of the last full month
+      let qy = lastFull.getFullYear(), qi = (lastFull.getMonth() % 3 === 2) ? lastQ : lastQ - 1;
+      if (qi < 0) { qi = 3; qy--; }
+      for (let n = 0; n < 8; n++) {
+        const ms = [0, 1, 2].map(k => `${qy}-${String(qi * 3 + k + 1).padStart(2, '0')}`);
+        if (!firstDataMonth || ms[0] < firstDataMonth) break;
+        quarters.unshift({ label: `Q${qi + 1} ${qy}`, months: ms });
+        qi--; if (qi < 0) { qi = 3; qy--; }
+      }
+      const pills = document.getElementById('proj-quarter-pills');
+      const fmtMoney = v => '$' + (v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      function renderQuarter(idx) {
+        const q = quarters[idx];
+        if (pills) pills.innerHTML = quarters.map((qq, i) => `<button class="period-pill${i === idx ? ' active' : ''}" onclick="window._projSelectQuarter(${i})">${esc(qq.label)}</button>`).join('');
+        const mLabel = ym => MONTHS[parseInt(ym.substring(5, 7), 10) - 1];
+        document.getElementById('proj-quarter-thead').innerHTML = '<tr><th>SKU</th><th>Product</th><th>Inventory Available</th>' +
+          q.months.map(ym => `<th>${mLabel(ym)} Units</th><th>${mLabel(ym)} Sales $</th>`).join('') +
+          `<th>Q${q.label.substring(1, 2)} Units</th><th>Q${q.label.substring(1, 2)} Sales $</th></tr>`;
+        const totals = { avail: 0, months: q.months.map(() => ({ units: 0, sales: 0 })), units: 0, sales: 0 };
+        const rowsHtml = products.map(p => {
+          const avail = availBySku[p.sku];
+          if (avail != null) totals.avail += avail;
+          let qu = 0, qs = 0;
+          const cells = q.months.map((ym, i) => {
+            const v = (bySkuMonth[ym] && bySkuMonth[ym][p.sku]) || { units: 0, sales: 0 };
+            qu += v.units; qs += v.sales;
+            totals.months[i].units += v.units; totals.months[i].sales += v.sales;
+            return `<td>${v.units.toLocaleString()}</td><td>${fmtMoney(v.sales)}</td>`;
+          }).join('');
+          totals.units += qu; totals.sales += qs;
+          return `<tr><td style="font-family:var(--mono);">${esc(p.sku)}</td><td>${esc((p.name || '').trim())}</td><td>${avail == null ? '—' : avail.toLocaleString()}</td>${cells}<td><strong>${qu.toLocaleString()}</strong></td><td><strong>${fmtMoney(qs)}</strong></td></tr>`;
+        }).join('');
+        const totalRow = products.length > 1
+          ? `<tr style="background:var(--bg2);font-weight:700;"><td colspan="2">Total</td><td>${totals.avail.toLocaleString()}</td>${totals.months.map(m => `<td>${m.units.toLocaleString()}</td><td>${fmtMoney(m.sales)}</td>`).join('')}<td>${totals.units.toLocaleString()}</td><td>${fmtMoney(totals.sales)}</td></tr>`
+          : '';
+        tbody.innerHTML = rowsHtml + totalRow || '<tr><td style="color:var(--muted);">No products found.</td></tr>';
+      }
+      window._projSelectQuarter = renderQuarter;
+      if (!quarters.length) {
+        tbody.innerHTML = '<tr><td style="color:var(--muted);">No completed quarter with order data yet.</td></tr>';
+      } else {
+        renderQuarter(quarters.length - 1);
+      }
+      console.log('[Projections][qa] sync covers from', syncStart, '| months w/ data:', dataMonths.join(', '), '| quarters:', quarters.map(q => q.label).join(', '), '| ad/organic % :', pts.map(p => p.label + '=' + p.pct + '/' + p.orgPct).join(', '));
+    } catch (err) {
+      console.error('[Projections]', err);
+      window._projPromise = null; // allow retry
+      if (tbody) tbody.innerHTML = '<tr><td style="color:var(--danger);">Could not load — ' + esc(err.message || '') + '</td></tr>';
+    }
+  })();
+  return window._projPromise;
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// OVERVIEW > BRAND MANAGER KPIs — added 2026-10-05 per Jaclyn.
+// Sources (all already used elsewhere on this dashboard):
+//   Sales/units ......... window.getAmazonMonthlySales() (orders sheets)
+//   Ad sales / ad units . Stewardship Summary: ad_sales (col O), ad_units
+//   Organic goals ....... Cosmette Goals tab: col S organic $ goal, col T organic unit goal
+//   CVR ................. Business Report: UNITS_ORDERED ÷ SESSIONS (raw, not "clean")
+//   Priority keywords ... Competitor Research "Top 20 Keywords" (same list the Listing Audit uses)
+//   Keyword ranks ....... Keyword Tracker per-keyword tab (organic_rank)
+//   In-stock / listing .. Products Cache daily snapshots
+// Quarters offered: completed quarters with Keyword Tracker + Products Cache
+// data, plus the current quarter to date (goals prorated to today).
+// ═══════════════════════════════════════════════════════════════════
+window.initBmKpis = function () {
+  if (window._bmkPromise) return window._bmkPromise;
+  window._bmkPromise = (async function () {
+    const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const amt = v => parseFloat(String(v == null ? '' : v).replace(/[$,()]/g, '')) || 0;
+    const cfgOf = k => window.SHEET_CFG[k] || {};
+    const csvOf = (fid, gid) => fetch(ovCsvUrl(fid || '', gid || '') + `&_cb=${Date.now()}`).then(r => r.ok ? r.text() : '').catch(() => '');
+    const csvKey = k => csvOf(cfgOf(k).fileId, cfgOf(k).gid);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const scoredEl = document.getElementById('bmk-scored');
+    const catsEl = document.getElementById('bmk-categories');
+    try {
+      // Quarterly strategy sheets — one workbook per quarter, Cosmette's tab.
+      // EMPTY until Cosmette's tab gid in the Q4' 2026 Strategies workbook is
+      // confirmed — the strategy-based KPIs show "not available" meanwhile.
+      // MiGuard's entry, for reference: '2026-Q4': { fileId: '1jPHJv05jfck8yM8L_6-g8vO5Sz4vEaGD8SZBxQzlPFQ', gid: '2020895447', ... }
+      // Add a line here when next quarter's workbook exists. Sections and
+      // columns are found by their header text, so row positions can move.
+      const STRATEGY_SHEETS = {
+        // (none yet — see note above)
+      };
+      const stratKeys = Object.keys(STRATEGY_SHEETS);
+      const stratCsvs = await Promise.all(stratKeys.map(k => csvOf(STRATEGY_SHEETS[k].fileId, STRATEGY_SHEETS[k].gid)));
+      const [sales, stewCsv, goalsCsv, bizCsv, compCsv, kwCsv, pcCsv] = await Promise.all([
+        window.getAmazonMonthlySales(),
+        csvKey('SHEET_STEWARDSHIP_SUMMARY'),
+        csvOf('1trsHDgVSLprsOOjOuFWGZRDqVOV-eII3', '1084102342'), // Cosmette goals tab (same one the Goal Tracker reads)
+        csvKey('SHEET_BUSINESS_REPORT'),
+        // Competitor Research — Cosmette has one tab per CATEGORY (per Jaclyn,
+        // same gids the Listing Audit's skuGidMap uses), so all 6 are read and
+        // each tab's own Top 20 is combined (MiGuard reads a single tab).
+        Promise.all(['138748067', '1838200005', '779379952', '1758364220', '1982532831', '847197271']
+          .map(g => csvOf('19SfYJ99fMtqXna4VKGr8TtNMNxg6z52b0yDQPm7yI9M', g))),
+        csvKey('SHEET_KEYWORD_TRACKER'),
+        csvKey('SHEET_PRODUCT_INVENTORY'),
+      ]);
+      const { products, monthTotal, monthUnits } = sales;
+      const ymKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
+
+      // Stewardship: ad_sales (col O) + ad_units per month. Blank ad_sales = unknown.
+      const adSales = {}, adUnits = {};
+      parseCsvToRows(stewCsv).forEach(r => {
+        const y = parseInt(r.year, 10), m = parseInt(r.month, 10);
+        if (!y || !m) return;
+        const k = ymKey(y, m);
+        if (String(r.ad_sales || '').trim() !== '') adSales[k] = amt(r.ad_sales);
+        if (String(r.ad_units || '').trim() !== '') adUnits[k] = amt(r.ad_units);
+      });
+      // Goals: row label "Sep-26" in col A; col S (18) organic $, col T (19) organic units (Cosmette tab).
+      const goals = {};
+      parseCsvFull(goalsCsv).forEach(row => {
+        const lab = (row[0] || '').trim();
+        const mm = lab.match(/^([A-Za-z]{3})-(\d{2})$/);
+        if (!mm) return;
+        const mi = MONTHS.indexOf(mm[1].charAt(0).toUpperCase() + mm[1].slice(1, 3).toLowerCase());
+        if (mi < 0) return;
+        const g$ = String(row[18] || '').trim(), gU = String(row[19] || '').trim();
+        goals[ymKey(2000 + parseInt(mm[2], 10), mi + 1)] = { org$: g$ ? amt(g$) : null, orgU: gU ? amt(gU) : null };
+      });
+      // Business Report: sessions + units ordered per month.
+      const biz = {};
+      parseCsvToRows(bizCsv).forEach(r => {
+        const y = parseInt(r.year, 10), m = parseInt(r.month, 10);
+        if (!y || !m) return;
+        const k = ymKey(y, m), b = biz[k] = biz[k] || { sessions: 0, units: 0 };
+        b.sessions += parseInt(String(r.sessions || '').replace(/,/g, ''), 10) || 0;
+        b.units += parseInt(String(r.units_ordered || '').replace(/,/g, ''), 10) || 0;
+      });
+      // Priority keywords = "Top 20 Keywords" (header row found by name).
+      // Same per-tab parsing as MiGuard, run once per Cosmette category tab;
+      // each tab contributes its own Top 20, combined without duplicates.
+      const priorityKws = [];
+      compCsv.forEach(oneCsv => {
+        const comp = parseCsvFull(oneCsv);
+        const hIdx = comp.findIndex(r => r.some(c => (c || '').trim() === 'Top 20 Keywords'));
+        const priority = [];
+        if (hIdx >= 0) {
+          const col = comp[hIdx].findIndex(c => (c || '').trim() === 'Top 20 Keywords');
+          comp.slice(hIdx + 1).forEach(r => String(r[col] || '').split(/[\n\r,]/).forEach(k => {
+            k = k.trim().toLowerCase(); if (k && !priority.includes(k)) priority.push(k);
+          }));
+        }
+        priority.slice(0, 20).forEach(k => { if (!priorityKws.includes(k)) priorityKws.push(k); });
+      });
+      // Keyword Tracker: rank per keyword per snapshot date.
+      const rankAt = {}; // date -> {kw: rank|null}
+      parseCsvToRows(kwCsv).forEach(r => {
+        const d = (r.date || '').trim(), kw = (r.keyword || '').trim().toLowerCase();
+        if (!d || !kw) return;
+        const raw = String(r.organic_rank || '').trim();
+        const n = raw && !raw.startsWith('>') ? parseInt(raw.replace(/[^\d]/g, ''), 10) : NaN;
+        (rankAt[d] = rankAt[d] || {})[kw] = n >= 1 ? n : null;
+      });
+      const kwDates = Object.keys(rankAt).sort();
+      // Products Cache: one snapshot per SKU per day (last row wins).
+      const pcBy = {}; // date -> sku -> row
+      parseCsvToRows(pcCsv).forEach(r => {
+        const d = (r.date || '').trim(); const sku = (r.sku || '').trim().toUpperCase().replace(/-SF$/i, '');
+        if (!d || !sku) return; (pcBy[d] = pcBy[d] || {})[sku] = r;
+      });
+      const pcDates = Object.keys(pcBy).sort();
+
+      // Quarters: completed quarters overlapping tracker/snapshot data, + current QTD.
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const dataStart = [kwDates[0], pcDates[0]].filter(Boolean).sort()[0] || today;
+      const qOf = (y, qi) => {
+        const start = `${y}-${String(qi * 3 + 1).padStart(2, '0')}-01`;
+        const endD = new Date(y, qi * 3 + 3, 0);
+        const end = `${y}-${String(qi * 3 + 3).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
+        return { y, qi, label: `Q${qi + 1} ${y}`, start, end, months: [1, 2, 3].map(k => ymKey(y, qi * 3 + k)) };
+      };
+      const curQ = qOf(now.getFullYear(), Math.floor(now.getMonth() / 3));
+      curQ.isCurrent = true; curQ.label += ' (QTD)';
+      const quarters = [curQ];
+      for (let n = 1; n <= 6; n++) {
+        let qi = curQ.qi - n, y = curQ.y;
+        while (qi < 0) { qi += 4; y--; }
+        const q = qOf(y, qi);
+        if (q.end < dataStart) break;
+        quarters.unshift(q);
+      }
+      const prevQOf = q => { let qi = q.qi - 1, y = q.y; if (qi < 0) { qi = 3; y--; } return qOf(y, qi); };
+
+      // ── metric engine for one quarter ──
+      function compute(q) {
+        const dim = ym => new Date(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5), 10), 0).getDate();
+        // months elapsed + share of the current month (QTD prorating)
+        const monthsIn = q.months.map(ym => {
+          if (!q.isCurrent) return { ym, frac: 1 };
+          const cur = today.slice(0, 7);
+          if (ym < cur) return { ym, frac: 1 };
+          if (ym === cur) return { ym, frac: Math.max(0, now.getDate() - 1) / dim(ym) }; // through yesterday
+          return { ym, frac: 0 };
+        }).filter(x => x.frac > 0);
+        const sum = (f) => monthsIn.reduce((s, x) => s + f(x), 0);
+        const missingAd = monthsIn.filter(x => !(x.ym in adSales)).map(x => MONTHS[parseInt(x.ym.slice(5), 10) - 1]);
+        const totalSales = sum(x => monthTotal[x.ym] || 0);
+        const totalUnits = sum(x => monthUnits[x.ym] || 0);
+        const orgSales = missingAd.length ? null : totalSales - sum(x => adSales[x.ym] || 0);
+        const orgUnits = monthsIn.some(x => !(x.ym in adUnits)) ? null : totalUnits - sum(x => adUnits[x.ym] || 0);
+        const goalMissing = monthsIn.some(x => !goals[x.ym] || goals[x.ym].org$ == null);
+        const orgGoal = goalMissing ? null : sum(x => goals[x.ym].org$ * x.frac);
+        const unitGoalMissing = monthsIn.some(x => !goals[x.ym] || goals[x.ym].orgU == null);
+        const orgUnitGoal = unitGoalMissing ? null : sum(x => goals[x.ym].orgU * x.frac);
+        const bizMonths = monthsIn.filter(x => biz[x.ym]);
+        const sessions = bizMonths.reduce((s, x) => s + biz[x.ym].sessions, 0);
+        const bUnits = bizMonths.reduce((s, x) => s + biz[x.ym].units, 0);
+        const cvr = sessions > 0 ? (bUnits / sessions) * 100 : null;
+        return { monthsIn, missingAd, totalSales, orgSales, orgUnits, orgGoal, orgUnitGoal, cvr, sessions, bUnits, bizMonths: bizMonths.map(x => x.ym) };
+      }
+      function seo(q) {
+        const inQ = kwDates.filter(d => d >= q.start && d <= (q.isCurrent ? today : q.end));
+        const before = kwDates.filter(d => d < q.start);
+        const boqDate = before.length ? before[before.length - 1] : inQ[0];
+        const eoqDate = inQ.length ? inQ[inQ.length - 1] : null;
+        if (!boqDate || !eoqDate) return null;
+        const tracked = priorityKws.filter(k => (rankAt[eoqDate] && k in rankAt[eoqDate]) || (rankAt[boqDate] && k in rankAt[boqDate]));
+        const rk = (d, k) => (rankAt[d] && rankAt[d][k] != null) ? rankAt[d][k] : null;
+        let improving = 0;
+        const rows = tracked.map(k => {
+          const a = rk(boqDate, k), b = rk(eoqDate, k);
+          const better = (b != null && (a == null || b < a));
+          if (better) improving++;
+          return { k, a, b, better, worse: (a != null && (b == null || b > a)) };
+        });
+        const bucket = d => {
+          const o = { p1: 0, p2: 0, mid: 0, low: 0 };
+          tracked.forEach(k => { const r = rk(d, k); if (r == null || r > 50) o.low++; else if (r <= 10) o.p1++; else if (r <= 20) o.p2++; else o.mid++; });
+          return o;
+        };
+        const bq = bucket(boqDate), eq = bucket(eoqDate);
+        const ranked = tracked.map(k => rk(eoqDate, k)).filter(v => v != null);
+        return {
+          boqDate, eoqDate, tracked: tracked.length, improving,
+          pctImproving: tracked.length ? (improving / tracked.length) * 100 : null,
+          page1: eq.p1, top20: eq.p1 + eq.p2, top20Start: bq.p1 + bq.p2,
+          netTop20: (eq.p1 + eq.p2) - (bq.p1 + bq.p2),
+          avgRank: ranked.length ? ranked.reduce((s, v) => s + v, 0) / ranked.length : null, rankedCount: ranked.length,
+          dist: { bq, eq }, rows,
+        };
+      }
+      function retail(q) {
+        const end = q.isCurrent ? today : q.end;
+        const days = pcDates.filter(d => d >= q.start && d <= end);
+        if (!days.length) return null;
+        let skuDays = 0, inStock = 0;
+        const skus = products.map(p => p.sku);
+        days.forEach(d => skus.forEach(s => {
+          const r = pcBy[d][s]; if (!r) return;
+          skuDays++;
+          const sellable = (parseInt(r.fulfillable_quantity, 10) || 0) + (parseInt(r.seller_fulfilled_quantity, 10) || 0);
+          if (sellable > 0) inStock++;
+        }));
+        const last = days[days.length - 1];
+        let healthy = 0;
+        skus.forEach(s => {
+          const r = pcBy[last][s]; if (!r) return;
+          const st = (r.status || '').toUpperCase();
+          if (st.includes('BUYABLE') && !String(r.issues || '').trim()) healthy++;
+        });
+        const startD = new Date(q.start + 'T00:00:00'), endD = new Date(end + 'T00:00:00');
+        const calDays = Math.round((endD - startD) / 86400000) + 1;
+        return { skuDays, inStock, inRate: skuDays ? (inStock / skuDays) * 100 : null, oosRate: skuDays ? ((skuDays - inStock) / skuDays) * 100 : null,
+                 days: days.length, calDays, healthy, expected: skus.length, lastDate: last };
+      }
+
+      // ── Strategy sheet parser ──
+      // Roles found by their heading in col A; the next "BRAND PRIORITY" row is
+      // that section's header, and every column is located by header name
+      // (STATUS, DUE DATE, COMPLETED DATE, SCORED?, TIMING/GOAL DATE, …).
+      // SMART goals: the "SUCCESS LOOKS LIKE" header row, if METRIC/TARGET
+      // columns have been added next to it.
+      const parseDate = v => {
+        v = String(v || '').trim();
+        if (!v) return null;
+        let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+        m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+        if (m) return new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[1] - 1, +m[2]);
+        const d = new Date(v); // "Oct 1, 2026"
+        return isNaN(d.getTime()) || !/\d{4}/.test(v) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      };
+      const fmtD = d => d ? `${MONTHS[d.getMonth()]} ${d.getDate()}` : '';
+      function parseStrategy(csv) {
+        const g = parseCsvFull(csv);
+        if (!g.length || /^\s*</.test(csv)) return null;
+        const norm = s => String(s || '').trim().toUpperCase();
+        const ROLES = { 'BRAND MANAGER': 'Brand Manager', 'ADVERTISING SPECIALIST': 'Advertising Specialist', 'CREATIVE MANAGER': 'Creative Manager' };
+        const items = [], smart = [], warnings = [];
+        let role = null, cols = null;
+        for (let i = 0; i < g.length; i++) {
+          const r = g[i], a = norm(r[0]);
+          if (ROLES[a]) { role = ROLES[a]; cols = null; continue; }
+          if (a === 'BRAND PRIORITY' && role) {
+            cols = {}; r.forEach((h, j) => { const k = norm(h); if (k) cols[k] = j; });
+            if (!('DUE DATE' in cols)) warnings.push(`${role} section has no DUE DATE column yet`);
+            continue;
+          }
+          if (!role || !cols) continue;
+          const get = k => (k in cols) ? String(r[cols[k]] || '').trim() : '';
+          const priority = String(r[0] || '').trim(), task = get('MY DELIVERABLE / TASK');
+          if (!priority && !task) continue;
+          const scoredRaw = norm(get('SCORED?'));
+          items.push({ role, priority, task, status: get('STATUS'), timing: get('TIMING') || get('GOAL DATE'),
+            due: parseDate(get('DUE DATE')), done: parseDate(get('COMPLETED DATE')),
+            scored: !(scoredRaw === 'N' || scoredRaw === 'NO' || scoredRaw === 'FALSE'), results: get('RESULTS') });
+        }
+        // SMART goals block
+        const sIdx = g.findIndex(r => r.some(c => norm(c) === 'SUCCESS LOOKS LIKE'));
+        if (sIdx >= 0) {
+          const h = {}; g[sIdx].forEach((c, j) => { const k = norm(c); if (k) h[k] = j; });
+          if ('TARGET' in h || 'METRIC' in h) {
+            for (let i = sIdx + 1; i < g.length; i++) {
+              const r = g[i]; const name = String(r[0] || '').trim();
+              // parseCsvFull drops blank rows, so stop at the first role
+              // heading / section header instead of relying on a blank line.
+              if (!name || ROLES[norm(name)] || norm(name) === 'BRAND PRIORITY') break;
+              const get = k => (k in h) ? String(r[h[k]] || '').trim() : '';
+              smart.push({ name, metric: get('METRIC'), baseline: get('BASELINE'), target: get('TARGET'), due: parseDate(get('DUE DATE')), status: get('STATUS'), result: get('RESULT') || get('RESULTS') });
+            }
+          }
+        }
+        return { items, smart, warnings };
+      }
+      const strategies = {};
+      stratKeys.forEach((k, i) => { strategies[k] = parseStrategy(stratCsvs[i]); });
+      const todayD = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      function execution(list) {
+        const scored = list.filter(x => x.scored);
+        const blocked = scored.filter(x => /blocked/i.test(x.status));
+        const live = scored.filter(x => !/blocked/i.test(x.status));
+        const isComplete = x => /^complete/i.test(x.status) || !!x.done;
+        const complete = live.filter(isComplete);
+        const noDue = live.filter(x => !x.due);
+        // "Due" = due date has passed, or already completed (with a due date).
+        const due = live.filter(x => x.due && (x.due < todayD || isComplete(x)));
+        const onTime = due.filter(x => x.done && x.done <= x.due);
+        const doneNoDate = due.filter(x => isComplete(x) && !x.done);
+        return { total: live.length, complete: complete.length, blocked: blocked.length, noDue: noDue.length,
+                 due: due.length, onTime: onTime.length, doneNoDate: doneNoDate.length,
+                 completion: live.length ? (complete.length / live.length) * 100 : null,
+                 onTimeRate: due.length ? (onTime.length / due.length) * 100 : null };
+      }
+
+      // ── rendering helpers ──
+      const fmt$ = v => '$' + Math.round(v).toLocaleString();
+      const pct = (v, d = 1) => v == null ? null : (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d) + '%';
+      const needs = txt => `<span class="bmk-needs">Needs input${txt ? ' — ' + esc(txt) : ''}</span>`;
+      const na = txt => `<span style="color:var(--muted);">— ${esc(txt || '')}</span>`;
+      const card = (label, value, sub, pending) => `<div class="kpi-card${pending ? ' bmk-pending' : ''}"><div class="kpi-label">${esc(label)}</div><div class="kpi-value">${value}</div><div class="kpi-sub" style="line-height:1.45;">${sub}</div></div>`;
+      const table = (title, scoredNote, rows, note) => `<div class="card">
+          <div class="card-title">${esc(title)}</div>
+          ${note ? `<div class="bmk-cat-note">${note}</div>` : ''}
+          <div style="overflow-x:auto;"><table class="data-table">
+            <thead><tr><th style="width:24%;">Metric</th><th style="width:22%;">Value</th><th>Calculation</th></tr></thead>
+            <tbody>${rows.map(r => `<tr><td>${esc(r[0])}${r[3] ? '<span class="bmk-scored-tag">Scored</span>' : ''}</td><td>${r[1]}</td><td class="bmk-calc">${esc(r[2])}</td></tr>`).join('')}</tbody>
+          </table></div></div>`;
+      const pills = document.getElementById('bmk-quarter-pills');
+
+      function render(idx) {
+        const q = quarters[idx];
+        if (pills) pills.innerHTML = quarters.map((qq, i) => `<button class="period-pill${i === idx ? ' active' : ''}" onclick="window._bmkSelectQuarter(${i})">${esc(qq.label)}</button>`).join('');
+        const c = compute(q), pq = prevQOf(q), pc = compute(pq), s = seo(q), rt = retail(q);
+        const stratKey = `${q.y}-Q${q.qi + 1}`, strat = strategies[stratKey] || null, stratCfg = STRATEGY_SHEETS[stratKey];
+        const exAll = strat ? execution(strat.items) : null;
+        const exBm = strat ? execution(strat.items.filter(x => x.role === 'Brand Manager')) : null;
+        const smartDue = strat ? strat.smart.filter(x => x.target) : [];
+        const smartAch = smartDue.filter(x => /achieved|complete|met/i.test(x.status));
+        const cvrGoal = strat ? strat.smart.find(x => /unit session|cvr|conversion/i.test(x.metric)) : null;
+        const cvrTarget = cvrGoal ? parseFloat(String(cvrGoal.target).replace(/[^0-9.]/g, '')) : NaN;
+        const noStrat = stratCfg ? `couldn't read ${stratCfg.label}` : `no strategy sheet for ${q.label.replace(' (QTD)', '')}`;
+        const exVal = (ex, kind) => {
+          if (!ex) return null;
+          if (kind === 'completion') return ex.total ? `<strong>${pct(ex.completion, 0)}</strong> · ${ex.complete} of ${ex.total}${ex.blocked ? ` · ${ex.blocked} blocked` : ''}` : null;
+          if (!ex.due) return `<span style="color:var(--muted);">— nothing due yet${ex.noDue ? ` (${ex.noDue} without a DUE DATE)` : ''}</span>`;
+          return `<strong>${pct(ex.onTimeRate, 0)}</strong> · ${ex.onTime} of ${ex.due} on time${ex.doneNoDate ? ` · ${ex.doneNoDate} complete w/o COMPLETED DATE` : ''}${ex.blocked ? ` · ${ex.blocked} blocked (not counted)` : ''}`;
+        };
+        const goalWord = q.isCurrent ? 'goal to date' : 'goal';
+        const adGap = c.missingAd.length ? `ad_sales blank for ${c.missingAd.join(', ')}` : '';
+
+        // 1) Organic
+        const orgAtt = (c.orgSales != null && c.orgGoal) ? (c.orgSales / c.orgGoal) * 100 : null;
+        const orgUAtt = (c.orgUnits != null && c.orgUnitGoal) ? (c.orgUnits / c.orgUnitGoal) * 100 : null;
+        const orgGrowth = (c.orgSales != null && pc.orgSales) ? ((c.orgSales - pc.orgSales) / pc.orgSales) * 100 : null;
+        const orgShare = (c.orgSales != null && c.totalSales) ? (c.orgSales / c.totalSales) * 100 : null;
+        // 2) Conversion — baseline = prior quarter's CVR
+        const cvrDelta = (c.cvr != null && pc.cvr != null) ? c.cvr - pc.cvr : null;
+        const partialBiz = (cc, qq) => cc.bizMonths.length && cc.bizMonths.length < cc.monthsIn.length ? ` (${cc.bizMonths.map(k => MONTHS[parseInt(k.slice(5), 10) - 1]).join(', ')} only)` : '';
+
+        const cardsHtml = [
+          card('Organic Sales Attainment', orgAtt != null ? pct(orgAtt, 0) : '—',
+            orgAtt != null ? `${fmt$(c.orgSales)} of ${fmt$(c.orgGoal)} ${goalWord}` : esc(adGap || 'organic goal missing'), orgAtt == null),
+          card('Conversion Performance', c.cvr != null ? pct(c.cvr, 2) : '—',
+            (cvrDelta != null ? `${cvrDelta >= 0 ? '+' : ''}${cvrDelta.toFixed(2)} pts vs ${esc(pq.label)} baseline` : 'no baseline yet') + '<br>' +
+            (!isNaN(cvrTarget) && c.cvr != null ? `${pct((c.cvr / cvrTarget) * 100, 0)} of ${cvrTarget}% target` : needs('CVR target')), c.cvr == null),
+          card('SEO Visibility Growth', s && s.pctImproving != null ? pct(s.pctImproving, 0) + ' improving' : '—',
+            s ? `Net Top-20: ${s.netTop20 >= 0 ? '+' : ''}${s.netTop20} (${s.top20Start} → ${s.top20})` : 'no keyword tracker data', !s),
+          (exBm && exBm.due)
+            ? card('On-Time Strategic Execution', pct(exBm.onTimeRate, 0), `${exBm.onTime} of ${exBm.due} BM deliverables on time${exBm.blocked ? ` · ${exBm.blocked} blocked` : ''}`, false)
+            : card('On-Time Strategic Execution', '—', exBm ? `nothing due yet${exBm.noDue ? ` · ${exBm.noDue} BM rows need a DUE DATE` : ''}` : esc(noStrat), true),
+          card('Risk / Retail Readiness', '—', needs('issue log with SLA dates'), true),
+        ].join('');
+        scoredEl.innerHTML = cardsHtml;
+
+        const v = (val, why) => val != null ? val : na(why);
+        const orgNote = `Organic = total Amazon sales − ad-attributed sales (Stewardship Summary ad_sales). ${q.isCurrent ? 'Quarter to date through yesterday; goals prorated to the same point. ' : ''}Organic Share and Growth are diagnostic, not scored.`;
+        const cats = [
+          table('1. Organic Performance', true, [
+            ['Organic Sales Attainment', v(orgAtt != null ? `<strong>${pct(orgAtt, 0)}</strong> · ${fmt$(c.orgSales)} / ${fmt$(c.orgGoal)}` : null, adGap || 'organic $ goal missing'), 'Organic Sales ÷ Organic Sales Goal (Goals tab, col S) × 100', true],
+            ['Organic Unit Attainment', v(orgUAtt != null ? `${pct(orgUAtt, 0)} · ${Math.round(c.orgUnits).toLocaleString()} / ${Math.round(c.orgUnitGoal).toLocaleString()} units` : null, c.orgUnits == null ? 'ad_units blank for a month' : 'organic unit goal missing'), 'Organic Units ÷ Organic Unit Goal (col T) × 100'],
+            ['Organic Sales Growth', v(orgGrowth != null ? `${orgGrowth >= 0 ? '+' : ''}${pct(orgGrowth)} vs ${esc(pq.label)}` : null, pc.orgSales == null ? `${pq.label} organic sales unavailable` : adGap), '(Current − prior quarter organic sales) ÷ prior quarter × 100'],
+            ['Organic Share', v(orgShare != null ? pct(orgShare) : null, adGap), 'Organic Sales ÷ Total Sales × 100'],
+          ], orgNote),
+          table('2. Conversion', true, [
+            ['Unit Session % (CVR)', v(c.cvr != null ? `<strong>${pct(c.cvr, 2)}</strong> · ${c.bUnits.toLocaleString()} units / ${c.sessions.toLocaleString()} sessions${partialBiz(c, q)}` : null, 'no Business Report rows for this quarter'), 'Ordered Units ÷ Sessions × 100 (Business Report, raw units ordered)', true],
+            ['CVR vs. Baseline', v(cvrDelta != null ? `${cvrDelta >= 0 ? '+' : ''}${cvrDelta.toFixed(2)} pts (${esc(pq.label)}: ${pct(pc.cvr, 2)}${partialBiz(pc, pq)})` : null, 'no prior-quarter Business Report data'), 'Current CVR − prior quarter CVR'],
+            ['CVR Target Attainment', (!isNaN(cvrTarget) && c.cvr != null) ? `${pct((c.cvr / cvrTarget) * 100, 0)} · ${pct(c.cvr, 2)} vs ${cvrTarget}% target` : needs('Unit Session % row in the strategy sheet\'s SMART goals'), 'Current CVR ÷ Target CVR × 100'],
+          ], 'Brand-level CVR is the scored number; SKU CVR is diagnostic.'),
+          table('3. SEO / Discoverability', true, [
+            ['Priority Keywords Improving', v(s && s.pctImproving != null ? `<strong>${pct(s.pctImproving, 0)}</strong> · ${s.improving} of ${s.tracked}` : null, 'no tracker data'), '# priority keywords with better organic rank than quarter start ÷ # tracked × 100', true],
+            ['Page 1 Keywords (1–10)', v(s ? String(s.page1) : null, 'no tracker data'), '# priority keywords ranking 1–10 at latest snapshot'],
+            ['Top 20 Keywords (1–20)', v(s ? String(s.top20) : null, 'no tracker data'), '# priority keywords ranking 1–20 at latest snapshot'],
+            ['Page 1/2 Expansion (Net Top-20)', v(s ? `<strong>${s.netTop20 >= 0 ? '+' : ''}${s.netTop20}</strong> (${s.top20Start} → ${s.top20})` : null, 'no tracker data'), 'Top-20 count now − Top-20 count at quarter start', true],
+            ['Average Priority Keyword Rank', v(s && s.avgRank != null ? `#${Math.round(s.avgRank)} (of ${s.rankedCount} ranked)` : null, 'no ranked keywords'), 'Sum of organic ranks ÷ # ranked priority keywords (unranked excluded)'],
+            ['Keyword Goal Attainment', needs('designated keyword objectives'), '# designated keyword objectives achieved ÷ # designated × 100'],
+          ], s ? `Priority list = the ${priorityKws.length} "Top 20 Keywords" on the Competitor Research sheet; ${s.tracked} are in the Keyword Tracker. Quarter start = ${esc(s.boqDate)} snapshot, latest = ${esc(s.eoqDate)}.` : ''),
+          table('4. Strategic Execution', true, [
+            ['Initiative Completion', exAll ? (exVal(exAll, 'completion') || na('no initiatives listed')) : na(noStrat), 'Completed initiatives ÷ planned initiatives × 100 (all 3 roles, SCORED? ≠ N, Blocked excluded)'],
+            ['On-Time Completion', exAll ? exVal(exAll, 'ontime') : na(noStrat), 'Initiatives with COMPLETED DATE ≤ DUE DATE ÷ initiatives due × 100 (all roles)'],
+            ['BM Deliverable Completion', exBm ? exVal(exBm, 'ontime') : na(noStrat), 'BM deliverables completed on time ÷ BM deliverables due × 100 (Brand Manager section only)', true],
+            ['Strategic Goal Achievement', smartDue.length ? `${pct((smartAch.length / smartDue.length) * 100, 0)} · ${smartAch.length} of ${smartDue.length}` : needs('METRIC / TARGET / STATUS columns next to "Success Looks Like"'), 'SMART goals achieved ÷ SMART goals × 100'],
+          ], (stratCfg ? `Source: ${esc(stratCfg.label)} → Cosmette tab. ` : '') + '"Due" = DUE DATE has passed (or the item is already complete). Blocked by Dependency isn\'t counted as a miss; rows with SCORED? = N are tracked but not scored.' + (strat && strat.warnings.length ? ' <span style="color:var(--warn);">' + strat.warnings.map(esc).join(' · ') + '.</span>' : '')),
+          table('5. Retail Readiness / Risk Management', true, [
+            ['In-Stock Rate', v(rt && rt.inRate != null ? `${pct(rt.inRate)} · ${rt.inStock} of ${rt.skuDays} SKU-days` : null, 'no Products Cache snapshots'), 'In-stock SKU-days ÷ active SKU-days × 100 (FBA fulfillable + seller-fulfilled > 0)'],
+            ['OOS Rate', v(rt && rt.oosRate != null ? pct(rt.oosRate) : null, 'no Products Cache snapshots'), 'OOS SKU-days ÷ active SKU-days × 100'],
+            ['Listing Health', v(rt ? `${pct((rt.healthy / Math.max(1, rt.expected)) * 100, 0)} · ${rt.healthy} of ${rt.expected} (as of ${esc(rt.lastDate)})` : null, 'no Products Cache snapshots'), 'Listings BUYABLE with no issues ÷ expected active listings × 100'],
+            ['Issue Response SLA', needs('issue log (date found, action, stakeholders notified)'), 'Issues addressed within SLA ÷ actionable issues × 100', true],
+            ['Promo Readiness', needs('planned promo SKUs'), 'Promo-eligible/prepared SKUs ÷ planned promo SKUs × 100'],
+          ], rt ? `In-stock / OOS are business health, not scored against the BM. ${rt.days} daily snapshots in this ${q.isCurrent ? 'quarter so far' : 'quarter'} (${rt.calDays} calendar days).` : ''),
+        ];
+        // Deliverables from the strategy sheet
+        if (strat && strat.items.length) {
+          const stCell = x => {
+            const st = x.status || '—';
+            const col = /^complete/i.test(st) ? '#1db88a' : /late/i.test(st) ? 'var(--danger)' : /blocked/i.test(st) ? 'var(--warn)' : 'var(--muted)';
+            return `<span style="color:${col};font-weight:600;">${esc(st)}</span>`;
+          };
+          const ot = x => !x.due ? '<span style="color:var(--muted);">no due date</span>'
+            : x.done ? (x.done <= x.due ? '<span style="color:#1db88a;font-weight:700;">✓ on time</span>' : '<span style="color:var(--danger);font-weight:700;">late</span>')
+            : (x.due < todayD && !/blocked/i.test(x.status) ? '<span style="color:var(--danger);font-weight:700;">overdue</span>' : '<span style="color:var(--muted);">open</span>');
+          cats.push(`<div class="card"><div class="card-title">Deliverables <span style="font-weight:400;color:var(--muted);">(${esc(stratCfg.label)})</span></div>
+            <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Role</th><th>Priority</th><th>Deliverable / Task</th><th>Timing</th><th>Due</th><th>Completed</th><th>Status</th><th>On Time?</th></tr></thead><tbody>
+            ${strat.items.map(x => `<tr style="${x.scored ? '' : 'opacity:.6;'}"><td style="white-space:nowrap;">${esc(x.role)}</td><td>${esc(x.priority)}${x.scored ? '' : ' <span style="color:var(--muted);font-size:10px;">(not scored)</span>'}</td><td style="font-size:11.5px;color:var(--muted);max-width:420px;">${esc(x.task)}</td><td style="white-space:nowrap;">${esc(x.timing)}</td><td style="white-space:nowrap;">${fmtD(x.due) || '—'}</td><td style="white-space:nowrap;">${fmtD(x.done) || '—'}</td><td>${stCell(x)}</td><td style="white-space:nowrap;">${ot(x)}</td></tr>`).join('')}
+            </tbody></table></div></div>`);
+        }
+        // SEO keyword detail
+        if (s && s.rows.length) {
+          const rk = v2 => v2 == null ? '<span style="color:var(--muted);">Not ranking</span>' : '#' + v2;
+          const d = s.dist;
+          cats.push(`<div class="card"><div class="card-title">Priority Keyword Detail <span style="font-weight:400;color:var(--muted);">(${esc(s.boqDate)} → ${esc(s.eoqDate)})</span></div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+              ${[['Rank 1–10', 'p1'], ['Rank 11–20', 'p2'], ['Rank 21–50', 'mid'], ['>50 / unranked', 'low']].map(([l, k]) => `<div class="kpi-card" style="padding:12px 14px;"><div class="kpi-label">${l}</div><div class="kpi-value" style="font-size:22px;">${d.eq[k]}</div><div class="kpi-sub">was ${d.bq[k]} at quarter start</div></div>`).join('')}
+            </div>
+            <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Keyword</th><th>Quarter Start</th><th>Latest</th><th>Change</th></tr></thead><tbody>
+            ${s.rows.slice().sort((a, b) => (a.b == null ? 999 : a.b) - (b.b == null ? 999 : b.b)).map(r => `<tr><td>${esc(r.k)}</td><td>${rk(r.a)}</td><td>${rk(r.b)}</td><td>${r.better ? '<span style="color:#1db88a;font-weight:700;">▲ improved</span>' : r.worse ? '<span style="color:var(--danger);font-weight:700;">▼ declined</span>' : '<span style="color:var(--muted);">—</span>'}</td></tr>`).join('')}
+            </tbody></table></div></div>`);
+        }
+        catsEl.innerHTML = cats.join('');
+      }
+      window._bmkSelectQuarter = render;
+      // default: most recent COMPLETED quarter if there is one, else QTD
+      // Default: the current quarter when it has a strategy sheet (execution is
+      // tracked live), otherwise the most recent completed quarter.
+      const curKey = `${curQ.y}-Q${curQ.qi + 1}`;
+      render(strategies[curKey] ? quarters.length - 1 : (quarters.length > 1 ? quarters.length - 2 : quarters.length - 1));
+      console.log('[BMKPIs][qa] quarters:', quarters.map(q => q.label).join(', '), '| strategy rows:', Object.keys(strategies).map(k => k + '=' + (strategies[k] ? strategies[k].items.length + ' items/' + strategies[k].smart.length + ' smart' : 'unreadable')).join(', '), '| priority kws:', priorityKws.length, '| kw dates:', kwDates[0], '→', kwDates[kwDates.length - 1], '| pc dates:', pcDates[0], '→', pcDates[pcDates.length - 1]);
+    } catch (err) {
+      console.error('[BMKPIs]', err);
+      window._bmkPromise = null;
+      if (scoredEl) scoredEl.innerHTML = '<div style="color:var(--danger);font-size:12px;">Could not load — ' + esc(err.message || '') + '</div>';
+    }
+  })();
+  return window._bmkPromise;
+};
 </script>
 </body>
 </html>
