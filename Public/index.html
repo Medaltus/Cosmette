@@ -3601,15 +3601,8 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
     rows.forEach(r => { const sku = csBaseSku(r.sku); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.unit_count,10) || 0); });
     return m;
   }
-  function adUnitsBySku(rows) {
-    const m = {};
-    rows.forEach(r => { const sku = csBaseSku(r.sku); if (!sku) return; m[sku] = (m[sku] || 0) + (parseInt(r.ad_units,10) || 0); });
-    return m;
-  }
   const skuUnits = unitsBySku(rowsThis);
   const skuUnitsPrev = unitsBySku(rowsPrev);
-  const skuAdUnits = adUnitsBySku(adOrderRows || []);
-  const skuAdUnitsPrev = adUnitsBySku(prevAdOrderRows || []);
 
   // ASIN for each SKU seen this month (so the Master SKU List lookup can
   // try ASIN first, falling back to SKU) — order rows carry both.
@@ -3619,7 +3612,30 @@ async function csBuildTopProducts(tbodyId, sourceId, orderRows, year, month, adO
     const asin = (r.asin || '').trim().toUpperCase();
     if (sku && asin && !asinBySku[sku]) asinBySku[sku] = asin;
   });
-  const { nameByAsin, nameBySku } = await csFetchProductNames();
+  const { nameByAsin, nameBySku, skuByAsin } = await csFetchProductNames();
+
+  // Ad units per SKU — FIXED 2026-10-07. The ad-orders sheet has no sku
+  // column (year, month, asin, ad_units, ...), so the old r.sku lookup
+  // skipped every row and the table showed 0 ads units while the KPI card
+  // (which just sums ad_units) showed the real total. Reads the row's
+  // ASIN first, same as évolis's top-products table
+  // ((r.asin || r.sku || '')), then maps ASIN -> Cosmette SKU via the
+  // Master SKU List, falling back to the ASIN->SKU pairs on the order rows.
+  const skuByAsinFromOrders = {};
+  Object.keys(asinBySku).forEach(sku => { skuByAsinFromOrders[asinBySku[sku]] = sku; });
+  function adUnitsBySku(rows) {
+    const m = {};
+    rows.forEach(r => {
+      const asin = (r.asin || r.sku || '').trim().toUpperCase();
+      if (!asin) return;
+      const sku = csBaseSku((skuByAsin && skuByAsin[asin]) || skuByAsinFromOrders[asin] || '');
+      if (!sku) return; // ASIN not in the Master SKU List or this month's orders — skipped, not guessed
+      m[sku] = (m[sku] || 0) + (parseInt(r.ad_units,10) || 0);
+    });
+    return m;
+  }
+  const skuAdUnits = adUnitsBySku(adOrderRows || []);
+  const skuAdUnitsPrev = adUnitsBySku(prevAdOrderRows || []);
 
   const sorted = Object.entries(skuUnits).filter(([,u]) => u > 0).sort((a,b) => b[1]-a[1]);
   let totalAdUnits = 0;
