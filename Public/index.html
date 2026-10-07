@@ -3297,11 +3297,28 @@ function csRenderAdTypeCard(row, canvasId, tbodyId, noteId, chartVarKey) {
 // combines both sources for the same month, so there's no risk of
 // double-counting an order that happens to exist in both (the same
 // overlap risk the chart logic was built to avoid).
+// Earliest order date in a row set (memoized per array). Used for the
+// "sync covers this month" rule below.
+const _csSyncStartCache = new WeakMap();
+function csSyncStart(rows) {
+  if (!rows || !rows.length) return '';
+  if (_csSyncStartCache.has(rows)) return _csSyncStartCache.get(rows);
+  const start = rows.reduce((m, r) => { const d = csNormalizeDate(r.date); return d && (!m || d < m) ? d : m; }, '');
+  _csSyncStartCache.set(rows, start);
+  return start;
+}
+// FIXED 2026-10-07 — source rule ported from MiGuard's getAmazonMonthlySales:
+// a month uses the SYNC sheet if the sync sheet fully covers it, otherwise
+// the HISTORICAL sheet — never both. Previously the historical sheet won
+// whenever it had any rows for the month, but it holds an older snapshot:
+// Sep 2026 had order 112-7284689-2235463 still "Pending" there (Shipped in
+// sync), so the KPI cards showed 22 units while the table (sync) showed 25.
 function csNewdermRowsForMonth(cache, year, month) {
   const prefix = `${year}-${String(month).padStart(2,'0')}`;
-  const histMatch = csFilterNewderm(cache.histRows).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
-  if (histMatch.length) return histMatch;
-  return csFilterNewderm(cache.syncRows).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+  const syncStart = csSyncStart(cache.syncRows);
+  const syncCovers = !!syncStart && `${prefix}-01` >= syncStart;
+  const src = syncCovers ? cache.syncRows : cache.histRows;
+  return csFilterNewderm(src || []).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
 }
 
 function csAggregateMonth(rows, year, month) {
@@ -6230,9 +6247,13 @@ window.initSubscriptions = function () {
   // csBuildUnitsChart) — genuinely Cosmette-specific, see header note.
   function csGoalTrackerRowsForMonth(cache, year, month) {
     const prefix = `${year}-${String(month).padStart(2,'0')}`;
-    const histRows = (cache.goalTrackerHistRows || []).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
-    if (histRows.length) return histRows;
-    return (cache.goalTrackerSyncRows || []).filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
+    // Same sync-covers rule as csNewdermRowsForMonth (fixed 2026-10-07):
+    // the historical sheet is an older snapshot, so it's only used for
+    // months the sync sheet doesn't fully cover.
+    const syncRowsAll = cache.goalTrackerSyncRows || [];
+    const syncStart = csSyncStart(syncRowsAll);
+    const src = (syncStart && `${prefix}-01` >= syncStart) ? syncRowsAll : (cache.goalTrackerHistRows || []);
+    return src.filter(r => csNormalizeDate(r.date).substring(0,7) === prefix);
   }
   function csReturnsTotalForMonth(returnsRows, year, month, throughDay) {
     if (!returnsRows || !returnsRows.length) return 0;
