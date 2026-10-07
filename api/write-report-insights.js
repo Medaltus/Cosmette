@@ -1,28 +1,28 @@
 /**
- * api/write-report-insights.js — Just Bjorn
+ * api/write-report-insights.js — Cosmette
  * POST /api/write-report-insights
  *
- * Backend for the dashboard's editable report content (Executive Summary,
- * Amazon/Walmart Key Insights, Ad Impressions Note, Category Key Insight,
- * What's Been Accomplished cards + images, Future Opportunity cards, and the
- * per-event summaries on the Events pages). Same file, POST contract and
- * upsert/approval behavior as the other brands:
+ * Same file as Just Bjorn's (identical code, MONTHLY_HEADERS and POST
+ * contract) — only this comment differs. Backend for the dashboard's
+ * editable report content (Executive Summary, Amazon Key Insight, Ad
+ * Impressions Note, Category Key Insight, What's Been Accomplished cards +
+ * images, Future Opportunity cards, and the per-event summaries):
  *   - Edit, add content, Save. One "Approved & Ready" button per scope.
  *   - UPSERTS, never blind-appends: reads existing rows, finds the matching
  *     key, merges in only the fields provided, writes the full set back.
  *   - Any content save reverts an Approved row to Draft; only
  *     action:'approve' sets Approved.
  *
- * Reads/writes the shared "Report Insights" spreadsheet: tabs "just-bjorn"
- * (monthly, gid 879925924) and "just-bjorn_events" (gid 917582294).
+ * Reads/writes the shared "Report Insights" spreadsheet (env var
+ * SHEET_REPORT_INSIGHTS, via config/sheets.js): tabs "cosmette" (monthly,
+ * gid 2109495361) and "cosmette_events". Tab name comes from
+ * config/brands.js (brand id 'cosmette').
  *
- * FIXED 2026-10-06: MONTHLY_HEADERS now matches the just-bjorn tab's real
- * header row exactly (58 columns, confirmed against the live sheet).
- * replaceRows() writes POSITIONALLY against this array, so the previous
- * schema (acc1_title ... category_key_insight in a different order) put
- * everything from column 27 onward in the wrong cells. A new field ALWAYS
- * goes at the end of this array AND the end of the sheet's header row at
- * the same time, or this breaks again the same way.
+ * MONTHLY_HEADERS matches the cosmette tab's real header row exactly (58
+ * columns, checked against the live sheet 2026-10-07 — same order as Just
+ * Bjorn's tab). replaceRows() writes POSITIONALLY against this array, so a
+ * new field ALWAYS goes at the end of this array AND the end of the sheet's
+ * header row at the same time.
  *
  * POST body:
  *   Monthly: { brand, scope:'monthly', year, month, fields:{...}, action:'save'|'approve', actor }
