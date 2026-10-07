@@ -1934,9 +1934,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
            Opportunities tab (vbc-index.html #dd-s-opportunities), per Jaclyn:
            "What's Been Accomplished" (4 cards; cards 1-2 take up to 6
            images each, uploaded via api/upload-insight-image.js) + "Future
-           Opportunities" (4 cards, Dazzle Dry styling). Field names match
-           Cosmette's api/write-report-insights.js: acc{n}_title/_subtitle/_body,
-           acc{1,2}_image{1-6}, opp{1-4}_title/_subtitle/_body.
+           Opportunities" (6 cards, Dazzle Dry styling). Field names match
+           Cosmette's api/write-report-insights.js (same file as Just Bjorn's):
+           accomplished{n}_title/_subtitle/_body, accomplished{1,2}_image{1-6},
+           opp{1-6}_title/_subtitle/_body.
            Saved through Cosmette's own wireInsightBlock (same report row /
            write-report-insights endpoint as every other Cosmette field).
            New fields must be appended at the END of the Report Insights
@@ -2052,6 +2053,8 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
         <div class="opp-card"><div class="opp-card-title" id="cs-opp2-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp2-subtitle-disp"></div><div class="opp-card-body" id="cs-opp2-body-disp"></div></div>
         <div class="opp-card"><div class="opp-card-title" id="cs-opp3-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp3-subtitle-disp"></div><div class="opp-card-body" id="cs-opp3-body-disp"></div></div>
         <div class="opp-card"><div class="opp-card-title" id="cs-opp4-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp4-subtitle-disp"></div><div class="opp-card-body" id="cs-opp4-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp5-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp5-subtitle-disp"></div><div class="opp-card-body" id="cs-opp5-body-disp"></div></div>
+        <div class="opp-card"><div class="opp-card-title" id="cs-opp6-title-disp">Loading…</div><div class="opp-card-subtitle" id="cs-opp6-subtitle-disp"></div><div class="opp-card-body" id="cs-opp6-body-disp"></div></div>
       </div>
       <div class="insight-editor" id="cs-opp-editor">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -2067,9 +2070,15 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
           <div><div class="insight-editor-label">Opportunity 4 — Title</div><input type="text" id="cs-opp4-title-input">
             <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp4-subtitle-input">
             <div class="insight-editor-label">Body</div><textarea id="cs-opp4-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 5 — Title</div><input type="text" id="cs-opp5-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp5-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp5-body-input"></textarea></div>
+          <div><div class="insight-editor-label">Opportunity 6 — Title</div><input type="text" id="cs-opp6-title-input">
+            <div class="insight-editor-label">Subtitle</div><input type="text" id="cs-opp6-subtitle-input">
+            <div class="insight-editor-label">Body</div><textarea id="cs-opp6-body-input"></textarea></div>
         </div>
         <div class="editor-footer">
-          <span class="editor-note">Saves all 4 cards together to this month's report row. Any field can be left blank.</span>
+          <span class="editor-note">Saves all 6 cards together to this month's report row. Any field can be left blank.</span>
           <button class="btn-cancel" id="cs-opp-cancel-btn">Cancel</button>
           <button class="btn-save-stage" id="cs-opp-save-btn">Save</button>
         </div>
@@ -5430,22 +5439,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const csAccFields = [];
   [1, 2, 3, 4].forEach(n => {
     csAccFields.push(
-      { key: `acc${n}_title`,    displayId: `cs-acc${n}-title-disp`,    textareaId: `cs-acc${n}-title-input`,    placeholder: `Accomplished ${n}` },
-      { key: `acc${n}_subtitle`, displayId: `cs-acc${n}-subtitle-disp`, textareaId: `cs-acc${n}-subtitle-input` },
-      { key: `acc${n}_body`,     displayId: `cs-acc${n}-body-disp`,     textareaId: `cs-acc${n}-body-input`,     placeholder: 'No content yet.' },
+      { key: `accomplished${n}_title`,    displayId: `cs-acc${n}-title-disp`,    textareaId: `cs-acc${n}-title-input`,    placeholder: `Accomplished ${n}` },
+      { key: `accomplished${n}_subtitle`, displayId: `cs-acc${n}-subtitle-disp`, textareaId: `cs-acc${n}-subtitle-input` },
+      { key: `accomplished${n}_body`,     displayId: `cs-acc${n}-body-disp`,     textareaId: `cs-acc${n}-body-input`,     placeholder: 'No content yet.' },
     );
   });
   [1, 2].forEach(n => [1, 2, 3, 4, 5, 6].forEach(i => {
-    csAccFields.push({ key: `acc${n}_image${i}`, textareaId: `cs-acc${n}-image${i}-input` }); // no displayId — rendered as <img> via renderAccImages
+    csAccFields.push({ key: `accomplished${n}_image${i}`, textareaId: `cs-acc${n}-image${i}-input` }); // no displayId — rendered as <img> via renderAccImages
   }));
   window.wireInsightBlock({
     editBtnId: 'cs-acc-edit-btn', saveBtnId: 'cs-acc-save-btn', cancelBtnId: 'cs-acc-cancel-btn', editorId: 'cs-acc-editor',
     fields: csAccFields,
-    onLoad: row => [1, 2].forEach(n => renderAccImages(`cs-acc${n}-images-disp`, [1, 2, 3, 4, 5, 6].map(i => row ? row[`acc${n}_image${i}`] : ''))),
+    onLoad: row => [1, 2].forEach(n => renderAccImages(`cs-acc${n}-images-disp`, [1, 2, 3, 4, 5, 6].map(i => row ? row[`accomplished${n}_image${i}`] : ''))),
   });
-  // Future Opportunities — 4 cards (opp1-opp4, per MONTHLY_HEADERS), one shared editor (Dazzle Dry layout).
+  // Future Opportunities — 6 cards (opp1-opp6, per MONTHLY_HEADERS), one shared editor (Dazzle Dry layout).
   const csOppFields = [];
-  [1, 2, 3, 4].forEach(n => {
+  [1, 2, 3, 4, 5, 6].forEach(n => {
     csOppFields.push(
       { key: `opp${n}_title`,    displayId: `cs-opp${n}-title-disp`,    textareaId: `cs-opp${n}-title-input`,    placeholder: `Opportunity ${n}` },
       { key: `opp${n}_subtitle`, displayId: `cs-opp${n}-subtitle-disp`, textareaId: `cs-opp${n}-subtitle-input` },
@@ -10714,8 +10723,8 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       slots[targetN] = `<div class="pdfx-opp-image-slot">${images.map(u=>`<img src="${u}" class="pdfx-opp-img-full">`).join('')}</div>`;
     });
     const accCards = [1,2,3,4].map(n=>slots[n]).join('');
-    // Future Opportunities — 4 slots (opp1-opp4, per Cosmette's MONTHLY_HEADERS).
-    const oppCards = [1,2,3,4].map(n=>{
+    // Future Opportunities — 6 slots (opp1-opp6, per Cosmette's MONTHLY_HEADERS).
+    const oppCards = [1,2,3,4,5,6].map(n=>{
       return pdfxPlainOppItem(pdfxFieldText(`cs-opp${n}-title-disp`), pdfxFieldText(`cs-opp${n}-subtitle-disp`), pdfxFieldText(`cs-opp${n}-body-disp`), '');
     }).join('');
     return '' +
