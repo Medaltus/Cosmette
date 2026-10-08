@@ -740,6 +740,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .pdfx-hdr-tag{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);font-family:var(--font-subheader);}
 .pdfx-hdr-month{font-family:var(--font-subheader);font-size:17px;color:#fff;margin-top:3px;}
 .pdfx-hdr-datesub{font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;}
+.pdfx-tagright .pdfx-hdr-date{color:rgba(255,255,255,.65);font-size:9.5px;margin-top:2px;font-family:var(--font-body-light);} /* Skinuva's event-page date line, verbatim */
 .pdfx-cover-eyebrow{font-size:10px;font-weight:400;font-family:var(--font-body-light);letter-spacing:.16em;text-transform:uppercase;color:var(--green);margin-bottom:12px;}
 .pdfx-cover-title{font-family:var(--font-subheader);font-weight:700;font-size:38px;line-height:1.14;margin-bottom:18px;}
 .pdfx-cover-rule{width:44px;height:2px;background:var(--green);margin-bottom:20px;}
@@ -886,6 +887,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    phase card and the footer (card's own 8px margin + 22px), down from 44px,
    so the page isn't too tall. Opportunities' footer keeps 36px. */
 .pdfx-strategy-page .pdfx-footer{margin-top:22px;}
+.pdfx-inner.pdfx-strategy-page{padding-bottom:0;} /* no padding below the footer (per Jaclyn 2026-10-08) so the page isn't too tall */
 .pdfx-footer-brand{font-size:13px;font-weight:700;color:var(--navy);}
 .pdfx-footer-tag{font-size:9.5px;color:var(--muted);}
 .pdfx-footer-right{text-align:right;font-size:10px;color:var(--muted);}
@@ -10425,7 +10427,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     // tag/monthYear header untouched.
     const tag = headerOverride ? headerOverride.tag : 'Brand Performance Report';
     const monthHtml = headerOverride ? pdfxEscape(headerOverride.month) : pdfxEscape(monthYear);
-    const dateSubHtml = headerOverride && headerOverride.dateSub ? '<div class="pdfx-hdr-datesub">' + pdfxEscape(headerOverride.dateSub) + '</div>' : '';
+    const dateSubHtml = headerOverride && headerOverride.dateSub ? '<div class="' + (headerOverride.dateClass || 'pdfx-hdr-datesub') + '">' + pdfxEscape(headerOverride.dateSub) + '</div>' : '';
     return '<div class="pdfx-topband">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
         '<span class="pdfx-logo-navy" style="display:inline-block;">' + pdfxLogoHtml('height:40px;width:auto;') + '</span>' +
@@ -10852,33 +10854,108 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
   // -exec-summary-headline, -exec-summary-body, -event-dates, -legend,
   // -chart-top-sellers), driven by one shared initEventReport(channelId)
   // function rather than Skinuva's 4 separately-named init functions.
-  function buildEventPage(prefix, label, monthYear) {
-    const dates = pdfxText('#' + prefix + '-event-dates');
-    const kpis = [
-      prefix + '-kpi-total-units', prefix + '-kpi-total-orders', prefix + '-kpi-avg-order',
-      prefix + '-kpi-units-ads', prefix + '-kpi-units-organic',
-    ].map(pdfxKpi);
-    const headline = pdfxText('#' + prefix + '-exec-summary-headline');
-    const body = pdfxText('#' + prefix + '-exec-summary-body');
-    const chartVarName = '_cs' + prefix + 'TopSellersChart';
-    // Header styled like the Strategy page (per Jaclyn 2026-10-08): the
-    // header's month is replaced by this event's title, HARDCODED per event
-    // (each event page is specific to one event), with the event's most
-    // recent dates underneath — the first <span> of #<prefix>-event-dates,
-    // which eventDatesHtml() fills with the current occurrence (the second
-    // span is the "vs. last year" comparison, left out here).
-    const currentDatesEl = document.querySelector('#' + prefix + '-event-dates span');
-    const currentDates = currentDatesEl ? currentDatesEl.textContent.trim() : '';
-    const eventHeaderOverride = { tag: 'Event Performance', month: 'Amazon ' + label, dateSub: currentDates || 'Dates TBD' };
+  // ══ Event PDF page — ported VERBATIM 2026-10-08 from Skinuva's
+  // buildEventPage + pdfxTopSellersSvg (index_10.html) per Jaclyn: the
+  // event pages must match Skinuva's exactly. Cosmette-only changes: the
+  // chart variable prefix ('_cs' + prefix) and the header call, which goes
+  // through Cosmette's pdfxHeaderBand override with Skinuva's values (tag
+  // 'Brand Performance Report', event title, date line in .pdfx-hdr-date).
+  // Top Sellers chart as a VECTOR (inline SVG) — Skinuva's, verbatim.
+  function pdfxTopSellersSvg(varName) {
+    const chart = window[varName];
+    if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length < 2) return '';
+    const labels = chart.data.labels || [];
+    const prev = chart.data.datasets[0].data || [], curr = chart.data.datasets[1].data || [];
+    const cPrev = chart.data.datasets[0].backgroundColor || '#8a94a6', cCurr = chart.data.datasets[1].backgroundColor || '#1b2559';
+    const prevLbl = String(chart.data.datasets[0].label || '').replace(/.*\s(\d{4})$/, '$1');
+    const currLbl = String(chart.data.datasets[1].label || '').replace(/.*\s(\d{4})$/, '$1');
+    const n = labels.length;
+    if (!n) return '';
+    const W = PDFX_CARD_WIDTH_PX, labelW = 150, pillW = 58, gapR = 14;
+    const barH = 11, barGap = 3, rowH = 38, top = 6;
+    const H = top + n * rowH + 4;
+    const plotX = labelW, plotW = W - labelW - pillW - gapR;
+    const max = Math.max(1, ...prev.map(Number), ...curr.map(Number));
+    const esc = pdfxEscape;
+    const wrap = (txt, max) => {
+      const words = String(txt || '').split(/\s+/), lines = [];
+      let line = '';
+      words.forEach(w => { if ((line + ' ' + w).trim().length > max && line) { lines.push(line); line = w; } else { line = (line + ' ' + w).trim(); } });
+      if (line) lines.push(line);
+      return lines.slice(0, 2);
+    };
+    const pctOf = (c, p) => { const d = (!p || p === 0) ? 0.01 : p; return Math.round(((c - d) / d) * 100); };
+    let out = '';
+    for (let i = 0; i < n; i++) {
+      const y0 = top + i * rowH;
+      const groupH = barH * 2 + barGap, yBars = y0 + (rowH - groupH) / 2;
+      const lines = wrap(labels[i], 20);
+      const ly = y0 + rowH / 2 - (lines.length - 1) * 6.5;
+      lines.forEach((ln, k) => {
+        out += `<text x="${labelW - 10}" y="${(ly + k * 13).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10.5" font-weight="600" fill="#001F60">${esc(ln)}</text>`;
+      });
+      [[Number(prev[i]) || 0, cPrev, yBars], [Number(curr[i]) || 0, cCurr, yBars + barH + barGap]].forEach(([v, col, yb]) => {
+        const w = Math.max(v > 0 ? 2 : 0, (v / max) * plotW);
+        if (w > 0) out += `<rect x="${plotX}" y="${yb.toFixed(1)}" width="${w.toFixed(1)}" height="${barH}" rx="2.5" fill="${col}"/>`;
+        const lbl = String(v), tw = lbl.length * 6;
+        if (w > tw + 12) out += `<text x="${(plotX + w - 6).toFixed(1)}" y="${(yb + barH / 2).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="9" font-weight="600" fill="#ffffff">${lbl}</text>`;
+        else out += `<text x="${(plotX + w + 5).toFixed(1)}" y="${(yb + barH / 2).toFixed(1)}" dominant-baseline="middle" font-size="9" font-weight="600" fill="#8a94a6">${lbl}</text>`;
+      });
+      const p = pctOf(Number(curr[i]) || 0, Number(prev[i]) || 0);
+      const good = p >= 0, ptxt = `${p > 0 ? '+' : ''}${p}%`;
+      const pw = Math.max(34, ptxt.length * 6.2 + 12), py = yBars + groupH / 2;
+      out += `<rect x="${W - pillW}" y="${(py - 8).toFixed(1)}" width="${pw.toFixed(1)}" height="16" rx="3" fill="${good ? 'rgba(36,233,163,.15)' : 'rgba(219,55,45,.12)'}"/>` +
+             `<text x="${(W - pillW + 6).toFixed(1)}" y="${(py + 0.5).toFixed(1)}" dominant-baseline="middle" font-size="9.5" font-weight="700" fill="${good ? '#1a9b6f' : '#c0392b'}">${esc(ptxt)}</text>`;
+    }
+    const legend = `<div style="display:flex;gap:14px;justify-content:flex-end;font-size:9.5px;color:var(--muted);margin:-2px 0 4px;">` +
+      `<span style="display:inline-flex;align-items:center;gap:5px;"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${cPrev};"></i>${esc(prevLbl)}</span>` +
+      `<span style="display:inline-flex;align-items:center;gap:5px;"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${cCurr};"></i>${esc(currLbl)}</span></div>`;
+    return legend + `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;font-family:var(--font),sans-serif;">${out}</svg>`;
+  }
+
+  function buildEventPage(prefix, eventLabel, monthYear) {
+    const headline = pdfxText('#' + prefix + '-exec-summary-headline') || eventLabel;
+    const body = pdfxHTML('#' + prefix + '-exec-summary-body') || '<span style="color:var(--muted);font-style:italic;">No summary added yet.</span>';
+    const dates = pdfxById(prefix + '-event-dates') ? pdfxHTML('#' + prefix + '-event-dates') : '';
+
+    // Orange-background callout, matching .pdfx-insight exactly (same
+    // sand background + orange left border) — this is the actual "pop"
+    // treatment asked for. Corrected 2026-07-21: coloring the date TEXT
+    // itself orange (the previous attempt) was explicitly not what was
+    // wanted; the background callout is.
+    const datesHtml = dates
+      ? '<div class="pdfx-insight" style="margin-bottom:10px;">' + dates + '</div>'
+      : '';
+
+    // Header — CHANGED 2026-10-08 per Jaclyn: same header as the Strategy
+    // page (event name + dates in the top-right instead of the report
+    // month). Title is the event's own fixed name; the date is the most
+    // recent occurrence on the Events tab — the first span of the live
+    // #<prefix>-event-dates line (the second span is last year's dates).
+    const datesEl = pdfxById(prefix + '-event-dates');
+    const curSpan = datesEl ? datesEl.querySelector('span') : null;
+    const eventHeaderInfo = { label: eventLabel, date: curSpan ? curSpan.textContent.trim() : '' };
+
+    const hasKpis = !!pdfxById(prefix + '-kpi-total-units');
+    const kpisHtml = hasKpis
+      ? '<div class="pdfx-kpis" style="margin-top:6px;">' +
+          ['kpi-total-units','kpi-total-orders','kpi-avg-order','kpi-units-ads','kpi-units-organic']
+            .map(function (s) { return pdfxKpi(prefix + '-' + s); })
+            .map(pdfxKpiCardHtml).join('') +
+        '</div>'
+      : '';
+    const chartHtml = hasKpis
+      ? '<div class="pdfx-card" style="margin-top:14px;"><div class="pdfx-card-title">Top Sellers — Units Sold</div>' + (pdfxTopSellersSvg('_cs' + prefix + 'TopSellersChart') || pdfxChartBlock('_cs' + prefix + 'TopSellersChart')) + '</div>'
+      : '';
+
     return '' +
       '<div class="pdfx-page">' +
         '<div class="pdfx-inner">' +
-          pdfxHeaderBand(monthYear, 'Events', eventHeaderOverride) +
-          '<div class="pdfx-chlabel">Event Performance</div>' +
-          '<div class="pdfx-chrow"><span class="pdfx-chname">' + pdfxEscape(label) + '</span><span class="pdfx-chdate">' + pdfxEscape(dates) + '</span></div>' +
-          (headline ? '<div class="pdfx-card" style="margin-bottom:14px;"><div class="pdfx-card-title">' + pdfxEscape(headline) + '</div>' + (body ? '<div style="font-size:12px;color:var(--muted);line-height:1.7;">' + pdfxEscape(body) + '</div>' : '') + '</div>' : '') +
-          '<div class="pdfx-kpis">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
-          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div><div class="pd-legend">' + pdfxLegendHtml(prefix + '-legend') + '</div></div>' + pdfxChartBlock(chartVarName) + '</div>' +
+          pdfxHeaderBand(monthYear, 'Events', { tag: 'Brand Performance Report', month: eventHeaderInfo.label, dateSub: eventHeaderInfo.date, dateClass: 'pdfx-hdr-date' }) +
+          '<div class="pdfx-chlabel">' + pdfxEscape(eventLabel) + '</div>' +
+          datesHtml +
+          '<div class="pdfx-card"><div class="pdfx-card-title">' + pdfxEscape(headline) + '</div><div style="font-size:11.5px;color:#48557a;line-height:1.6;">' + body + '</div></div>' +
+          kpisHtml + chartHtml +
         '</div>' +
       '</div>';
   }
