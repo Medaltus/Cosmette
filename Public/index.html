@@ -773,7 +773,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 /* PDF-only Reviews tightening — tightened further 2026-10-08 per Jaclyn so
    long reviews fit without editing review data: tighter line spacing, less
    padding between the 5★..1★ rows and around cards. Live page untouched. */
-.pdfx-inner-reviews .review-section{margin-bottom:10px;}
+.pdfx-inner-reviews .review-section{margin-bottom:30px;} /* 30px gap below the top product's review cards (per Jaclyn 2026-10-08) */
 .pdfx-inner-reviews .review-hd{padding:6px 14px;}
 .pdfx-inner-reviews .review-bars{padding:5px 14px;}
 .pdfx-inner-reviews .review-bar-row{margin-bottom:1px;gap:8px;}
@@ -882,6 +882,10 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
 .pdfx-ltd-val{font-size:19px;font-weight:700;color:var(--navy);font-family:var(--font-subheader);}
 .pdfx-ltd-lbl{font-size:9.5px;color:var(--muted);}
 .pdfx-footer{display:flex;justify-content:space-between;align-items:center;margin-top:36px;padding-top:16px;border-top:1px solid var(--border);}
+/* Strategy page only (2026-10-08, per Jaclyn): 30px total between the last
+   phase card and the footer (card's own 8px margin + 22px), down from 44px,
+   so the page isn't too tall. Opportunities' footer keeps 36px. */
+.pdfx-strategy-page .pdfx-footer{margin-top:22px;}
 .pdfx-footer-brand{font-size:13px;font-weight:700;color:var(--navy);}
 .pdfx-footer-tag{font-size:9.5px;color:var(--muted);}
 .pdfx-footer-right{text-align:right;font-size:10px;color:var(--muted);}
@@ -10831,7 +10835,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     const eventDates = pdfxText('#evs-event-dates') || 'Dates TBD';
     const headerOverride = { tag: 'Event Strategy', month: eventName, dateSub: eventDates };
 
-    return '<div class="pdfx-page"><div class="pdfx-inner">' +
+    return '<div class="pdfx-page"><div class="pdfx-inner pdfx-strategy-page">' +
       pdfxHeaderBand(monthYear, 'Events', headerOverride) +
       '<div class="pdfx-chlabel">Event Strategy</div>' +
       // Strategic Outlook card removed from the PDF 2026-10-08 per Jaclyn
