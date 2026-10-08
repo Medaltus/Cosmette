@@ -988,6 +988,7 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
              since that page doesn't exist for Cosmette — add one here the
              same way once it's built. All 3 that exist default checked. -->
         <div style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--navy);">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-overview" checked> Overview</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-amazon" checked> Amazon Sales</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-reviews" checked> Reviews</label>
           <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="checkbox" id="pdf-include-insights" checked> Insights</label>
@@ -10868,6 +10869,10 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
         opportunities: !!document.getElementById('pdf-include-opportunities') && document.getElementById('pdf-include-opportunities').checked,
         insights:      !!document.getElementById('pdf-include-insights')      && document.getElementById('pdf-include-insights').checked,
         strategy: !!document.getElementById('pdf-include-strategy') && document.getElementById('pdf-include-strategy').checked,
+        // Overview = the cover / Monthly Overview (Executive Summary) page.
+        // Optional (2026-10-08, per Jaclyn) so a single event page can be
+        // exported on its own.
+        overview: !!document.getElementById('pdf-include-overview') && document.getElementById('pdf-include-overview').checked,
         bss:  !!document.getElementById('pdf-include-bss')  && document.getElementById('pdf-include-bss').checked,
         pd:   !!document.getElementById('pdf-include-pd')   && document.getElementById('pdf-include-pd').checked,
         pbdd: !!document.getElementById('pdf-include-pbdd') && document.getElementById('pdf-include-pbdd').checked,
@@ -10999,13 +11004,16 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
         includeSections.momentum      ? buildMomentumProductsPages(monthYear) + buildMomentumPage2(monthYear) : '',
         includeSections.stewardship   ? buildStewardshipPage(monthYear)   : '',
         includeSections.opportunities ? buildOpportunitiesPage(monthYear) : '',
-        includeSections.strategy ? buildStrategyPage(monthYear) : '',
         includeSections.bss  ? buildEventPage('bss',  'Big Spring Sale',             monthYear) : '',
         includeSections.pd   ? buildEventPage('pd',   'Prime Day',                   monthYear) : '',
         includeSections.pbdd ? buildEventPage('pbdd', 'Prime Big Deal Days',         monthYear) : '',
         includeSections.bfcm ? buildEventPage('bfcm', 'Black Friday & Cyber Monday', monthYear) : '',
+        // Strategy always comes AFTER the event pages (per Jaclyn 2026-10-08),
+        // so e.g. Prime Day + Strategy alone exports as event = page 1,
+        // strategy = page 2.
+        includeSections.strategy ? buildStrategyPage(monthYear) : '',
       ].join('');
-      root.innerHTML = buildCoverPage(monthYear) + pagesHtml;
+      root.innerHTML = (includeSections.overview ? buildCoverPage(monthYear) : '') + pagesHtml;
 
       // Case 5's sibling gotcha — fully visible on top of everything
       // during capture (not display:none swapped, not fixed/off-screen
