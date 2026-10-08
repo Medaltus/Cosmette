@@ -770,14 +770,20 @@ table.data-table tbody td{padding:9px 12px;font-size:12px;color:var(--navy);font
    tightening the review-specific child elements below, scoped under this
    class so the live dashboard's own .review-* styling is never touched. */
 .pdfx-inner-reviews{padding:34px 46px 16px;}
-.pdfx-inner-reviews .review-section{margin-bottom:16px;}
-.pdfx-inner-reviews .review-hd{padding:8px 14px;}
-.pdfx-inner-reviews .review-bars{padding:8px 14px;}
-.pdfx-inner-reviews .review-bar-row{margin-bottom:3px;}
-.pdfx-inner-reviews .review-cards{padding:8px 14px;gap:10px;}
-.pdfx-inner-reviews .review-card{padding:9px 11px;}
-.pdfx-inner-reviews .review-card-text{line-height:1.4;}
-.pdfx-inner-reviews .review-card-title{margin-bottom:4px;}
+/* PDF-only Reviews tightening — tightened further 2026-10-08 per Jaclyn so
+   long reviews fit without editing review data: tighter line spacing, less
+   padding between the 5★..1★ rows and around cards. Live page untouched. */
+.pdfx-inner-reviews .review-section{margin-bottom:10px;}
+.pdfx-inner-reviews .review-hd{padding:6px 14px;}
+.pdfx-inner-reviews .review-bars{padding:5px 14px;}
+.pdfx-inner-reviews .review-bar-row{margin-bottom:1px;gap:8px;}
+.pdfx-inner-reviews .review-bar-label,.pdfx-inner-reviews .review-bar-count{font-size:10px;line-height:1.2;}
+.pdfx-inner-reviews .review-bar-track{height:6px;}
+.pdfx-inner-reviews .review-cards{padding:6px 14px;gap:8px;}
+.pdfx-inner-reviews .review-card{padding:6px 10px;}
+.pdfx-inner-reviews .review-card-stars{margin-bottom:2px;font-size:11px;}
+.pdfx-inner-reviews .review-card-text{line-height:1.28;font-size:10.5px;}
+.pdfx-inner-reviews .review-card-title{margin-bottom:2px;font-size:11.5px;}
 /* Brand Momentum page 2 — distributes BSR/Review Velocity/Tracking Next
    evenly down the page instead of clustering near the top with a big
    empty gap, per the doc this was ported from. Explicit height matches
