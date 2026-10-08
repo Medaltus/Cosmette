@@ -10828,7 +10828,9 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     return '<div class="pdfx-page"><div class="pdfx-inner">' +
       pdfxHeaderBand(monthYear, 'Events', headerOverride) +
       '<div class="pdfx-chlabel">Event Strategy</div>' +
-      leadUp + during + leadOut + outlook +
+      // Strategic Outlook card removed from the PDF 2026-10-08 per Jaclyn
+      // (same as VBC's Strategy page, where it's hidden in the export).
+      leadUp + during + leadOut +
       // Footer moved here 2026-10-08 per Jaclyn (bottom of the Strategy page).
       pdfxFooter(monthYear) +
       '</div></div>';
@@ -10866,7 +10868,7 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
           '<div class="pdfx-chrow"><span class="pdfx-chname">' + pdfxEscape(label) + '</span><span class="pdfx-chdate">' + pdfxEscape(dates) + '</span></div>' +
           (headline ? '<div class="pdfx-card" style="margin-bottom:14px;"><div class="pdfx-card-title">' + pdfxEscape(headline) + '</div>' + (body ? '<div style="font-size:12px;color:var(--muted);line-height:1.7;">' + pdfxEscape(body) + '</div>' : '') + '</div>' : '') +
           '<div class="pdfx-kpis">' + kpis.map(pdfxKpiCardHtml).join('') + '</div>' +
-          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div><div>' + pdfxLegendHtml(prefix + '-legend') + '</div></div>' + pdfxChartBlock(chartVarName) + '</div>' +
+          '<div class="pdfx-card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="pdfx-card-title" style="margin-bottom:0;">Top Sellers — Units Sold</div><div class="pd-legend">' + pdfxLegendHtml(prefix + '-legend') + '</div></div>' + pdfxChartBlock(chartVarName) + '</div>' +
         '</div>' +
       '</div>';
   }
