@@ -3764,7 +3764,13 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, cutoffAfter) 
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   let cutoffKey = null;
   if (cutoffAfter === true) {
-    cutoffKey = currentMonthKey;
+    // FIXED 2026-10-08: this used to set cutoffKey = currentMonthKey, but
+    // the checks below drop months AFTER cutoffKey (key > cutoffKey), so
+    // the current month was never actually excluded — partial October
+    // data showed while viewing September. Cutoff is now the last FULL
+    // month, which is what `true` was always meant to do.
+    const lf = csGetLastFullMonth();
+    cutoffKey = `${lf.year}-${String(lf.month).padStart(2,'0')}`;
   } else if (cutoffAfter && cutoffAfter.year && cutoffAfter.month) {
     cutoffKey = `${cutoffAfter.year}-${String(cutoffAfter.month).padStart(2,'0')}`;
   }
@@ -3800,12 +3806,19 @@ function csBuildUnitsChart(canvasId, legendId, syncRows, histRows, cutoffAfter) 
   // syncRows does; the old current-month-only check never hit this case
   // in practice since histRows rarely has the literal current month, but
   // a months-back approval cutoff needs both sources gated the same way.
+  // FIXED 2026-10-08 — same sync-covers rule as csNewdermRowsForMonth
+  // (the KPI cards): the historical sheet is an older snapshot, so it's
+  // only used for months the sync sheet doesn't fully cover. Sep 2026 had
+  // order 112-7284689-2235463 still "Pending" in hist (Shipped in sync),
+  // so the chart showed 22 while the KPI card showed 25.
+  const syncStartKey = csSyncStart(syncRows);
   function addHistRows(rows) {
     rows.forEach(r => {
       const d = csNormalizeDate(r.date);
       const key = d.substring(0,7);
       if (!key || key.length !== 7) return;
       if (cutoffKey && key > cutoffKey) return;
+      if (syncStartKey && `${key}-01` >= syncStartKey) return; // sync covers this month
       histCoveredMonths.add(key);
       const [y, m] = key.split('-').map(Number);
       const entry = ensureYear(y);
@@ -10392,8 +10405,9 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     const tabsHtml = PDFX_NAV_TABS.map(function (t) {
       return '<span class="pdfx-tab' + (t === activeTab ? ' on' : '') + '">' + t + '</span>';
     }).join('');
-    // headerOverride: {tag, month, dateSub} — used only by the Strategy
-    // page (buildStrategyPage), per Jaclyn (2026-09-11): that page is too
+    // headerOverride: {tag, month, dateSub} — used by the Strategy page
+    // (buildStrategyPage) and, since 2026-10-08, the event pages
+    // (buildEventPage), per Jaclyn (2026-09-11): that page is too
     // content-dense to add a whole new section for "which event/dates is
     // this strategy for," so instead the existing month field in the
     // header band gets replaced with the event name, with a small date
@@ -10815,6 +10829,8 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
       pdfxHeaderBand(monthYear, 'Events', headerOverride) +
       '<div class="pdfx-chlabel">Event Strategy</div>' +
       leadUp + during + leadOut + outlook +
+      // Footer moved here 2026-10-08 per Jaclyn (bottom of the Strategy page).
+      pdfxFooter(monthYear) +
       '</div></div>';
   }
 
@@ -10833,10 +10849,19 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
     const headline = pdfxText('#' + prefix + '-exec-summary-headline');
     const body = pdfxText('#' + prefix + '-exec-summary-body');
     const chartVarName = '_cs' + prefix + 'TopSellersChart';
+    // Header styled like the Strategy page (per Jaclyn 2026-10-08): the
+    // header's month is replaced by this event's title, HARDCODED per event
+    // (each event page is specific to one event), with the event's most
+    // recent dates underneath — the first <span> of #<prefix>-event-dates,
+    // which eventDatesHtml() fills with the current occurrence (the second
+    // span is the "vs. last year" comparison, left out here).
+    const currentDatesEl = document.querySelector('#' + prefix + '-event-dates span');
+    const currentDates = currentDatesEl ? currentDatesEl.textContent.trim() : '';
+    const eventHeaderOverride = { tag: 'Event Performance', month: 'Amazon ' + label, dateSub: currentDates || 'Dates TBD' };
     return '' +
       '<div class="pdfx-page">' +
         '<div class="pdfx-inner">' +
-          pdfxHeaderBand(monthYear, 'Events') +
+          pdfxHeaderBand(monthYear, 'Events', eventHeaderOverride) +
           '<div class="pdfx-chlabel">Event Performance</div>' +
           '<div class="pdfx-chrow"><span class="pdfx-chname">' + pdfxEscape(label) + '</span><span class="pdfx-chdate">' + pdfxEscape(dates) + '</span></div>' +
           (headline ? '<div class="pdfx-card" style="margin-bottom:14px;"><div class="pdfx-card-title">' + pdfxEscape(headline) + '</div>' + (body ? '<div style="font-size:12px;color:var(--muted);line-height:1.7;">' + pdfxEscape(body) + '</div>' : '') + '</div>' : '') +
@@ -11056,7 +11081,10 @@ const PDFX_FALLBACK_TOAST = 'Heads up: the real-text PDF service didn\'t respond
         window.renderCosmettePeriod(_pdfPriorAmazonPeriod);
       }
       if (_pdfRebuiltUnitsChart && window._csDataCache) {
-        csBuildUnitsChart('chart-amazon', 'legend-amazon', window._csDataCache.syncRows, window._csDataCache.histRows);
+        // Same cutoff rule as renderCosmettePeriod (fixed 2026-10-08) — was
+        // called with no cutoff, so the live chart showed the partial
+        // current month again after every PDF export.
+        csBuildUnitsChart('chart-amazon', 'legend-amazon', window._csDataCache.syncRows, window._csDataCache.histRows, _pdfPriorAmazonPeriod !== 'mtd');
       }
       if (btn) { btn.disabled = false; btn.classList.remove('pdfx-loading'); }
     }
