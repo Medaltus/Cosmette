@@ -3380,6 +3380,13 @@ function csGetLastFullMonth() {
   if (month === 0) { month = 12; year--; }
   return { year, month };
 }
+// Closed-month rule (2026-11-06, per Jaclyn): report pages and PDF exports
+// cover the PRIOR month, so the current, still-open month must never
+// appear. True for any month up to and including the last full month.
+function csIsClosedMonth(year, month) {
+  const lf = csGetLastFullMonth();
+  return (Number(year) * 12 + Number(month)) <= (lf.year * 12 + lf.month);
+}
 
 // ── KPI / table rendering (prefix-parameterized so internal 'kpi-*' and
 //    external 'x-kpi-*' ids can share one implementation) ─────────────────
@@ -3555,6 +3562,9 @@ window.loadCsCategoryChart = async function loadCsCategoryChart(){
 
     const periods = Object.keys(byPeriod)
       .map(k=>{ const [yr,mo]=k.split('-'); return {key:k, year:Number(yr), month:Number(mo)}; })
+      // Closed months only (2026-11-06, per Jaclyn): reports cover the PRIOR
+      // month, so the current, still-open month never appears.
+      .filter(p => { const lf = csGetLastFullMonth(); return (p.year*12+p.month) <= (lf.year*12+lf.month); })
       .sort((a,b)=>(a.year*12+a.month)-(b.year*12+b.month))
       .slice(-13);
 
@@ -5759,7 +5769,8 @@ window.initSubscriptions = function () {
           const brandRows = rows.filter(csIsCosmetteRow);
           const useRows = brandRows.length ? brandRows : rows;
 
-          const withDate = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const withDate = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }))
+            .filter(x => isNaN(x.y) || isNaN(x.m) || csIsClosedMonth(x.y, x.m)); // closed months only — no partial current month
           const sortable = withDate.length > 0 && withDate.every(x => !isNaN(x.y) && !isNaN(x.m));
           if (sortable) withDate.sort((a,b) => (a.y-b.y) || (a.m-b.m));
 
@@ -5827,7 +5838,7 @@ window.initSubscriptions = function () {
             if (v !== null && v > 0 && v <= 1) v = v * 100;
             return v;
           }
-          const withDateR = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const withDateR = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) })).filter(x => isNaN(x.y) || isNaN(x.m) || csIsClosedMonth(x.y, x.m)); // closed months only
           const hasHistory = withDateR.length > 1 && withDateR.every(x => !isNaN(x.y) && !isNaN(x.m));
           if (hasHistory) withDateR.sort((a,b) => (a.y-b.y) || (a.m-b.m));
 
@@ -7185,7 +7196,8 @@ window.initSubscriptions = function () {
           const rows = csvToRows(totalsCsv);
           const brandRows = rows.filter(csIsCosmetteRow);
           const useRows = brandRows.length ? brandRows : rows;
-          const withDate = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const withDate = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }))
+            .filter(x => isNaN(x.y) || isNaN(x.m) || csIsClosedMonth(x.y, x.m)); // closed months only — no partial current month
           if (withDate.length && withDate.every(x => !isNaN(x.y) && !isNaN(x.m))) withDate.sort((a,b) => (a.y-b.y)||(a.m-b.m));
           const labels = [], values = [], years = [];
           withDate.forEach(x => {
@@ -7215,7 +7227,7 @@ window.initSubscriptions = function () {
           const target = (window.SHEET_CFG.BRAND_SLUG || 'cosmette').toLowerCase();
           const useRows = rows.filter(r => (r.brand||'').toLowerCase().trim() === target);
           function readRetention(r) { if (!r) return null; let v = num(r.retention_90_day ?? r.retention_90 ?? r.retention ?? r.retention_rate ?? r.subscribe_save_retention); if (v !== null && v > 0 && v <= 1) v *= 100; return v; }
-          const withDateR = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) }));
+          const withDateR = useRows.map(r => ({ row: r, y: parseInt(r.year,10), m: parseInt(r.month,10) })).filter(x => isNaN(x.y) || isNaN(x.m) || csIsClosedMonth(x.y, x.m)); // closed months only
           const hasHistory = withDateR.length > 1 && withDateR.every(x => !isNaN(x.y) && !isNaN(x.m));
           if (hasHistory) withDateR.sort((a,b)=>(a.y-b.y)||(a.m-b.m));
           let brandRow = null;
